@@ -1,9 +1,12 @@
 import json
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from core.config import settings
 from core.database import engine
@@ -78,6 +81,19 @@ def create_app() -> FastAPI:
                     manager.unsubscribe(websocket, topic)
         except WebSocketDisconnect:
             manager.disconnect(websocket)
+
+    # Serve built frontend in production (static/ dir from Vite build)
+    static_dir = Path(__file__).parent / "static"
+    if static_dir.is_dir():
+        app.mount("/assets", StaticFiles(directory=static_dir / "assets"), name="assets")
+
+        @app.get("/{full_path:path}")
+        async def serve_spa(full_path: str):
+            """Serve Vue SPA — all non-API routes fall through to index.html."""
+            file = static_dir / full_path
+            if file.is_file():
+                return FileResponse(file)
+            return FileResponse(static_dir / "index.html")
 
     return app
 
