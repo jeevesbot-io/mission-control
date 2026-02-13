@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { RouterLink } from 'vue-router'
 import { useApi } from '@/composables/useApi'
+import { useMemoryStore } from '@/modules/memory/store'
 import PageShell from '@/components/layout/PageShell.vue'
 import StatCard from '@/components/data/StatCard.vue'
 import Badge from '@/components/ui/Badge.vue'
+import RecentMemories from '@/modules/memory/widgets/RecentMemories.vue'
 
 const api = useApi()
+const memoryStore = useMemoryStore()
 const health = ref<{ status: string; version: string } | null>(null)
 
 onMounted(async () => {
@@ -14,6 +18,7 @@ onMounted(async () => {
   } catch {
     // API not available yet
   }
+  memoryStore.fetchStats()
 })
 </script>
 
@@ -40,7 +45,7 @@ onMounted(async () => {
         <div class="overview__stats mc-stagger">
           <StatCard icon="&#x1f7e2;" :value="health?.status ?? '—'" label="Backend Status" />
           <StatCard icon="&#x1f4e6;" :value="health?.version ?? '—'" label="Build Version" />
-          <StatCard icon="&#x1f9e0;" value="—" label="Memory Files" />
+          <StatCard icon="&#x1f9e0;" :value="memoryStore.stats?.total_files ?? '—'" label="Memory Files" />
           <StatCard icon="&#x1f916;" value="—" label="Agent Runs (24h)" />
         </div>
       </section>
@@ -49,11 +54,11 @@ onMounted(async () => {
       <section class="overview__section">
         <h3 class="overview__section-title">Quick Access</h3>
         <div class="overview__grid mc-stagger">
-          <div class="overview__card overview__card--ghost">
-            <span class="overview__card-icon">&#x1f4dd;</span>
-            <span class="overview__card-label">Memory Module</span>
-            <span class="overview__card-hint">Coming in Phase 3</span>
-          </div>
+          <RouterLink to="/memory" class="overview__card overview__card--live">
+            <span class="overview__card-icon">&#x1f4dc;</span>
+            <span class="overview__card-label">Memory Explorer</span>
+            <span class="overview__card-hint">{{ memoryStore.stats?.total_files ?? 0 }} daily logs</span>
+          </RouterLink>
           <div class="overview__card overview__card--ghost">
             <span class="overview__card-icon">&#x1f393;</span>
             <span class="overview__card-label">School Dashboard</span>
@@ -65,6 +70,12 @@ onMounted(async () => {
             <span class="overview__card-hint">Coming in Phase 4</span>
           </div>
         </div>
+      </section>
+
+      <!-- Memory widget -->
+      <section class="overview__section">
+        <h3 class="overview__section-title">Memory</h3>
+        <RecentMemories />
       </section>
     </div>
   </PageShell>
@@ -161,6 +172,19 @@ onMounted(async () => {
 .overview__card--ghost:hover {
   opacity: 0.85;
   border-color: var(--mc-border-strong);
+}
+
+.overview__card--live {
+  text-decoration: none;
+  color: var(--mc-text);
+  cursor: pointer;
+  border-color: var(--mc-accent-subtle);
+}
+
+.overview__card--live:hover {
+  border-color: var(--mc-accent);
+  box-shadow: var(--mc-shadow-glow);
+  background: var(--mc-bg-elevated);
 }
 
 .overview__card-icon {

@@ -13,7 +13,9 @@ def test_health_returns_200():
     assert "version" in data
 
 
-def test_modules_returns_empty_list():
+def test_modules_includes_memory():
     response = client.get("/api/modules")
     assert response.status_code == 200
-    assert response.json() == []
+    modules = response.json()
+    ids = [m["id"] for m in modules]
+    assert "memory" in ids

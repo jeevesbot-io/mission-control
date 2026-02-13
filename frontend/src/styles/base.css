@@ -232,3 +232,133 @@ a:hover {
 .mc-stagger > *:nth-child(6) { animation-delay: 300ms; }
 .mc-stagger > *:nth-child(7) { animation-delay: 360ms; }
 .mc-stagger > *:nth-child(8) { animation-delay: 420ms; }
+
+/* ============================================================
+   Prose — rendered markdown content
+   ============================================================ */
+.mc-prose {
+  line-height: 1.75;
+  color: var(--mc-text);
+}
+
+.mc-prose h1,
+.mc-prose h2,
+.mc-prose h3,
+.mc-prose h4,
+.mc-prose h5,
+.mc-prose h6 {
+  font-family: var(--mc-font-display);
+  font-weight: 600;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  scroll-margin-top: 5rem;
+}
+
+.mc-prose h1 { font-size: 1.6rem; }
+.mc-prose h2 { font-size: 1.3rem; border-bottom: 1px solid var(--mc-border); padding-bottom: 0.3em; }
+.mc-prose h3 { font-size: 1.1rem; }
+.mc-prose h4 { font-size: 1rem; }
+
+.mc-prose p {
+  margin-bottom: 0.75em;
+}
+
+.mc-prose ul,
+.mc-prose ol {
+  margin-bottom: 0.75em;
+  padding-left: 1.5em;
+}
+
+.mc-prose li {
+  margin-bottom: 0.25em;
+}
+
+.mc-prose li > ul,
+.mc-prose li > ol {
+  margin-top: 0.25em;
+  margin-bottom: 0;
+}
+
+.mc-prose strong {
+  font-weight: 600;
+}
+
+.mc-prose a {
+  color: var(--mc-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.mc-prose a:hover {
+  color: var(--mc-accent-hover);
+}
+
+.mc-prose code {
+  font-family: var(--mc-font-mono);
+  font-size: 0.85em;
+  background: var(--mc-bg-elevated);
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  border: 1px solid var(--mc-border);
+}
+
+.mc-prose pre {
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border);
+  border-radius: var(--mc-radius-sm);
+  padding: 1rem;
+  overflow-x: auto;
+  margin-bottom: 1em;
+}
+
+.mc-prose pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.85rem;
+}
+
+.mc-prose blockquote {
+  border-left: 3px solid var(--mc-accent);
+  padding-left: 1rem;
+  margin: 0 0 1em 0;
+  color: var(--mc-text-muted);
+  font-style: italic;
+}
+
+.mc-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1em;
+  font-size: 0.9rem;
+}
+
+.mc-prose th,
+.mc-prose td {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--mc-border);
+  text-align: left;
+}
+
+.mc-prose th {
+  background: var(--mc-bg-elevated);
+  font-weight: 600;
+}
+
+.mc-prose hr {
+  border: none;
+  border-top: 1px solid var(--mc-border);
+  margin: 1.5em 0;
+}
+
+.mc-prose mark {
+  background: var(--mc-accent-subtle);
+  color: var(--mc-accent);
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+}
+
+.mc-prose img {
+  max-width: 100%;
+  border-radius: var(--mc-radius-sm);
+}
