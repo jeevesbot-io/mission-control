@@ -1,19 +1,92 @@
+/* ============================================================
+   MISSION CONTROL — Ground Control Design System
+   Aesthetic: Refined aerospace command center
+   Fonts: Syne (display) · Outfit (body) · Red Hat Mono (data)
+   ============================================================ */
+
 :root {
-  --mc-bg: #0f1117;
-  --mc-bg-surface: #1a1c25;
-  --mc-bg-elevated: #242631;
-  --mc-text: #e4e4e7;
-  --mc-text-muted: #8b8d97;
-  --mc-border: #2e303b;
-  --mc-accent: #6366f1;
-  --mc-accent-hover: #818cf8;
-  --mc-success: #22c55e;
-  --mc-warning: #f59e0b;
-  --mc-danger: #ef4444;
+  /* --- Palette: Deep space --- */
+  --mc-bg: #0a0c14;
+  --mc-bg-surface: rgba(16, 19, 30, 0.7);
+  --mc-bg-elevated: rgba(24, 27, 42, 0.8);
+  --mc-bg-hover: rgba(40, 44, 65, 0.6);
+  --mc-bg-solid: #10131e;
+  --mc-text: #e2e4ed;
+  --mc-text-muted: #6b7084;
+  --mc-border: rgba(255, 255, 255, 0.06);
+  --mc-border-strong: rgba(255, 255, 255, 0.1);
+
+  /* --- Accent: Electric indigo + warm amber --- */
+  --mc-accent: #7c6aff;
+  --mc-accent-hover: #9d8eff;
+  --mc-accent-glow: rgba(124, 106, 255, 0.3);
+  --mc-accent-subtle: rgba(124, 106, 255, 0.08);
+  --mc-live: #f0b429;
+  --mc-live-glow: rgba(240, 180, 41, 0.35);
+
+  /* --- Status --- */
+  --mc-success: #34d399;
+  --mc-warning: #fbbf24;
+  --mc-danger: #f87171;
+  --mc-info: #60a5fa;
+
+  /* --- Layout --- */
+  --mc-sidebar-width: 248px;
+  --mc-sidebar-collapsed-width: 68px;
+  --mc-header-height: 56px;
+  --mc-page-padding: 1.75rem;
+  --mc-transition-speed: 220ms;
+  --mc-radius: 12px;
+  --mc-radius-sm: 8px;
+
+  /* --- Typography --- */
+  --mc-font-display: 'Syne', system-ui, sans-serif;
+  --mc-font-body: 'Outfit', system-ui, sans-serif;
+  --mc-font-mono: 'Red Hat Mono', 'SF Mono', monospace;
+
+  /* --- Depth --- */
+  --mc-glass-blur: blur(20px);
+  --mc-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --mc-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --mc-shadow-glow: 0 0 24px var(--mc-accent-glow);
 
   color-scheme: dark;
 }
 
+/* --- Light mode --- */
+:root:not(:has(.dark-mode)) {
+  --mc-bg: #f4f5f9;
+  --mc-bg-surface: rgba(255, 255, 255, 0.75);
+  --mc-bg-elevated: rgba(255, 255, 255, 0.9);
+  --mc-bg-hover: rgba(0, 0, 0, 0.04);
+  --mc-bg-solid: #ffffff;
+  --mc-text: #111827;
+  --mc-text-muted: #6b7280;
+  --mc-border: rgba(0, 0, 0, 0.06);
+  --mc-border-strong: rgba(0, 0, 0, 0.1);
+
+  --mc-accent: #6355e0;
+  --mc-accent-hover: #5043c4;
+  --mc-accent-glow: rgba(99, 85, 224, 0.2);
+  --mc-accent-subtle: rgba(99, 85, 224, 0.06);
+  --mc-live: #d97706;
+  --mc-live-glow: rgba(217, 119, 6, 0.2);
+
+  --mc-success: #059669;
+  --mc-warning: #d97706;
+  --mc-danger: #dc2626;
+  --mc-info: #2563eb;
+
+  --mc-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --mc-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --mc-shadow-glow: 0 0 24px var(--mc-accent-glow);
+
+  color-scheme: light;
+}
+
+/* ============================================================
+   Reset
+   ============================================================ */
 *,
 *::before,
 *::after {
@@ -23,18 +96,139 @@
 }
 
 body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--mc-font-body);
   background-color: var(--mc-bg);
   color: var(--mc-text);
   line-height: 1.6;
+  font-weight: 400;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Dot grid background — subtle aerospace graph paper */
+.dark-mode body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+}
+
+:root:not(:has(.dark-mode)) body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.025) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+}
+
+/* Ambient gradient glow — top-left accent wash */
+.dark-mode body::after {
+  content: '';
+  position: fixed;
+  top: -20%;
+  left: -10%;
+  width: 60%;
+  height: 50%;
+  background: radial-gradient(ellipse, rgba(124, 106, 255, 0.06) 0%, transparent 70%);
+  z-index: -1;
+  pointer-events: none;
 }
 
 a {
   color: var(--mc-accent);
   text-decoration: none;
+  transition: color var(--mc-transition-speed);
 }
 
 a:hover {
   color: var(--mc-accent-hover);
 }
+
+/* ============================================================
+   Scrollbar
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--mc-border-strong);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--mc-text-muted);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--mc-border-strong) transparent;
+}
+
+/* ============================================================
+   Animations
+   ============================================================ */
+@keyframes mc-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes mc-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes mc-slide-in-left {
+  from { transform: translateX(-16px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes mc-pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes mc-glow-pulse {
+  0%, 100% { box-shadow: 0 0 8px var(--mc-accent-glow); }
+  50% { box-shadow: 0 0 20px var(--mc-accent-glow); }
+}
+
+/* ============================================================
+   Utility
+   ============================================================ */
+.mc-mono {
+  font-family: var(--mc-font-mono);
+}
+
+.mc-display {
+  font-family: var(--mc-font-display);
+}
+
+.mc-stagger > * {
+  animation: mc-fade-up 0.4s ease-out both;
+}
+
+.mc-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.mc-stagger > *:nth-child(2) { animation-delay: 60ms; }
+.mc-stagger > *:nth-child(3) { animation-delay: 120ms; }
+.mc-stagger > *:nth-child(4) { animation-delay: 180ms; }
+.mc-stagger > *:nth-child(5) { animation-delay: 240ms; }
+.mc-stagger > *:nth-child(6) { animation-delay: 300ms; }
+.mc-stagger > *:nth-child(7) { animation-delay: 360ms; }
+.mc-stagger > *:nth-child(8) { animation-delay: 420ms; }
