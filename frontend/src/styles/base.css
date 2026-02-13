@@ -1,0 +1,40 @@
+:root {
+  --mc-bg: #0f1117;
+  --mc-bg-surface: #1a1c25;
+  --mc-bg-elevated: #242631;
+  --mc-text: #e4e4e7;
+  --mc-text-muted: #8b8d97;
+  --mc-border: #2e303b;
+  --mc-accent: #6366f1;
+  --mc-accent-hover: #818cf8;
+  --mc-success: #22c55e;
+  --mc-warning: #f59e0b;
+  --mc-danger: #ef4444;
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: var(--mc-bg);
+  color: var(--mc-text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--mc-accent);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--mc-accent-hover);
+}

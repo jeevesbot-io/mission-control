@@ -1,0 +1,32 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5055:5055"
+    volumes:
+      - ./backend:/app
+      - ~/.openclaw/workspace/memory:/memory:ro
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://jeeves@host.docker.internal:5432/jeeves
+      - PORT=5055
+      - DEBUG=true
+      - SESSION_SECRET=mission-control-dev-secret-change-in-prod
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:5055
+      - MEMORY_PATH=/memory
+      - OPENCLAW_URL=http://host.docker.internal:18789
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
