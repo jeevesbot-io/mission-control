@@ -164,7 +164,8 @@ mission-control/
 │   │   │   └── ...
 │   │   └── ...                       # Future modules
 │   ├── Dockerfile
-│   └── requirements.txt
+│   ├── pyproject.toml                # Python deps (uv)
+│   └── tests/                        # pytest tests
 │
 ├── frontend/                         # Vue 3 + Vite (TypeScript)
 │   ├── src/
@@ -216,6 +217,8 @@ CREATE INDEX idx_agent_runs_agent_id ON agent_runs(agent_id);
 CREATE INDEX idx_agent_runs_created_at ON agent_runs(created_at DESC);
 CREATE INDEX idx_agent_runs_status ON agent_runs(status);
 ```
+
+> **Implemented:** The actual table uses UUID primary keys (not SERIAL), timezone-aware timestamps, and VARCHAR(100) for agent_id. See `backend/core/models.py` for the SQLAlchemy model.
 
 > **Note: No `memory_entries` table.** The original plan had a Postgres index of memory file metadata. This creates a sync problem — when agents modify markdown files, who updates the table? Instead: read memory files directly via the API and cache in-memory with a file watcher invalidation. If search performance becomes a problem, add full-text indexing later with a rebuild-from-source script, not a dual-write.
 

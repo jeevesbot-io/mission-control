@@ -4,12 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Mission Control is a unified dashboard and life operating system. It replaces Matron's standalone Flask dashboard with a plugin-based platform where each life domain (agents, memory, school, health, finance, etc.) is a self-contained module. **Status: planning phase — architecture documented, no implementation code yet.**
+Mission Control is a unified dashboard and life operating system. It replaces Matron's standalone Flask dashboard with a plugin-based platform where each life domain (agents, memory, school, health, finance, etc.) is a self-contained module. **Status: Phase 1 (scaffolding) complete — core system, database, and frontend framework are live. Building towards Phase 2.**
 
 All architecture documentation lives in `docs/`:
 - `Mission Control - Architecture.md` — full technical blueprint (stack, structure, API, wireframes, implementation plan)
 - `Mission Control - Modules.md` — module registry and contracts
 - `Mission Control - Backlog.md` — build phases and future features
+- `Mission Control - Architecture.md` also covers the implementation plan and phase estimates
 
 ## Tech Stack
 
@@ -21,25 +22,25 @@ All architecture documentation lives in `docs/`:
 - **Type sync:** `openapi-typescript` generates frontend types from FastAPI's `/openapi.json`
 - **Deployment:** Docker via Colima, multi-stage build (Vite build → FastAPI StaticFiles mount)
 
-## Development Commands (Planned)
+## Development Commands
 
 ```bash
-# Backend
-uvicorn main:app --reload
+# Backend (from backend/)
+uv run uvicorn main:app --reload --port 5055
 
-# Frontend
-vite dev                    # proxied to backend port
+# Frontend (from frontend/)
+npm run dev                 # proxied to backend at :5055
 
-# Migrations
-alembic revision --autogenerate -m "description"
-alembic upgrade head
+# Migrations (from backend/)
+uv run alembic revision --autogenerate -m "description"
+uv run alembic upgrade head
 
-# Type generation (after API changes)
-openapi-typescript http://localhost:5055/openapi.json -o frontend/src/types/api.ts
+# Type generation (from frontend/, backend must be running)
+npm run generate-types
 
 # Testing
-pytest                      # backend — httpx TestClient
-vitest                      # frontend — component/composable tests
+cd backend && uv run pytest       # backend
+cd frontend && npm test            # frontend (vitest)
 
 # Docker
 docker-compose -f docker-compose.dev.yml up
@@ -77,29 +78,36 @@ export default {
 
 Each module's router is wrapped in error-handling middleware. If one module throws, others keep running — the failing module returns 503 and its Overview widget shows "unavailable." Modules must degrade gracefully when their data sources are down.
 
-### Project Structure (Planned)
+### Project Structure
 
 ```
 mission-control/
 ├── backend/
 │   ├── main.py              # App factory, module auto-discovery
+│   ├── pyproject.toml       # Python deps (managed by uv)
+│   ├── alembic.ini          # Migration config
+│   ├── alembic/             # Migration scripts
 │   ├── core/                # Auth, registry, config, DB, WebSocket hub
-│   └── modules/             # memory/, school/, agents/, ...
-│       └── <name>/
-│           ├── __init__.py  # MODULE_INFO
-│           ├── router.py    # API endpoints
-│           ├── models.py    # Pydantic schemas
-│           └── service.py   # Business logic
+│   ├── modules/             # memory/, school/, agents/, ...
+│   │   └── <name>/
+│   │       ├── __init__.py  # MODULE_INFO
+│   │       ├── router.py    # API endpoints
+│   │       ├── models.py    # Pydantic schemas
+│   │       └── service.py   # Business logic
+│   └── tests/               # pytest tests
 ├── frontend/
 │   ├── src/
 │   │   ├── router/          # Auto-imports module routes
-│   │   ├── stores/          # Global Pinia store (auth, nav, theme)
+│   │   ├── stores/          # Pinia stores (app, per-module)
 │   │   ├── components/      # Shared: layout/, data/, ui/
 │   │   ├── modules/         # overview/, memory/, school/, agents/
 │   │   ├── composables/     # useApi, useWebSocket, useModule
-│   │   └── styles/          # theme.css, base.css
-│   └── vite.config.ts
-└── docker-compose.yml
+│   │   └── styles/          # base.css
+│   ├── vite.config.ts
+│   └── package.json
+├── docker-compose.dev.yml
+└── scripts/
+    └── generate-types.sh
 ```
 
 ## Data Sources

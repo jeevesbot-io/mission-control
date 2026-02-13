@@ -10,8 +10,8 @@ title: Mission Control — Map of Content
 
 A unified dashboard and life operating system built on FastAPI + Vue 3. Plugin-based architecture where each life domain (agents, memory, school, health, finance, etc.) is a self-contained module.
 
-> [!info] Status: **Planning** 📐
-> Architecture documented. Awaiting review before build.
+> [!info] Status: **Phase 1 Complete** ✅
+> Scaffolding done — FastAPI backend, Vue 3 frontend, Alembic migrations, module auto-discovery all working. Next: Phase 2 (Shell + theme).
 
 ---
 

@@ -17,7 +17,7 @@ title: Mission Control — Backlog
 
 ## Build Phase
 
-- [ ] Phase 1: Scaffolding (FastAPI + Alembic + Vue 3 + Vite + PrimeVue + openapi-typescript pipeline)
+- [x] Phase 1: Scaffolding (FastAPI + Alembic + Vue 3 + Vite + PrimeVue + openapi-typescript pipeline) — *done 2026-02-13*
 - [ ] Phase 2: Shell + theme (layout, dark theme, shared composables)
 - [ ] Phase 3: Module — Memory *(killer feature first)*
 - [ ] Phase 4: Module — Agents + WebSocket live feed
