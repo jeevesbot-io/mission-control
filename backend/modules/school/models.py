@@ -16,6 +16,24 @@ class SchoolEvent(BaseModel):
     school_id: str | None
 
 
+class CalendarEvent(BaseModel):
+    id: str
+    summary: str
+    start_date: str | None  # YYYY-MM-DD for all-day
+    start_datetime: str | None  # ISO for timed
+    end_date: str | None
+    end_datetime: str | None
+    all_day: bool
+    child: str | None  # inferred from summary
+
+
+class CalendarEventsResponse(BaseModel):
+    events: list[CalendarEvent]
+    total: int
+    window_start: str
+    window_end: str
+
+
 class SchoolEventsResponse(BaseModel):
     events: list[SchoolEvent]
     total: int

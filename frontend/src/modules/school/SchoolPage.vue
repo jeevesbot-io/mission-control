@@ -17,7 +17,7 @@ watch(activeTab, () => {
 })
 
 function loadTab() {
-  if (activeTab.value === 'events') store.fetchEvents()
+  if (activeTab.value === 'events') store.fetchCalendar()
   else if (activeTab.value === 'emails') store.fetchEmails()
   else store.fetchTasks()
 }
@@ -31,13 +31,35 @@ function childColour(child: string | null): string {
   return 'var(--mc-text-muted)'
 }
 
-function formatDate(iso: string | null): string {
-  if (!iso) return ''
-  return new Date(iso).toLocaleString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  })
+function formatEventDate(event: { start_date: string | null; start_datetime: string | null; all_day: boolean }): string {
+  if (event.all_day && event.start_date) {
+    return new Date(event.start_date + 'T00:00:00').toLocaleString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    })
+  }
+  if (event.start_datetime) {
+    return new Date(event.start_datetime).toLocaleString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+  return ''
+}
+
+function formatTime(event: { start_datetime: string | null; end_datetime: string | null; all_day: boolean }): string {
+  if (event.all_day) return 'All day'
+  if (!event.start_datetime) return ''
+  const start = new Date(event.start_datetime).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+  if (event.end_datetime) {
+    const end = new Date(event.end_datetime).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+    return `${start} – ${end}`
+  }
+  return start
 }
 
 function formatDateTime(iso: string | null): string {
@@ -49,21 +71,30 @@ function formatDateTime(iso: string | null): string {
     minute: '2-digit',
   })
 }
+
+function windowLabel(): string {
+  if (!store.calendarWindowStart || !store.calendarWindowEnd) return 'Next 7 days'
+  const fmt = (iso: string) => new Date(iso + 'T00:00:00').toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+  })
+  return `${fmt(store.calendarWindowStart)} – ${fmt(store.calendarWindowEnd)}`
+}
 </script>
 
 <template>
   <PageShell>
     <div class="school">
       <div class="school__header">
-        <h2 class="school__title">School Dashboard</h2>
-        <p class="school__subtitle">Events, emails, and tasks in one place</p>
+        <h2 class="school__title">School &amp; Family</h2>
+        <p class="school__subtitle">Calendar, emails, and tasks</p>
       </div>
 
       <!-- Stats -->
       <section class="school__section" v-if="store.stats">
         <h3 class="school__section-title">Overview</h3>
         <div class="school__stats mc-stagger">
-          <StatCard icon="📅" :value="store.stats.upcoming_events" label="Upcoming Events" />
+          <StatCard icon="📅" :value="store.stats.upcoming_events" label="Events (7 days)" />
           <StatCard icon="✉️" :value="store.stats.total_emails" label="Total Emails" />
           <StatCard icon="☑️" :value="store.stats.total_tasks" label="Tasks" />
         </div>
@@ -76,7 +107,7 @@ function formatDateTime(iso: string | null): string {
           :class="{ 'school__tab--active': activeTab === 'events' }"
           @click="activeTab = 'events'"
         >
-          Events
+          Calendar
         </button>
         <button
           class="school__tab"
@@ -94,14 +125,16 @@ function formatDateTime(iso: string | null): string {
         </button>
       </div>
 
-      <!-- Events Panel -->
+      <!-- Calendar Events Panel -->
       <div v-if="activeTab === 'events'" class="school__panel">
-        <div v-if="store.events.length === 0 && !store.loading" class="school__empty">
-          No upcoming events
+        <div class="school__window-label mc-mono">{{ windowLabel() }}</div>
+
+        <div v-if="store.calendarEvents.length === 0 && !store.loading" class="school__empty">
+          No events in the next 7 days
         </div>
         <div class="school__list mc-stagger">
           <div
-            v-for="event in store.events"
+            v-for="event in store.calendarEvents"
             :key="event.id"
             class="school__event"
           >
@@ -119,12 +152,8 @@ function formatDateTime(iso: string | null): string {
                 >{{ event.child }}</span>
               </div>
               <div class="school__event-meta">
-                <span class="mc-mono">{{ formatDate(event.event_date) }}</span>
-                <span v-if="event.event_time" class="mc-mono">{{ event.event_time }}</span>
-                <span v-if="event.school_id" class="school__badge">{{ event.school_id }}</span>
-              </div>
-              <div v-if="event.description" class="school__event-desc">
-                {{ event.description }}
+                <span class="mc-mono">{{ formatEventDate(event) }}</span>
+                <span class="mc-mono school__event-time">{{ formatTime(event) }}</span>
               </div>
             </div>
           </div>
@@ -244,7 +273,6 @@ function formatDateTime(iso: string | null): string {
   gap: 1rem;
 }
 
-/* Tabs */
 .school__tabs {
   display: flex;
   gap: 0;
@@ -277,9 +305,19 @@ function formatDateTime(iso: string | null): string {
   border-bottom-color: var(--mc-accent);
 }
 
-/* Panel */
 .school__panel {
   min-height: 200px;
+}
+
+.school__window-label {
+  font-size: 0.75rem;
+  color: var(--mc-text-muted);
+  margin-bottom: 0.75rem;
+  padding: 0.35rem 0.75rem;
+  background: var(--mc-bg-surface);
+  border: 1px solid var(--mc-border);
+  border-radius: var(--mc-radius-sm);
+  display: inline-block;
 }
 
 .school__list {
@@ -288,7 +326,6 @@ function formatDateTime(iso: string | null): string {
   gap: 0.5rem;
 }
 
-/* Events */
 .school__event {
   display: flex;
   gap: 0.75rem;
@@ -342,13 +379,10 @@ function formatDateTime(iso: string | null): string {
   gap: 0.75rem;
   font-size: 0.8rem;
   color: var(--mc-text-muted);
-  margin-bottom: 0.25rem;
 }
 
-.school__event-desc {
-  font-size: 0.85rem;
-  color: var(--mc-text-muted);
-  line-height: 1.4;
+.school__event-time {
+  font-size: 0.75rem;
 }
 
 .school__badge {
@@ -361,7 +395,6 @@ function formatDateTime(iso: string | null): string {
   text-transform: uppercase;
 }
 
-/* Emails */
 .school__email {
   display: flex;
   gap: 0.75rem;
@@ -440,7 +473,6 @@ function formatDateTime(iso: string | null): string {
   letter-spacing: 0.06em;
 }
 
-/* Tasks */
 .school__task {
   display: flex;
   align-items: flex-start;
@@ -486,7 +518,6 @@ function formatDateTime(iso: string | null): string {
   white-space: nowrap;
 }
 
-/* Empty / Loading / Error */
 .school__empty {
   text-align: center;
   padding: 2rem;

@@ -88,36 +88,31 @@ class OverviewService:
             )
 
     async def _get_upcoming_events(self, db: AsyncSession) -> list[UpcomingEvent]:
-        """Query school_events for the next 7 days."""
+        """Get upcoming events from Google Calendar via school service."""
         try:
-            today = datetime.date.today()
-            week_end = today + datetime.timedelta(days=7)
+            from modules.school.service import school_service
 
-            result = await db.execute(
-                text("""
-                    SELECT id, child, summary, event_date, event_end_date,
-                           event_time::text as event_time
-                    FROM school_events
-                    WHERE event_date >= :today AND event_date <= :week_end
-                    ORDER BY event_date ASC, event_time ASC NULLS LAST
-                    LIMIT 20
-                """),
-                {"today": today, "week_end": week_end},
-            )
+            cal = await school_service.get_calendar_events(days=7)
+            today = datetime.date.today()
 
             events = []
-            for row in result.fetchall():
-                days_away = (row.event_date - today).days
+            for ce in cal.events[:20]:
+                # Parse date for days_away
+                event_date_str = ce.start_date or (ce.start_datetime[:10] if ce.start_datetime else None)
+                if event_date_str:
+                    event_date = datetime.date.fromisoformat(event_date_str)
+                    days_away = (event_date - today).days
+                else:
+                    days_away = 0
+
                 events.append(
                     UpcomingEvent(
-                        id=row.id,
-                        child=row.child or "Unknown",
-                        summary=row.summary or "Untitled event",
-                        event_date=row.event_date.isoformat(),
-                        event_end_date=(
-                            row.event_end_date.isoformat() if row.event_end_date else None
-                        ),
-                        event_time=row.event_time,
+                        id=hash(ce.id) % 100000,
+                        child=ce.child or "Family",
+                        summary=ce.summary,
+                        event_date=ce.start_date or (ce.start_datetime[:10] if ce.start_datetime else ""),
+                        event_end_date=ce.end_date,
+                        event_time=ce.start_datetime[11:16] if ce.start_datetime and not ce.all_day else None,
                         days_away=days_away,
                     )
                 )

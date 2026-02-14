@@ -1,23 +1,146 @@
-"""School module service — queries existing school_emails, school_events, todoist_tasks tables."""
+"""School module service — queries school tables + Google Calendar via gog CLI."""
 
+import asyncio
 import datetime
+import json
 import logging
+import re
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .models import SchoolEmail, SchoolEvent, SchoolStatsResponse, TodoistTask
+from .models import (
+    CalendarEvent,
+    CalendarEventsResponse,
+    SchoolEmail,
+    SchoolEvent,
+    SchoolStatsResponse,
+    TodoistTask,
+)
 
 logger = logging.getLogger(__name__)
 
+GOG_PATH = "/opt/homebrew/bin/gog"
+CALENDAR_ACCOUNT = "sollyfamily3@gmail.com"
+
+# Patterns to infer which child an event relates to
+CHILD_PATTERNS = [
+    (re.compile(r"\bnatty\b", re.I), "Natty"),
+    (re.compile(r"\belodie\b", re.I), "Elodie"),
+    (re.compile(r"\bflorence\b", re.I), "Florence"),
+    (re.compile(r"\bQE\b"), "Natty"),
+    (re.compile(r"\bCounty\b", re.I), "Elodie"),
+    (re.compile(r"\bOnslow\b", re.I), "Florence"),
+]
+
+
+def _infer_child(summary: str) -> str | None:
+    """Try to match a child from event summary."""
+    for pattern, child in CHILD_PATTERNS:
+        if pattern.search(summary):
+            return child
+    return None
+
 
 class SchoolService:
-    """Query existing Postgres school tables."""
+    """Query existing Postgres school tables + Google Calendar."""
+
+    async def get_calendar_events(self, days: int = 7) -> CalendarEventsResponse:
+        """Fetch events from Google Calendar via gog CLI."""
+        today = datetime.date.today()
+        window_end = today + datetime.timedelta(days=days)
+
+        from_iso = f"{today.isoformat()}T00:00:00Z"
+        to_iso = f"{window_end.isoformat()}T00:00:00Z"
+
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                GOG_PATH, "calendar", "events", "primary",
+                "--account", CALENDAR_ACCOUNT,
+                "--from", from_iso,
+                "--to", to_iso,
+                "--json",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=15)
+
+            if proc.returncode != 0:
+                logger.warning("gog calendar failed (rc=%d): %s", proc.returncode, stderr.decode())
+                return CalendarEventsResponse(
+                    events=[], total=0,
+                    window_start=today.isoformat(),
+                    window_end=window_end.isoformat(),
+                )
+
+            data = json.loads(stdout.decode())
+            raw_events = data.get("events", [])
+
+            # gog paginates — fetch remaining pages
+            while data.get("nextPageToken"):
+                proc2 = await asyncio.create_subprocess_exec(
+                    GOG_PATH, "calendar", "events", "primary",
+                    "--account", CALENDAR_ACCOUNT,
+                    "--from", from_iso,
+                    "--to", to_iso,
+                    "--json",
+                    "--page", data["nextPageToken"],
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                stdout2, _ = await asyncio.wait_for(proc2.communicate(), timeout=15)
+                if proc2.returncode != 0:
+                    break
+                data = json.loads(stdout2.decode())
+                raw_events.extend(data.get("events", []))
+
+            events = []
+            for raw in raw_events:
+                summary = raw.get("summary", "(No title)")
+                start = raw.get("start", {})
+                end = raw.get("end", {})
+                all_day = "date" in start and "dateTime" not in start
+
+                events.append(CalendarEvent(
+                    id=raw.get("id", ""),
+                    summary=summary,
+                    start_date=start.get("date"),
+                    start_datetime=start.get("dateTime"),
+                    end_date=end.get("date"),
+                    end_datetime=end.get("dateTime"),
+                    all_day=all_day,
+                    child=_infer_child(summary),
+                ))
+
+            # Sort: timed events by datetime, all-day by date
+            events.sort(key=lambda e: e.start_datetime or f"{e.start_date}T00:00:00Z")
+
+            return CalendarEventsResponse(
+                events=events,
+                total=len(events),
+                window_start=today.isoformat(),
+                window_end=window_end.isoformat(),
+            )
+
+        except asyncio.TimeoutError:
+            logger.warning("gog calendar timed out")
+            return CalendarEventsResponse(
+                events=[], total=0,
+                window_start=today.isoformat(),
+                window_end=window_end.isoformat(),
+            )
+        except Exception as exc:
+            logger.warning("Failed to fetch calendar: %s", exc)
+            return CalendarEventsResponse(
+                events=[], total=0,
+                window_start=today.isoformat(),
+                window_end=window_end.isoformat(),
+            )
 
     async def get_events(
         self, db: AsyncSession, limit: int = 50
     ) -> list[SchoolEvent]:
-        """Get upcoming school events."""
+        """Get upcoming school events from DB."""
         try:
             result = await db.execute(
                 text("""
@@ -110,14 +233,10 @@ class SchoolService:
 
     async def get_stats(self, db: AsyncSession) -> SchoolStatsResponse:
         """Counts and summaries for overview."""
+        # Calendar events count from gog
         try:
-            events_result = await db.execute(
-                text("""
-                    SELECT COUNT(*) FROM school_events
-                    WHERE event_date >= CURRENT_DATE
-                """)
-            )
-            upcoming_events = events_result.scalar_one()
+            cal = await self.get_calendar_events(days=7)
+            upcoming_events = cal.total
         except Exception:
             upcoming_events = 0
 

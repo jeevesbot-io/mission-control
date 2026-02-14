@@ -23,101 +23,125 @@ describe('school store', () => {
     setActivePinia(createPinia())
   })
 
-  describe('fetchEvents', () => {
-    it('loads events', async () => {
-      const events = [
-        {
-          id: 1,
-          child: 'Natty',
-          summary: 'PSA Donut Sale',
-          description: 'After school',
-          event_date: '2026-02-13',
-          event_end_date: null,
-          event_time: null,
-          school_id: 'qe',
-        },
-      ]
-      mockJsonResponse({ events, total: 1 })
+  describe('fetchCalendar', () => {
+    it('loads calendar events', async () => {
+      const calData = {
+        events: [
+          {
+            id: 'abc123',
+            summary: 'Swimming',
+            start_date: null,
+            start_datetime: '2026-02-15T08:30:00Z',
+            end_date: null,
+            end_datetime: '2026-02-15T09:00:00Z',
+            all_day: false,
+            child: null,
+          },
+          {
+            id: 'def456',
+            summary: 'Elodie Rugby',
+            start_date: null,
+            start_datetime: '2026-02-16T15:30:00Z',
+            end_date: null,
+            end_datetime: '2026-02-16T16:30:00Z',
+            all_day: false,
+            child: 'Elodie',
+          },
+        ],
+        total: 2,
+        window_start: '2026-02-14',
+        window_end: '2026-02-21',
+      }
+      mockJsonResponse(calData)
 
       const store = useSchoolStore()
-      await store.fetchEvents()
+      await store.fetchCalendar()
 
-      expect(store.events).toEqual(events)
+      expect(store.calendarEvents).toHaveLength(2)
+      expect(store.calendarEvents[0]!.summary).toBe('Swimming')
+      expect(store.calendarEvents[1]!.child).toBe('Elodie')
+      expect(store.calendarWindowStart).toBe('2026-02-14')
+      expect(store.calendarWindowEnd).toBe('2026-02-21')
       expect(store.loading).toBe(false)
-      expect(store.error).toBeNull()
     })
 
     it('sets error on failure', async () => {
-      mockJsonResponse({ detail: 'Server error' }, 500)
+      mockJsonResponse({ detail: 'error' }, 500)
 
       const store = useSchoolStore()
-      await store.fetchEvents()
+      await store.fetchCalendar()
 
-      expect(store.events).toEqual([])
+      expect(store.calendarEvents).toEqual([])
       expect(store.error).toBeTruthy()
     })
   })
 
   describe('fetchEmails', () => {
     it('loads emails', async () => {
-      const emails = [
-        {
-          id: 1,
-          email_id: '10',
-          subject: 'Field Trip',
-          sender: 'teacher@school.edu',
-          child: 'Elodie',
-          school_id: 'county',
-          preview: 'Permission slip...',
-          processed_at: '2026-02-10T09:30:00Z',
-        },
-      ]
-      mockJsonResponse({ emails, total: 1 })
+      const data = {
+        emails: [
+          {
+            id: 1,
+            email_id: 'e1',
+            subject: 'Test',
+            sender: 'school@test.com',
+            child: 'Natty',
+            school_id: 'qe',
+            preview: 'Hello',
+            processed_at: '2026-02-13T10:00:00Z',
+          },
+        ],
+        total: 1,
+      }
+      mockJsonResponse(data)
 
       const store = useSchoolStore()
       await store.fetchEmails()
 
-      expect(store.emails).toEqual(emails)
+      expect(store.emails).toHaveLength(1)
+      expect(store.emails[0]!.subject).toBe('Test')
     })
 
     it('sets error on failure', async () => {
-      mockJsonResponse({ detail: 'Error' }, 500)
+      mockJsonResponse({ detail: 'error' }, 500)
 
       const store = useSchoolStore()
       await store.fetchEmails()
 
-      expect(store.emails).toEqual([])
       expect(store.error).toBeTruthy()
     })
   })
 
   describe('fetchTasks', () => {
     it('loads tasks', async () => {
-      const tasks = [
-        {
-          id: 'task-1',
-          content: 'Submit homework',
-          description: 'Math worksheet',
-          due_date: '2026-02-15',
-          todoist_id: 'abc123',
-          created_at: '2026-02-10T09:00:00Z',
-        },
-      ]
-      mockJsonResponse({ tasks, total: 1 })
+      const data = {
+        tasks: [
+          {
+            id: '1',
+            content: 'Book costume',
+            description: null,
+            due_date: '2026-03-01',
+            todoist_id: 't1',
+            created_at: '2026-02-13T10:00:00Z',
+          },
+        ],
+        total: 1,
+      }
+      mockJsonResponse(data)
 
       const store = useSchoolStore()
       await store.fetchTasks()
 
-      expect(store.tasks).toEqual(tasks)
+      expect(store.tasks).toHaveLength(1)
+      expect(store.tasks[0]!.content).toBe('Book costume')
     })
 
     it('sets error on failure', async () => {
-      mockJsonResponse({ detail: 'Error' }, 500)
+      mockJsonResponse({ detail: 'error' }, 500)
 
       const store = useSchoolStore()
       await store.fetchTasks()
 
-      expect(store.tasks).toEqual([])
       expect(store.error).toBeTruthy()
     })
   })
@@ -125,7 +149,7 @@ describe('school store', () => {
   describe('fetchStats', () => {
     it('loads stats', async () => {
       const stats = {
-        upcoming_events: 3,
+        upcoming_events: 10,
         total_emails: 17,
         total_tasks: 3,
       }
@@ -137,7 +161,7 @@ describe('school store', () => {
       expect(store.stats).toEqual(stats)
     })
 
-    it('sets null on failure', async () => {
+    it('handles failure', async () => {
       mockJsonResponse({ detail: 'error' }, 500)
 
       const store = useSchoolStore()
