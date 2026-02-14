@@ -18,13 +18,13 @@ title: Mission Control — Backlog
 ## Build Phase
 
 - [x] Phase 1: Scaffolding (FastAPI + Alembic + Vue 3 + Vite + PrimeVue + openapi-typescript pipeline) — *done 2026-02-13*
-- [ ] Phase 2: Shell + theme (layout, dark theme, shared composables)
-- [ ] Phase 3: Module — Memory *(killer feature first)*
-- [ ] Phase 4: Module — Agents + WebSocket live feed
-- [ ] Phase 5: Module — School (side-by-side parity check with Matron)
-- [ ] Phase 6: Overview page (widget assembly, stats, health check)
-- [ ] Phase 7: Docker + deploy (replace matron-dashboard)
-- [ ] Phase 8: Polish + testing
+- [x] Phase 2: Shell + theme (layout, dark/light theme, Ground Control design system, shared composables) — *done 2026-02-13*
+- [x] Phase 3: Module — Memory (file browser, full-text search, MEMORY.md viewer, TOC nav, RecentMemories widget) — *done 2026-02-13*
+- [x] Phase 4: Module — Agents + WebSocket live feed (agent list, run history, cron, triggers, live activity feed, `useWebSocket` composable) — *done 2026-02-13*
+- [x] Phase 5: Module — School (events, emails, tasks tabbed view, stats from existing Postgres tables, TodayEvents widget) — *done 2026-02-13*
+- [x] Phase 6: Overview page (`/api/overview` endpoint aggregating all data, health checks, upcoming events, agent activity, stat cards, two-column layout) — *done 2026-02-13*
+- [x] Phase 7: Docker + deploy (multi-stage Dockerfile, production docker-compose on port 5050, SPA static serving) — *done 2026-02-13*
+- [x] Phase 8: Polish + testing (42 backend tests, 41 frontend tests, Playwright e2e suites) — *done 2026-02-13*
 
 ## Future Features
 

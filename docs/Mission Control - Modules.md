@@ -11,35 +11,43 @@ Every domain in Mission Control is a self-contained module with a backend router
 
 ---
 
-## Active Modules (Phase 1)
+## Active Modules (all live)
 
-### 🏠 Overview
-- **Purpose:** Landing page. Assembles widgets from all registered modules.
-- **Data sources:** All module APIs
-- **Key views:** Stats bar, agent status, live activity timeline, module widgets
+### 🏠 Overview (`navOrder: 0`)
+- **Purpose:** Landing page and unified dashboard. Aggregates data from all modules via a single `/api/overview` endpoint.
+- **Backend:** `GET /api/overview` — returns health status, stats (agents, events, emails, tasks), upcoming events (7 days), recent agent activity (last 10 runs), system health (DB, uptime, version)
+- **Frontend:** Stat cards (6), upcoming events list (colour-coded by child), recent agent activity feed, system health indicators, WebSocket subscription + 30s auto-refresh
+- **Data sources:** Aggregates from `agent_runs`, `school_events`, `school_emails`, `todoist_tasks` tables + system health checks
+- **Key views:** Overview dashboard with two-column layout (events + activity)
 
-### 📜 Memory
+### 📜 Memory (`navOrder: 1`)
 - **Purpose:** Browse, search, and inspect Jeeves' memory system
-- **Data sources:** Markdown files (`memory/*.md`, `MEMORY.md`) via direct file read (Docker volume mount). Full-text search in-process; no separate index table — files are the source of truth, cached in-memory with file watcher invalidation.
-- **Key views:** Memory explorer, full-text search, MEMORY.md viewer with section nav, daily file browser
+- **Backend:** `GET /api/memory/files`, `/files/{date}`, `/long-term`, `/search?q=`, `/stats`
+- **Frontend:** Memory explorer, full-text search with highlighted snippets, MEMORY.md viewer with TOC sidebar, daily file browser, prev/next navigation
+- **Data sources:** Markdown files (`memory/*.md`, `MEMORY.md`) via direct file read. Full-text search in-process; files are source of truth, cached in-memory with mtime invalidation.
 - **Agent:** [[Archivist - MOC|The Archivist 📜]]
-- **Overview widget:** Recent memories
-- **Build order:** Phase 3 (first module — the killer feature)
+- **Overview widget:** Recent memories (top 3 files)
+- **Tests:** 8 backend integration tests, 9 frontend store tests, 28 Playwright e2e tests
 
-### 🏥 School
-- **Purpose:** School events, emails, tasks, calendar invites (Matron's domain)
-- **Data sources:** Postgres (`school_emails`, `school_events`, `todoist_tasks`)
-- **Key views:** Today/week/upcoming events, email list, action items, stats
+### ⚡ Agents (`navOrder: 2`)
+- **Purpose:** Agent monitoring, run history, cron schedule, manual triggers, live activity feed
+- **Backend:** `GET /api/agents/`, `/stats`, `/{id}/runs`, `/cron`, `POST /{id}/trigger`
+- **Frontend:** Agent cards grid with status badges, run history table (paginated, filterable by status), cron schedule, trigger buttons, live WebSocket activity feed
+- **Data sources:** Postgres (`agent_runs` — UUID PK, JSONB metadata), OpenClaw gateway API (`:18789`) for cron status + trigger execution
+- **WebSocket:** Trigger events broadcast on `agents:activity` topic
+- **Overview widget:** Agent activity (recent runs with status icons)
+- **Tests:** 12 backend integration tests, 12 frontend store tests, Playwright e2e suite
+
+### 🏥 School (`navOrder: 3`)
+- **Purpose:** School events, emails, tasks (Matron's domain, now in Mission Control)
+- **Backend:** `GET /api/school/events`, `/emails`, `/tasks`, `/stats`
+- **Frontend:** Tabbed view (Events | Emails | Tasks) with stat cards, colour-coded priorities, unread indicators
+- **Data sources:** Postgres (`school_emails`, `school_events`, `todoist_tasks`) via raw SQL (queries existing Matron tables, no ORM models needed). Graceful degradation if tables don't exist.
 - **Agent:** [[Matron - MOC|Matron 🏥]]
-- **Overview widget:** Today's school events
+- **Overview widget:** Upcoming events (next 5)
+- **Tests:** 10 backend integration tests, 8 frontend store tests, Playwright e2e suite
 
-### 🤖 Agents
-- **Purpose:** Agent monitoring, run history, cron schedule, manual triggers
-- **Data sources:** Postgres (`agent_runs` — unified table, JSONB metadata for agent-specific fields), OpenClaw gateway API (`:18789`) for cron status + trigger execution
-- **Key views:** Agent status cards, run history table (paginated, filterable), cron schedule, trigger buttons
-- **Overview widget:** Agent status + next scheduled run
-
-### 📊 Analytics (stretch)
+### 📊 Analytics (planned)
 - **Purpose:** Trends and patterns across all modules
 - **Data sources:** All module APIs, aggregated
 - **Key views:** Memory growth, agent activity, email processing trends

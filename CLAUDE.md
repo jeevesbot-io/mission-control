@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Mission Control is a unified dashboard and life operating system. It replaces Matron's standalone Flask dashboard with a plugin-based platform where each life domain (agents, memory, school, health, finance, etc.) is a self-contained module. **Status: Phase 1 (scaffolding) complete — core system, database, and frontend framework are live. Building towards Phase 2.**
+Mission Control is a unified dashboard and life operating system. It replaces Matron's standalone Flask dashboard with a plugin-based platform where each life domain (agents, memory, school, health, finance, etc.) is a self-contained module. **Status: All build phases (1–8) complete. Core system, all modules (Memory, Agents, School, Overview), WebSocket live feed, Docker production build, and full test suite are live. Ready for deployment and Matron cutover.**
 
 All architecture documentation lives in `docs/`:
 - `Mission Control - Architecture.md` — full technical blueprint (stack, structure, API, wireframes, implementation plan)
@@ -39,11 +39,15 @@ uv run alembic upgrade head
 npm run generate-types
 
 # Testing
-cd backend && uv run pytest       # backend
-cd frontend && npm test            # frontend (vitest)
+cd backend && uv run pytest       # backend (42 tests)
+cd frontend && npm test            # frontend vitest (41 tests)
+cd frontend && npx playwright test # e2e tests (requires backend + frontend running)
 
-# Docker
+# Docker (development)
 docker-compose -f docker-compose.dev.yml up
+
+# Docker (production — single container, serves frontend via FastAPI)
+docker-compose up
 ```
 
 ## Architecture
@@ -88,13 +92,13 @@ mission-control/
 │   ├── alembic.ini          # Migration config
 │   ├── alembic/             # Migration scripts
 │   ├── core/                # Auth, registry, config, DB, WebSocket hub
-│   ├── modules/             # memory/, school/, agents/, ...
+│   ├── modules/             # overview/, memory/, agents/, school/
 │   │   └── <name>/
 │   │       ├── __init__.py  # MODULE_INFO
 │   │       ├── router.py    # API endpoints
 │   │       ├── models.py    # Pydantic schemas
 │   │       └── service.py   # Business logic
-│   └── tests/               # pytest tests
+│   └── tests/               # pytest tests (42 tests)
 ├── frontend/
 │   ├── src/
 │   │   ├── router/          # Auto-imports module routes
@@ -105,7 +109,9 @@ mission-control/
 │   │   └── styles/          # base.css
 │   ├── vite.config.ts
 │   └── package.json
-├── docker-compose.dev.yml
+├── Dockerfile               # Multi-stage production build
+├── docker-compose.yml       # Production (port 5050)
+├── docker-compose.dev.yml   # Development (separate services)
 └── scripts/
     └── generate-types.sh
 ```
@@ -131,13 +137,36 @@ No `memory_entries` table — memory files are the source of truth. No Redis or 
 - **Agent triggers:** `POST /api/agents/{id}/trigger` sends HTTP to OpenClaw gateway — Mission Control is the control plane, not the execution engine
 - **WebSocket protocol:** Topic-based JSON messages; clients subscribe on connect; `useWebSocket` composable handles reconnection with exponential backoff
 
-## Build Phases
+## Build Phases (all complete)
 
-1. Scaffolding (FastAPI + Alembic + Vue 3 + Vite + PrimeVue + openapi-typescript)
-2. Shell + theme (layout, dark theme, shared composables)
-3. Memory module (killer feature — build first)
-4. Agents module + WebSocket live feed
-5. School module (side-by-side parity check with Matron)
-6. Overview page (widget assembly, stats, health check)
-7. Docker + deploy (replace matron-dashboard container)
-8. Polish + testing
+1. ~~Scaffolding~~ — FastAPI + Alembic + Vue 3 + Vite + PrimeVue + openapi-typescript
+2. ~~Shell + theme~~ — layout, dark/light theme, shared composables, Ground Control design system
+3. ~~Memory module~~ — file browser, full-text search, MEMORY.md viewer, TOC navigation
+4. ~~Agents module + WebSocket~~ — agent list, run history, cron, triggers, live activity feed
+5. ~~School module~~ — events, emails, tasks (tabbed view), stats from existing Postgres tables
+6. ~~Overview page~~ — unified dashboard with `/api/overview` aggregating all system data, health checks, upcoming events, agent activity feed, stat cards
+7. ~~Docker + deploy~~ — multi-stage production Dockerfile, production docker-compose on port 5050
+8. ~~Polish + testing~~ — 42 backend tests, 41 frontend tests, Playwright e2e test suites
+
+## API Endpoints
+
+```
+GET  /api/health                     → health + version
+GET  /api/modules                    → registered modules
+GET  /api/overview                   → aggregated dashboard data (health, stats, events, activity)
+GET  /api/memory/files               → daily memory file list
+GET  /api/memory/files/{date}        → daily memory content + sections
+GET  /api/memory/long-term           → MEMORY.md content + sections
+GET  /api/memory/search?q=...        → full-text search
+GET  /api/memory/stats               → memory stats
+GET  /api/agents/                    → agent list with last run info
+GET  /api/agents/stats               → aggregate stats (runs, success rate, 24h)
+GET  /api/agents/{id}/runs           → paginated run history (filterable)
+GET  /api/agents/cron                → cron schedule from OpenClaw gateway
+POST /api/agents/{id}/trigger        → trigger agent via gateway + WebSocket broadcast
+GET  /api/school/events              → upcoming school events
+GET  /api/school/emails              → recent school emails
+GET  /api/school/tasks               → todoist tasks
+GET  /api/school/stats               → school summary stats
+WS   /ws/live                        → real-time activity (topic-based pub/sub)
+```

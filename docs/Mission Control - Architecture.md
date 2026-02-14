@@ -188,7 +188,9 @@ mission-control/
 │   ├── vite.config.ts
 │   └── package.json
 │
-├── docker-compose.yml
+├── Dockerfile                       # Multi-stage production build
+├── docker-compose.yml               # Production (single container, port 5050)
+├── docker-compose.dev.yml           # Development (separate backend + frontend)
 └── README.md
 ```
 
@@ -294,37 +296,63 @@ Memory growth, agent activity trends, email processing stats. Sparkline charts o
 
 ---
 
-## API Design
+## API Design (all implemented)
 
 ```
-GET  /api/health                     → app health + module status + DB connectivity
+# Core
+GET  /api/health                     → app health + version
 GET  /api/modules                    → registered modules + metadata
-GET  /api/memory/search?q=...        → full-text search across memory files (in-process, not embedding-based)
-GET  /api/memory/files               → list memory files with metadata
-GET  /api/memory/files/{date}        → daily memory content (rendered markdown)
+
+# Overview (aggregates all data)
+GET  /api/overview                   → health, stats, events, activity, agent summary
+
+# Memory
+GET  /api/memory/files               → list daily memory files with metadata
+GET  /api/memory/files/{date}        → daily memory content + parsed sections
 GET  /api/memory/long-term           → MEMORY.md with section navigation
-GET  /api/school/events              → events (filters: child, date range)
-GET  /api/school/emails              → processed emails
-GET  /api/school/stats               → Matron statistics
-GET  /api/agents                     → agent list + status
-GET  /api/agents/{id}/runs           → run history (paginated, filterable)
-GET  /api/agents/cron                → cron schedule + status (via OpenClaw gateway HTTP call)
-POST /api/agents/{id}/trigger        → trigger agent run (HTTP call to OpenClaw gateway API)
-WS   /ws/live                        → real-time activity stream
+GET  /api/memory/search?q=...        → full-text search (min 2 chars)
+GET  /api/memory/stats               → memory system stats
+
+# Agents
+GET  /api/agents/                    → agent list with last run info
+GET  /api/agents/stats               → aggregate stats (total runs, success rate, 24h count, unique agents)
+GET  /api/agents/{id}/runs           → paginated run history (status/page filters)
+GET  /api/agents/cron                → cron schedule from OpenClaw gateway
+POST /api/agents/{id}/trigger        → trigger agent via gateway + WebSocket broadcast
+
+# School
+GET  /api/school/events              → upcoming school events
+GET  /api/school/emails              → recent school emails
+GET  /api/school/tasks               → todoist tasks/action items
+GET  /api/school/stats               → counts and summaries
+
+# Real-time
+WS   /ws/live                        → topic-based pub/sub (agents:activity, overview:refresh)
 ```
 
 Auto-generated docs at `/docs` (Swagger) and `/redoc`.
 
 ### WebSocket Protocol
 
-The `/ws/live` endpoint uses a simple JSON message format with topic-based filtering:
+The `/ws/live` endpoint uses a simple JSON message format with topic-based pub/sub:
 
+**Server → Client:**
 ```json
-{ "topic": "agent_run", "agent": "matron", "status": "ok", "summary": "Daily digest sent", "ts": "..." }
-{ "topic": "memory",    "action": "consolidation", "memories_added": 4, "ts": "..." }
+{ "topic": "agents:activity", "data": { "event": "trigger", "agent_id": "matron", "message": "..." } }
+{ "topic": "overview:refresh", "data": {} }
 ```
 
-Clients send a subscribe message on connect: `{ "subscribe": ["agent_run", "memory", "school"] }`. Default: all topics. Modules publish events via a shared `EventBus` in the backend — the WebSocket hub broadcasts to subscribed clients. Reconnection with exponential backoff handled by `useWebSocket` composable on the frontend.
+**Client → Server (subscribe/unsubscribe):**
+```json
+{ "action": "subscribe", "topic": "agents:activity" }
+{ "action": "unsubscribe", "topic": "agents:activity" }
+```
+
+Default: unsubscribed clients receive all messages. Backend `ConnectionManager` (singleton) manages connections and broadcasts. Frontend `useWebSocket` composable provides:
+- Shared singleton WebSocket connection (ref-counted across components)
+- `subscribe(topic, handler)` with automatic unsubscribe on unmount
+- Reconnection with exponential backoff (1s → 30s max)
+- Automatic re-subscribe to all active topics on reconnect
 
 ### Trigger Mechanism
 
@@ -332,19 +360,18 @@ Clients send a subscribe message on connect: `{ "subscribe": ["agent_run", "memo
 
 ---
 
-## Implementation Plan
+## Implementation Plan (all phases complete)
 
-| Phase | Work | Estimate |
-|-------|------|----------|
-| **1. Scaffolding** | FastAPI factory + module registry + Alembic, Vue 3 + Vite + PrimeVue + Pinia, docker-compose.dev.yml, openapi-typescript pipeline | ~5 hrs |
-| **2. Shell + theme** | App layout (Sidebar, Header, PageShell), PrimeVue dark theme customisation, shared composables (useApi, useWebSocket), StatCard component | ~3 hrs |
-| **3. Module: Memory** | File reader, full-text search, markdown renderer. MemoryPage, search, MEMORY.md viewer, RecentMemories widget. *The killer feature — build it first.* | ~5 hrs |
-| **4. Module: Agents** | Agent status + cron (OpenClaw HTTP) + run history APIs. AgentsPage, RunHistory, AgentStatus widget. WebSocket live feed. Trigger mechanism. | ~5 hrs |
-| **5. Module: School** | Port Matron queries to FastAPI router. SchoolPage, events, emails, tasks, TodayEvents widget. Side-by-side parity check with Matron. | ~4 hrs |
-| **6. Overview** | Widget assembly from all modules. Activity timeline. Stats bar. Health check endpoint. | ~3 hrs |
-| **7. Docker + deploy** | Multi-stage Dockerfile (Vite build → FastAPI static mount). Replace matron-dashboard container. Alembic migration on startup. | ~2 hrs |
-| **8. Polish + testing** | Mobile responsive, error handling, loading states, WebSocket reconnect, module contract tests, API integration tests. | ~4 hrs |
-| **Total** | | **~31 hrs** |
+| Phase | Work | Status |
+|-------|------|--------|
+| **1. Scaffolding** | FastAPI factory + module registry + Alembic, Vue 3 + Vite + PrimeVue + Pinia, docker-compose.dev.yml, openapi-typescript pipeline | **Done** |
+| **2. Shell + theme** | App layout (Sidebar, Header, PageShell), Ground Control dark/light theme, shared composables (useApi, useWebSocket), StatCard, Badge | **Done** |
+| **3. Module: Memory** | File reader, full-text search, markdown renderer. MemoryPage, search, MEMORY.md viewer with TOC, RecentMemories widget | **Done** |
+| **4. Module: Agents** | Agent list/stats/runs/cron/trigger APIs. AgentsPage, AgentDetailPage (run history table), AgentActivity widget. WebSocket live feed with reconnection | **Done** |
+| **5. Module: School** | Queries existing Matron Postgres tables. SchoolPage (tabbed Events/Emails/Tasks), TodayEvents widget. Graceful degradation | **Done** |
+| **6. Overview** | `/api/overview` aggregating all system data. Health checks, stat cards, upcoming events (child colour-coded), agent activity feed, two-column layout, auto-refresh | **Done** |
+| **7. Docker + deploy** | Multi-stage Dockerfile (Vite build → FastAPI static mount), production docker-compose on port 5050, SPA route handling | **Done** |
+| **8. Polish + testing** | 42 backend tests (pytest), 41 frontend tests (vitest), Playwright e2e suites for all modules | **Done** |
 
 New modules after this: **~4-6 hours each.**
 
@@ -364,9 +391,12 @@ Local development runs both servers with hot reload — no Docker rebuild cycle 
 
 ## Testing
 
-- **Backend:** pytest + httpx (`TestClient`). Each module gets a `tests/` directory with API integration tests against a test database. Core registry gets a smoke test verifying all modules load without error.
-- **Frontend:** Vitest for component and composable unit tests. Playwright for E2E smoke tests (stretch — add once the app is stable).
-- **Module contract:** A test that auto-discovers all modules and validates their `MODULE_INFO` structure and route registration. If a new module breaks the contract, CI catches it immediately.
+All tests passing as of Phase 8 completion.
+
+- **Backend (42 tests):** pytest + `TestClient`. Integration tests per module (`test_health.py`, `test_memory.py`, `test_agents.py`, `test_school.py`, `test_overview.py`). Tests mock service layer for agents/school (no live DB needed for most), use temp files for memory tests. Run: `cd backend && uv run pytest`
+- **Frontend (41 tests):** Vitest + jsdom. Pinia store tests for all modules (`app.test.ts`, `memory/store.test.ts`, `agents/store.test.ts`, `school/store.test.ts`, `overview/store.test.ts`). Mock `fetch` globally. Run: `cd frontend && npm test`
+- **E2E (Playwright):** Suites for memory (28 tests), agents, school, and overview modules. Tests navigation, UI rendering, tab switching, API endpoint validation. Run: `cd frontend && npx playwright test`
+- **Module contract:** `test_health.py` verifies all modules are registered via `/api/modules`. Each module test file also checks module presence.
 
 ---
 
