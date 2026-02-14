@@ -2,9 +2,11 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAppStore } from '@/stores/app'
+import { useChatStore } from '@/modules/chat/store'
 
 const route = useRoute()
 const appStore = useAppStore()
+const chatStore = useChatStore()
 
 const now = ref(new Date())
 let timer: ReturnType<typeof setInterval>
@@ -49,6 +51,11 @@ const dateStr = computed(() =>
         <span class="header__clock-divider">/</span>
         <span class="header__clock-date">{{ dateStr }}</span>
       </div>
+
+      <!-- Chat toggle -->
+      <button class="header__icon-btn" @click="chatStore.togglePanel()" title="Chat with Jeeves">
+        <i class="pi pi-comments" />
+      </button>
 
       <!-- Theme toggle -->
       <button

@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173,http://localhost:5055"
     memory_path: str = "~/.openclaw/workspace/memory"
     openclaw_url: str = "http://localhost:18789"
+    openclaw_token: str = ""
 
     # Cloudflare Access (empty = disabled)
     cf_access_team: str = ""
