@@ -6,6 +6,8 @@ import { useWebSocket } from '@/composables/useWebSocket'
 import PageShell from '@/components/layout/PageShell.vue'
 import StatCard from '@/components/data/StatCard.vue'
 import Badge from '@/components/ui/Badge.vue'
+import McIcon from '@/components/ui/McIcon.vue'
+import { getAgentIconName, getLevelIconName } from '@/composables/useIcons'
 
 const store = useOverviewStore()
 const { subscribe } = useWebSocket()
@@ -93,13 +95,6 @@ function formatEventTime(event: UpcomingEvent): string {
   return 'All day'
 }
 
-function levelIcon(level: string): string {
-  if (level === 'info') return '✅'
-  if (level === 'warning') return '⚠️'
-  if (level === 'error') return '❌'
-  return '➖'
-}
-
 function formatRelativeTime(iso: string): string {
   const now = Date.now()
   const then = new Date(iso).getTime()
@@ -113,13 +108,6 @@ function formatRelativeTime(iso: string): string {
   return `${days}d ago`
 }
 
-function agentIcon(agentId: string): string {
-  const lower = agentId.toLowerCase()
-  if (lower.includes('matron')) return '🏥'
-  if (lower.includes('archivist')) return '📜'
-  if (lower.includes('jeeves')) return '🫖'
-  return '🤖'
-}
 </script>
 
 <template>
@@ -153,32 +141,38 @@ function agentIcon(agentId: string): string {
         <h3 class="overview__section-title">System Telemetry</h3>
         <div class="overview__stats mc-stagger">
           <StatCard
-            icon="🤖"
+            icon="bot"
+            accent="#7c6aff"
             :value="store.data?.stats.agents_active ?? '—'"
             label="Active Agents"
           />
           <StatCard
-            icon="📅"
+            icon="calendar"
+            accent="#f59e0b"
             :value="store.data?.stats.events_this_week ?? '—'"
             label="Events This Week"
           />
           <StatCard
-            icon="📧"
+            icon="mail"
+            accent="#f87171"
             :value="store.data?.stats.emails_processed ?? '—'"
             label="Emails Processed"
           />
           <StatCard
-            icon="☑️"
+            icon="check-square"
+            accent="#60a5fa"
             :value="store.data?.stats.tasks_pending ?? '—'"
             label="Tasks Pending"
           />
           <StatCard
-            icon="💚"
+            icon="heart-pulse"
+            accent="#34d399"
             :value="store.data ? `${store.data.agent_summary.health_rate}%` : '—'"
             label="Health Rate"
           />
           <StatCard
-            icon="⏱️"
+            icon="timer"
+            accent="#a78bfa"
             :value="uptimeStr"
             label="Uptime"
           />
@@ -192,7 +186,7 @@ function agentIcon(agentId: string): string {
           <h3 class="overview__section-title">Upcoming Events</h3>
           <div class="overview__panel">
             <div v-if="!store.data?.upcoming_events.length" class="overview__empty">
-              <span class="overview__empty-icon">🎉</span>
+              <McIcon name="party-popper" :size="32" class="overview__empty-icon" />
               <span>No events this week</span>
             </div>
             <div v-else class="overview__events-list">
@@ -229,7 +223,7 @@ function agentIcon(agentId: string): string {
           <h3 class="overview__section-title">Recent Agent Activity</h3>
           <div class="overview__panel">
             <div v-if="!store.data?.recent_activity.length" class="overview__empty">
-              <span class="overview__empty-icon">🤖</span>
+              <McIcon name="bot" :size="32" class="overview__empty-icon" />
               <span>No recent agent runs</span>
             </div>
             <div v-else class="overview__activity-list">
@@ -238,11 +232,11 @@ function agentIcon(agentId: string): string {
                 :key="entry.id"
                 class="overview__activity"
               >
-                <span class="overview__activity-icon">{{ agentIcon(entry.agent_id) }}</span>
+                <McIcon :name="getAgentIconName(entry.agent_id)" :size="18" class="overview__activity-icon" />
                 <div class="overview__activity-content">
                   <div class="overview__activity-top">
                     <span class="overview__activity-agent">{{ entry.agent_id }}</span>
-                    <span class="overview__activity-status">{{ levelIcon(entry.level) }}</span>
+                    <McIcon :name="getLevelIconName(entry.level)" :size="14" class="overview__activity-status" />
                   </div>
                   <span class="overview__activity-summary">{{ entry.message }}</span>
                 </div>
@@ -374,8 +368,8 @@ function agentIcon(agentId: string): string {
 }
 
 .overview__empty-icon {
-  font-size: 2rem;
   opacity: 0.6;
+  color: var(--mc-text-muted);
 }
 
 /* Events */

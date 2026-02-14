@@ -21,7 +21,7 @@ export default {
   module: {
     id: 'agents',
     name: 'Agents',
-    icon: '\u26A1',
+    icon: 'zap',
     navOrder: 2,
   },
   routes,

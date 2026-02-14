@@ -28,7 +28,7 @@ export default {
   module: {
     id: 'memory',
     name: 'Memory',
-    icon: '\u{1F4DC}',
+    icon: 'scroll-text',
     navOrder: 1,
   },
   routes,

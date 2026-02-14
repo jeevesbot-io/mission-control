@@ -14,7 +14,7 @@ export default {
   module: {
     id: 'chat',
     name: 'Chat',
-    icon: '\u{1F4AC}',
+    icon: 'message-circle',
     navOrder: 4,
   },
   routes,

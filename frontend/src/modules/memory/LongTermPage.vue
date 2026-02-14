@@ -4,6 +4,7 @@ import { RouterLink } from 'vue-router'
 import { marked } from 'marked'
 import { useMemoryStore } from './store'
 import PageShell from '@/components/layout/PageShell.vue'
+import McIcon from '@/components/ui/McIcon.vue'
 
 const store = useMemoryStore()
 const activeSlug = ref('')
@@ -106,7 +107,7 @@ onUnmounted(() => {
         </div>
 
         <h2 class="lt-page__heading">
-          <span class="lt-page__heading-icon">🧠</span>
+          <McIcon name="brain" :size="22" class="lt-page__heading-icon" />
           Long-Term Memory
         </h2>
 
@@ -224,7 +225,7 @@ onUnmounted(() => {
 }
 
 .lt-page__heading-icon {
-  font-size: 1.2rem;
+  flex-shrink: 0;
 }
 
 .lt-page__loading {

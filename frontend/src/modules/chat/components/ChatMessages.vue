@@ -2,6 +2,7 @@
 import { ref, watch, nextTick } from 'vue'
 import { marked } from 'marked'
 import type { ChatMessage } from '../store'
+import McIcon from '@/components/ui/McIcon.vue'
 
 const props = defineProps<{
   messages: ChatMessage[]
@@ -38,7 +39,7 @@ watch(
 <template>
   <div class="chat-messages" ref="container">
     <div v-if="messages.length === 0" class="chat-messages__empty">
-      <span class="chat-messages__empty-icon">💬</span>
+      <McIcon name="message-circle" :size="32" class="chat-messages__empty-icon" />
       <p>Ask Jeeves anything</p>
     </div>
 
@@ -91,8 +92,8 @@ watch(
 }
 
 .chat-messages__empty-icon {
-  font-size: 2rem;
   opacity: 0.5;
+  color: var(--mc-text-muted);
 }
 
 .chat-messages__bubble {

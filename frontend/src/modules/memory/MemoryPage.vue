@@ -3,6 +3,7 @@ import { ref, onMounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useMemoryStore } from './store'
 import PageShell from '@/components/layout/PageShell.vue'
+import McIcon from '@/components/ui/McIcon.vue'
 
 const store = useMemoryStore()
 const searchInput = ref('')
@@ -103,7 +104,7 @@ function formatSize(bytes: number): string {
         <section class="memory-page__section">
           <h3 class="memory-page__section-title">Reference</h3>
           <RouterLink to="/memory/long-term" class="memory-page__card memory-page__card--accent">
-            <div class="memory-page__card-icon">🧠</div>
+            <div class="memory-page__card-icon"><McIcon name="brain" :size="22" /></div>
             <div class="memory-page__card-body">
               <span class="memory-page__card-title">MEMORY.md</span>
               <span class="memory-page__card-desc">Long-term memory — key context, people, preferences</span>

@@ -3,6 +3,7 @@ import { ref, onMounted, watch } from 'vue'
 import { useSchoolStore } from './store'
 import PageShell from '@/components/layout/PageShell.vue'
 import StatCard from '@/components/data/StatCard.vue'
+import McIcon from '@/components/ui/McIcon.vue'
 
 const store = useSchoolStore()
 const activeTab = ref<'events' | 'emails' | 'tasks'>('events')
@@ -94,9 +95,9 @@ function windowLabel(): string {
       <section class="school__section" v-if="store.stats">
         <h3 class="school__section-title">Overview</h3>
         <div class="school__stats mc-stagger">
-          <StatCard icon="📅" :value="store.stats.upcoming_events" label="Events (7 days)" />
-          <StatCard icon="✉️" :value="store.stats.total_emails" label="Total Emails" />
-          <StatCard icon="☑️" :value="store.stats.total_tasks" label="Tasks" />
+          <StatCard icon="calendar" accent="#f59e0b" :value="store.stats.upcoming_events" label="Events (7 days)" />
+          <StatCard icon="mail" accent="#f87171" :value="store.stats.total_emails" label="Total Emails" />
+          <StatCard icon="check-square" accent="#60a5fa" :value="store.stats.total_tasks" label="Tasks" />
         </div>
       </section>
 
@@ -206,7 +207,7 @@ function windowLabel(): string {
             :key="task.id"
             class="school__task"
           >
-            <div class="school__task-check">⬜</div>
+            <div class="school__task-check"><McIcon name="square" :size="18" /></div>
             <div class="school__task-body">
               <div class="school__task-content">{{ task.content }}</div>
               <div class="school__task-meta">

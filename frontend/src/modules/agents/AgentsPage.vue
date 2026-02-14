@@ -5,6 +5,8 @@ import { useAgentsStore } from './store'
 import { useWebSocket } from '@/composables/useWebSocket'
 import PageShell from '@/components/layout/PageShell.vue'
 import StatCard from '@/components/data/StatCard.vue'
+import McIcon from '@/components/ui/McIcon.vue'
+import { getAgentIconName } from '@/composables/useIcons'
 
 const store = useAgentsStore()
 const { subscribe } = useWebSocket()
@@ -43,14 +45,6 @@ function formatRelative(iso: string | null): string {
   return `${days}d ago`
 }
 
-function agentIcon(agentId: string): string {
-  const lower = agentId.toLowerCase()
-  if (lower.includes('matron')) return '🏥'
-  if (lower.includes('archivist')) return '📜'
-  if (lower.includes('jeeves')) return '🫖'
-  return '🤖'
-}
-
 async function handleTrigger(agentId: string) {
   const ok = await store.triggerAgent(agentId)
   if (ok) {
@@ -72,15 +66,16 @@ async function handleTrigger(agentId: string) {
       <section class="agents__section" v-if="store.stats">
         <h3 class="agents__section-title">Telemetry</h3>
         <div class="agents__stats mc-stagger">
-          <StatCard icon="📊" :value="store.stats.total_entries" label="Total Log Entries" />
+          <StatCard icon="bar-chart" accent="#fb923c" :value="store.stats.total_entries" label="Total Log Entries" />
           <StatCard
-            icon="💚"
+            icon="heart-pulse"
+            accent="#34d399"
             :value="`${store.stats.health_rate}%`"
             label="Health Rate"
           />
-          <StatCard icon="🕒" :value="store.stats.entries_24h" label="Entries (24h)" />
-          <StatCard icon="🤖" :value="store.stats.unique_agents" label="Unique Agents" />
-          <StatCard icon="⚠️" :value="store.stats.warning_count" label="Warnings" />
+          <StatCard icon="clock" accent="#38bdf8" :value="store.stats.entries_24h" label="Entries (24h)" />
+          <StatCard icon="bot" accent="#7c6aff" :value="store.stats.unique_agents" label="Unique Agents" />
+          <StatCard icon="alert-triangle" accent="#fbbf24" :value="store.stats.warning_count" label="Warnings" />
         </div>
       </section>
 
@@ -103,7 +98,7 @@ async function handleTrigger(agentId: string) {
           >
             <div class="agents__card-header">
               <div class="agents__card-name-row">
-                <span class="agents__card-icon">{{ agentIcon(agent.agent_id) }}</span>
+                <McIcon :name="getAgentIconName(agent.agent_id)" :size="22" class="agents__card-icon" />
                 <RouterLink
                   :to="`/agents/${agent.agent_id}`"
                   class="agents__card-name"
@@ -121,7 +116,7 @@ async function handleTrigger(agentId: string) {
             <div class="agents__card-meta">
               <span>{{ agent.total_entries }} entries</span>
               <span v-if="agent.warning_count > 0" class="agents__card-warnings">
-                ⚠️ {{ agent.warning_count }} warnings
+                <McIcon name="alert-triangle" :size="14" /> {{ agent.warning_count }} warnings
               </span>
               <span>Last: {{ formatRelative(agent.last_activity) }}</span>
             </div>
@@ -264,7 +259,7 @@ async function handleTrigger(agentId: string) {
 }
 
 .agents__card-icon {
-  font-size: 1.25rem;
+  flex-shrink: 0;
 }
 
 .agents__card-name {

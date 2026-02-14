@@ -2,6 +2,7 @@
 import { useAppStore } from '@/stores/app'
 import { moduleRegistry } from '@/router'
 import { useRoute } from 'vue-router'
+import McIcon from '@/components/ui/McIcon.vue'
 
 const appStore = useAppStore()
 const route = useRoute()
@@ -37,7 +38,7 @@ function isActive(moduleId: string): boolean {
     <div class="sidebar__brand">
       <div class="sidebar__brand-mark">
         <div class="sidebar__brand-ring" />
-        <span class="sidebar__brand-icon">&#x1f9e0;</span>
+        <span class="sidebar__brand-icon"><McIcon name="brain" :size="22" /></span>
       </div>
       <Transition name="label-fade">
         <div v-show="!appStore.sidebarCollapsed" class="sidebar__brand-info">
@@ -58,7 +59,7 @@ function isActive(moduleId: string): boolean {
         @click="emit('closeMobile')"
       >
         <span class="sidebar__link-indicator" />
-        <span class="sidebar__link-icon">{{ mod.icon }}</span>
+        <span class="sidebar__link-icon"><McIcon :name="mod.icon" :size="20" /></span>
         <Transition name="label-fade">
           <span v-show="!appStore.sidebarCollapsed" class="sidebar__link-label">{{ mod.name }}</span>
         </Transition>
@@ -214,7 +215,9 @@ function isActive(moduleId: string): boolean {
 }
 
 .sidebar__brand-icon {
-  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   position: relative;
   z-index: 1;
 }
@@ -298,10 +301,11 @@ function isActive(moduleId: string): boolean {
 }
 
 .sidebar__link-icon {
-  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   width: 32px;
-  text-align: center;
 }
 
 .sidebar__link-label {

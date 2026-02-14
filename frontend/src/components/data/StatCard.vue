@@ -1,22 +1,23 @@
 <script setup lang="ts">
+import McIcon from '@/components/ui/McIcon.vue'
+
 defineProps<{
   icon: string
   value: string | number
   label: string
+  accent?: string
   trend?: { value: string; direction: 'up' | 'down' }
 }>()
 </script>
 
 <template>
-  <div class="stat-card">
+  <div class="stat-card" :style="accent ? { '--mc-stat-accent': accent } : {}">
     <!-- Top edge accent -->
     <div class="stat-card__accent" />
 
     <div class="stat-card__content">
       <div class="stat-card__header">
-        <div class="stat-card__icon-box">
-          <span class="stat-card__icon">{{ icon }}</span>
-        </div>
+        <McIcon :name="icon" :size="20" :accent="accent" boxed />
         <div v-if="trend" class="stat-card__trend" :class="`stat-card__trend--${trend.direction}`">
           <i :class="trend.direction === 'up' ? 'pi pi-arrow-up-right' : 'pi pi-arrow-down-right'" />
           {{ trend.value }}
@@ -53,7 +54,7 @@ defineProps<{
 /* Top edge gradient bar */
 .stat-card__accent {
   height: 2px;
-  background: linear-gradient(to right, var(--mc-accent), transparent 80%);
+  background: linear-gradient(to right, var(--mc-stat-accent, var(--mc-accent)), transparent 80%);
   opacity: 0.5;
   transition: opacity var(--mc-transition-speed);
 }
@@ -73,17 +74,6 @@ defineProps<{
   margin-bottom: 1rem;
 }
 
-.stat-card__icon-box {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  background: var(--mc-accent-subtle);
-  border: 1px solid var(--mc-border);
-  border-radius: 10px;
-  font-size: 1.25rem;
-}
 
 .stat-card__trend {
   display: flex;

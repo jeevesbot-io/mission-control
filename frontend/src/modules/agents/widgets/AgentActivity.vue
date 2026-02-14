@@ -3,6 +3,8 @@ import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useApi } from '@/composables/useApi'
 import { useWebSocket } from '@/composables/useWebSocket'
+import McIcon from '@/components/ui/McIcon.vue'
+import { getLevelIconName } from '@/composables/useIcons'
 
 interface AgentLogEntry {
   id: number
@@ -41,13 +43,6 @@ async function refreshLog() {
   }
 }
 
-function levelIcon(level: string): string {
-  if (level === 'info') return '✅'
-  if (level === 'warning') return '⚠️'
-  if (level === 'error') return '❌'
-  return '➖'
-}
-
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleString(undefined, {
     month: 'short',
@@ -80,7 +75,7 @@ function formatTime(iso: string): string {
         :key="entry.id"
         class="agent-activity__item"
       >
-        <span class="agent-activity__icon">{{ levelIcon(entry.level) }}</span>
+        <McIcon :name="getLevelIconName(entry.level)" :size="16" class="agent-activity__icon" />
         <div class="agent-activity__info">
           <span class="agent-activity__agent">{{ entry.agent_id }}</span>
           <span class="agent-activity__summary">{{ entry.message }}</span>
@@ -142,7 +137,6 @@ function formatTime(iso: string): string {
 }
 
 .agent-activity__icon {
-  font-size: 0.85rem;
   flex-shrink: 0;
 }
 

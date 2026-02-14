@@ -14,7 +14,7 @@ export default {
   module: {
     id: 'school',
     name: 'School',
-    icon: '\u{1F3E5}',
+    icon: 'graduation-cap',
     navOrder: 3,
   },
   routes,

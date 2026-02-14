@@ -14,7 +14,7 @@ export default {
   module: {
     id: 'overview',
     name: 'Overview',
-    icon: '🏠',
+    icon: 'home',
     navOrder: 0,
   },
   routes,

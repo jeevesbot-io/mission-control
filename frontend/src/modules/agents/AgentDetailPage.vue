@@ -3,6 +3,8 @@ import { ref, onMounted, watch } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { useAgentsStore } from './store'
 import PageShell from '@/components/layout/PageShell.vue'
+import McIcon from '@/components/ui/McIcon.vue'
+import { getAgentIconName } from '@/composables/useIcons'
 
 const route = useRoute()
 const store = useAgentsStore()
@@ -63,14 +65,6 @@ function formatMetadata(meta: Record<string, unknown> | null): string {
     .join(', ')
 }
 
-function agentIcon(id: string): string {
-  const lower = id.toLowerCase()
-  if (lower.includes('matron')) return '🏥'
-  if (lower.includes('archivist')) return '📜'
-  if (lower.includes('jeeves')) return '🫖'
-  return '🤖'
-}
-
 async function handleTrigger() {
   const ok = await store.triggerAgent(agentId.value)
   if (ok) loadLog()
@@ -90,7 +84,7 @@ const totalPages = () => Math.ceil(store.logTotal / 20) || 1
 
       <div class="detail__header">
         <div class="detail__header-left">
-          <span class="detail__icon">{{ agentIcon(agentId) }}</span>
+          <McIcon :name="getAgentIconName(agentId)" :size="32" class="detail__icon" />
           <div>
             <h2 class="detail__title">{{ agentId }}</h2>
             <p class="detail__subtitle">{{ store.logTotal }} log entries</p>
@@ -226,7 +220,7 @@ const totalPages = () => Math.ceil(store.logTotal / 20) || 1
 }
 
 .detail__icon {
-  font-size: 2rem;
+  flex-shrink: 0;
 }
 
 .detail__title {
