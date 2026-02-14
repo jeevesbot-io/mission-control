@@ -43,7 +43,7 @@ function isActive(moduleId: string): boolean {
       <Transition name="label-fade">
         <div v-show="!appStore.sidebarCollapsed" class="sidebar__brand-info">
           <span class="sidebar__brand-text">Mission Control</span>
-          <span class="sidebar__brand-tag">GROUND CONTROL</span>
+          <span class="sidebar__brand-tag">LIFE OPS</span>
         </div>
       </Transition>
     </div>

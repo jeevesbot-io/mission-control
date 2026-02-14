@@ -66,7 +66,7 @@ function formatTime(iso: string): string {
     </div>
 
     <div v-else-if="recentEntries.length === 0" class="agent-activity__empty">
-      No recent agent activity
+      Agents idle
     </div>
 
     <div v-else class="agent-activity__list">

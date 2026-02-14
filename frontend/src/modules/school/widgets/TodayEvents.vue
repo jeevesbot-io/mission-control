@@ -48,7 +48,7 @@ function childColour(child: string | null): string {
     </div>
 
     <div v-else-if="events.length === 0" class="today-events__empty">
-      No upcoming events
+      Nothing on the horizon
     </div>
 
     <div v-else class="today-events__list">

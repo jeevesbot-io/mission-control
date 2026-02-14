@@ -59,7 +59,7 @@ async function handleTrigger(agentId: string) {
     <div class="agents">
       <div class="agents__header">
         <h2 class="agents__title">Agent Control</h2>
-        <p class="agents__subtitle">Monitor agent activity and logs</p>
+        <p class="agents__subtitle">Fleet status, logs, and dispatch</p>
       </div>
 
       <!-- Stats -->
@@ -87,7 +87,7 @@ async function handleTrigger(agentId: string) {
         </h3>
 
         <div v-if="store.agents.length === 0 && !store.loading" class="agents__empty">
-          <p>No agent activity recorded yet.</p>
+          <p>All quiet on the flight deck</p>
         </div>
 
         <div class="agents__grid mc-stagger">

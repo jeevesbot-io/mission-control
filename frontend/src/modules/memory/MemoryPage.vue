@@ -45,7 +45,7 @@ function formatSize(bytes: number): string {
     <div class="memory-page">
       <div class="memory-page__header">
         <h2 class="memory-page__title">Memory Explorer</h2>
-        <p class="memory-page__subtitle">Browse and search Jeeves' memory system</p>
+        <p class="memory-page__subtitle">Jeeves' complete knowledge base</p>
       </div>
 
       <!-- Search bar -->
@@ -95,7 +95,7 @@ function formatSize(bytes: number): string {
 
       <!-- No results -->
       <div v-else-if="store.searchQuery && store.searchResults.length === 0 && !store.loading" class="memory-page__empty">
-        <p>No results for "{{ store.searchQuery }}"</p>
+        <p>Nothing found for "{{ store.searchQuery }}"</p>
       </div>
 
       <!-- File browser (shown when not searching) -->
@@ -107,7 +107,7 @@ function formatSize(bytes: number): string {
             <div class="memory-page__card-icon"><McIcon name="brain" :size="22" /></div>
             <div class="memory-page__card-body">
               <span class="memory-page__card-title">MEMORY.md</span>
-              <span class="memory-page__card-desc">Long-term memory — key context, people, preferences</span>
+              <span class="memory-page__card-desc">Long-term memory — people, preferences, and context</span>
             </div>
             <i class="pi pi-chevron-right memory-page__card-arrow" />
           </RouterLink>
@@ -120,7 +120,7 @@ function formatSize(bytes: number): string {
             <span class="memory-page__count">{{ store.files.length }}</span>
           </h3>
           <div v-if="store.files.length === 0 && !store.loading" class="memory-page__empty">
-            <p>No daily memory files found.</p>
+            <p>No memory files yet</p>
           </div>
           <div class="memory-page__files mc-stagger">
             <RouterLink

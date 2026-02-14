@@ -88,7 +88,7 @@ function windowLabel(): string {
     <div class="school">
       <div class="school__header">
         <h2 class="school__title">School &amp; Family</h2>
-        <p class="school__subtitle">Calendar, emails, and tasks</p>
+        <p class="school__subtitle">Keeping the crew on schedule</p>
       </div>
 
       <!-- Stats -->
@@ -131,7 +131,7 @@ function windowLabel(): string {
         <div class="school__window-label mc-mono">{{ windowLabel() }}</div>
 
         <div v-if="store.calendarEvents.length === 0 && !store.loading" class="school__empty">
-          No events in the next 7 days
+          Week looks clear
         </div>
         <div class="school__list mc-stagger">
           <div
@@ -164,7 +164,7 @@ function windowLabel(): string {
       <!-- Emails Panel -->
       <div v-if="activeTab === 'emails'" class="school__panel">
         <div v-if="store.emails.length === 0 && !store.loading" class="school__empty">
-          No emails found
+          Inbox zero
         </div>
         <div class="school__list mc-stagger">
           <div
@@ -199,7 +199,7 @@ function windowLabel(): string {
       <!-- Tasks Panel -->
       <div v-if="activeTab === 'tasks'" class="school__panel">
         <div v-if="store.tasks.length === 0 && !store.loading" class="school__empty">
-          No tasks found
+          All tasks complete
         </div>
         <div class="school__list mc-stagger">
           <div

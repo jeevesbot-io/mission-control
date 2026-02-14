@@ -34,9 +34,9 @@ onUnmounted(() => {
 
 const greeting = computed(() => {
   const hour = new Date().getHours()
-  if (hour < 12) return 'Good morning, Commander'
-  if (hour < 18) return 'Good afternoon, Commander'
-  return 'Good evening, Commander'
+  if (hour < 12) return 'Good morning, Nick'
+  if (hour < 18) return 'Good afternoon, Nick'
+  return 'Good evening, Nick'
 })
 
 const healthBadge = computed(() => {
@@ -122,8 +122,8 @@ function formatRelativeTime(iso: string): string {
               {{ store.data.agent_summary.entries_24h }} agent entries today ·
               {{ store.data.upcoming_events.length }} events this week
             </template>
-            <template v-else-if="store.loading">Loading systems...</template>
-            <template v-else>Connecting to Mission Control...</template>
+            <template v-else-if="store.loading">Powering up...</template>
+            <template v-else>Establishing uplink...</template>
           </p>
         </div>
         <div class="overview__hero-right">
@@ -187,7 +187,7 @@ function formatRelativeTime(iso: string): string {
           <div class="overview__panel">
             <div v-if="!store.data?.upcoming_events.length" class="overview__empty">
               <McIcon name="party-popper" :size="32" class="overview__empty-icon" />
-              <span>No events this week</span>
+              <span>Clear skies ahead</span>
             </div>
             <div v-else class="overview__events-list">
               <div
@@ -224,7 +224,7 @@ function formatRelativeTime(iso: string): string {
           <div class="overview__panel">
             <div v-if="!store.data?.recent_activity.length" class="overview__empty">
               <McIcon name="bot" :size="32" class="overview__empty-icon" />
-              <span>No recent agent runs</span>
+              <span>Agents standing by</span>
             </div>
             <div v-else class="overview__activity-list">
               <div

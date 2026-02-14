@@ -38,7 +38,7 @@ onMounted(async () => {
     </div>
 
     <div v-else-if="files.length === 0" class="recent-memories__empty">
-      No memory files found
+      No entries yet
     </div>
 
     <div v-else class="recent-memories__list">

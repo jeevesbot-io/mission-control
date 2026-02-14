@@ -6,7 +6,7 @@ test.describe('Overview Page — Enhanced', () => {
     const greeting = page.locator('.overview__greeting')
     await expect(greeting).toBeVisible()
     const text = await greeting.textContent()
-    expect(text).toMatch(/Good (morning|afternoon|evening), Commander/)
+    expect(text).toMatch(/Good (morning|afternoon|evening), Nick/)
   })
 
   test('shows all stat cards including agents and school', async ({ page }) => {
