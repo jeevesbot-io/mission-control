@@ -4,38 +4,39 @@ import { useApi } from '@/composables/useApi'
 
 interface SchoolEvent {
   id: number
-  title: string
+  child: string | null
+  summary: string
   description: string | null
-  start_time: string
-  end_time: string | null
-  location: string | null
-  all_day: boolean
+  event_date: string | null
+  event_end_date: string | null
+  event_time: string | null
+  school_id: string | null
 }
 
 interface SchoolEmail {
   id: number
-  subject: string
-  sender: string
-  preview: string
-  received_at: string
-  is_read: boolean
+  email_id: string
+  subject: string | null
+  sender: string | null
+  child: string | null
+  school_id: string | null
+  preview: string | null
+  processed_at: string | null
 }
 
 interface TodoistTask {
   id: string
   content: string
   description: string | null
-  priority: number
   due_date: string | null
-  is_completed: boolean
-  project_name: string | null
+  todoist_id: string | null
+  created_at: string | null
 }
 
 interface SchoolStats {
   upcoming_events: number
-  unread_emails: number
-  pending_tasks: number
-  completed_today: number
+  total_emails: number
+  total_tasks: number
 }
 
 export type { SchoolEvent, SchoolEmail, TodoistTask, SchoolStats }

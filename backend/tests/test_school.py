@@ -19,17 +19,17 @@ def test_modules_includes_school():
 def test_list_events():
     """Should return school events."""
     from modules.school.models import SchoolEvent
-    import datetime
 
     events = [
         SchoolEvent(
             id=1,
-            title="Parent-Teacher Conference",
-            description="Meet with teachers",
-            start_time=datetime.datetime(2026, 2, 20, 14, 0, tzinfo=datetime.UTC),
-            end_time=datetime.datetime(2026, 2, 20, 16, 0, tzinfo=datetime.UTC),
-            location="Room 201",
-            all_day=False,
+            child="Natty",
+            summary="PSA Donut Sale",
+            description="After school",
+            event_date="2026-02-13",
+            event_end_date=None,
+            event_time=None,
+            school_id="qe",
         )
     ]
     with patch(
@@ -40,8 +40,8 @@ def test_list_events():
         assert response.status_code == 200
         data = response.json()
         assert data["total"] == 1
-        assert data["events"][0]["title"] == "Parent-Teacher Conference"
-        assert data["events"][0]["location"] == "Room 201"
+        assert data["events"][0]["summary"] == "PSA Donut Sale"
+        assert data["events"][0]["child"] == "Natty"
 
 
 def test_list_events_empty():
@@ -65,11 +65,13 @@ def test_list_emails():
     emails = [
         SchoolEmail(
             id=1,
+            email_id="10",
             subject="Field Trip Permission",
             sender="teacher@school.edu",
+            child="Elodie",
+            school_id="county",
             preview="Please sign the attached permission slip...",
-            received_at=datetime.datetime(2026, 2, 10, 9, 30, tzinfo=datetime.UTC),
-            is_read=False,
+            processed_at=datetime.datetime(2026, 2, 10, 9, 30, tzinfo=datetime.UTC),
         )
     ]
     with patch(
@@ -81,7 +83,7 @@ def test_list_emails():
         data = response.json()
         assert data["total"] == 1
         assert data["emails"][0]["subject"] == "Field Trip Permission"
-        assert data["emails"][0]["is_read"] is False
+        assert data["emails"][0]["child"] == "Elodie"
 
 
 def test_list_emails_empty():
@@ -98,16 +100,16 @@ def test_list_emails_empty():
 def test_list_tasks():
     """Should return todoist tasks."""
     from modules.school.models import TodoistTask
+    import datetime
 
     tasks = [
         TodoistTask(
             id="task-1",
             content="Submit homework",
             description="Math worksheet",
-            priority=3,
             due_date="2026-02-15",
-            is_completed=False,
-            project_name="School",
+            todoist_id="abc123",
+            created_at=datetime.datetime(2026, 2, 10, 9, 0, tzinfo=datetime.UTC),
         )
     ]
     with patch(
@@ -119,8 +121,6 @@ def test_list_tasks():
         data = response.json()
         assert data["total"] == 1
         assert data["tasks"][0]["content"] == "Submit homework"
-        assert data["tasks"][0]["priority"] == 3
-        assert data["tasks"][0]["is_completed"] is False
 
 
 def test_list_tasks_empty():
@@ -140,9 +140,8 @@ def test_get_stats():
 
     stats = SchoolStatsResponse(
         upcoming_events=3,
-        unread_emails=5,
-        pending_tasks=8,
-        completed_today=2,
+        total_emails=17,
+        total_tasks=3,
     )
     with patch(
         "modules.school.service.SchoolService.get_stats", new_callable=AsyncMock
@@ -152,9 +151,8 @@ def test_get_stats():
         assert response.status_code == 200
         data = response.json()
         assert data["upcoming_events"] == 3
-        assert data["unread_emails"] == 5
-        assert data["pending_tasks"] == 8
-        assert data["completed_today"] == 2
+        assert data["total_emails"] == 17
+        assert data["total_tasks"] == 3
 
 
 def test_get_stats_zeros():
@@ -162,7 +160,7 @@ def test_get_stats_zeros():
     from modules.school.models import SchoolStatsResponse
 
     stats = SchoolStatsResponse(
-        upcoming_events=0, unread_emails=0, pending_tasks=0, completed_today=0
+        upcoming_events=0, total_emails=0, total_tasks=0
     )
     with patch(
         "modules.school.service.SchoolService.get_stats", new_callable=AsyncMock

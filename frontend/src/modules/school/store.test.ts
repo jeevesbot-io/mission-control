@@ -28,12 +28,13 @@ describe('school store', () => {
       const events = [
         {
           id: 1,
-          title: 'Conference',
-          description: 'Meet teachers',
-          start_time: '2026-02-20T14:00:00Z',
-          end_time: '2026-02-20T16:00:00Z',
-          location: 'Room 201',
-          all_day: false,
+          child: 'Natty',
+          summary: 'PSA Donut Sale',
+          description: 'After school',
+          event_date: '2026-02-13',
+          event_end_date: null,
+          event_time: null,
+          school_id: 'qe',
         },
       ]
       mockJsonResponse({ events, total: 1 })
@@ -62,11 +63,13 @@ describe('school store', () => {
       const emails = [
         {
           id: 1,
+          email_id: '10',
           subject: 'Field Trip',
           sender: 'teacher@school.edu',
+          child: 'Elodie',
+          school_id: 'county',
           preview: 'Permission slip...',
-          received_at: '2026-02-10T09:30:00Z',
-          is_read: false,
+          processed_at: '2026-02-10T09:30:00Z',
         },
       ]
       mockJsonResponse({ emails, total: 1 })
@@ -95,10 +98,9 @@ describe('school store', () => {
           id: 'task-1',
           content: 'Submit homework',
           description: 'Math worksheet',
-          priority: 3,
           due_date: '2026-02-15',
-          is_completed: false,
-          project_name: 'School',
+          todoist_id: 'abc123',
+          created_at: '2026-02-10T09:00:00Z',
         },
       ]
       mockJsonResponse({ tasks, total: 1 })
@@ -124,9 +126,8 @@ describe('school store', () => {
     it('loads stats', async () => {
       const stats = {
         upcoming_events: 3,
-        unread_emails: 5,
-        pending_tasks: 8,
-        completed_today: 2,
+        total_emails: 17,
+        total_tasks: 3,
       }
       mockJsonResponse(stats)
 

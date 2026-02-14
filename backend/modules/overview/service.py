@@ -206,11 +206,11 @@ class OverviewService:
         except Exception:
             pass
 
-        # Tasks pending
+        # Tasks total
         tasks_pending = 0
         try:
             result = await db.execute(
-                text("SELECT COUNT(*) FROM todoist_tasks WHERE is_completed = false")
+                text("SELECT COUNT(*) FROM todoist_tasks")
             )
             tasks_pending = result.scalar_one()
         except Exception:

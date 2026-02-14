@@ -22,37 +22,32 @@ function loadTab() {
   else store.fetchTasks()
 }
 
-function formatDate(iso: string): string {
+function childColour(child: string | null): string {
+  if (!child) return 'var(--mc-text-muted)'
+  const lower = child.toLowerCase()
+  if (lower.includes('natty')) return 'var(--mc-info)'
+  if (lower.includes('elodie')) return '#a78bfa'
+  if (lower.includes('florence')) return 'var(--mc-success)'
+  return 'var(--mc-text-muted)'
+}
+
+function formatDate(iso: string | null): string {
+  if (!iso) return ''
   return new Date(iso).toLocaleString(undefined, {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
   })
 }
 
-function formatShortDate(iso: string): string {
+function formatDateTime(iso: string | null): string {
+  if (!iso) return ''
   return new Date(iso).toLocaleString(undefined, {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
   })
-}
-
-function priorityLabel(p: number): string {
-  if (p >= 4) return 'Urgent'
-  if (p === 3) return 'High'
-  if (p === 2) return 'Medium'
-  return 'Low'
-}
-
-function priorityClass(p: number): string {
-  if (p >= 4) return 'school__priority--urgent'
-  if (p === 3) return 'school__priority--high'
-  if (p === 2) return 'school__priority--medium'
-  return 'school__priority--low'
 }
 </script>
 
@@ -68,10 +63,9 @@ function priorityClass(p: number): string {
       <section class="school__section" v-if="store.stats">
         <h3 class="school__section-title">Overview</h3>
         <div class="school__stats mc-stagger">
-          <StatCard icon="&#x1f4c5;" :value="store.stats.upcoming_events" label="Upcoming Events" />
-          <StatCard icon="&#x2709;&#xfe0f;" :value="store.stats.unread_emails" label="Unread Emails" />
-          <StatCard icon="&#x2611;&#xfe0f;" :value="store.stats.pending_tasks" label="Pending Tasks" />
-          <StatCard icon="&#x2705;" :value="store.stats.completed_today" label="Completed Today" />
+          <StatCard icon="📅" :value="store.stats.upcoming_events" label="Upcoming Events" />
+          <StatCard icon="✉️" :value="store.stats.total_emails" label="Total Emails" />
+          <StatCard icon="☑️" :value="store.stats.total_tasks" label="Tasks" />
         </div>
       </section>
 
@@ -83,7 +77,6 @@ function priorityClass(p: number): string {
           @click="activeTab = 'events'"
         >
           Events
-          <span v-if="store.stats" class="school__tab-count">{{ store.stats.upcoming_events }}</span>
         </button>
         <button
           class="school__tab"
@@ -91,7 +84,6 @@ function priorityClass(p: number): string {
           @click="activeTab = 'emails'"
         >
           Emails
-          <span v-if="store.stats" class="school__tab-count">{{ store.stats.unread_emails }}</span>
         </button>
         <button
           class="school__tab"
@@ -99,7 +91,6 @@ function priorityClass(p: number): string {
           @click="activeTab = 'tasks'"
         >
           Tasks
-          <span v-if="store.stats" class="school__tab-count">{{ store.stats.pending_tasks }}</span>
         </button>
       </div>
 
@@ -114,16 +105,27 @@ function priorityClass(p: number): string {
             :key="event.id"
             class="school__event"
           >
-            <div class="school__event-time">
-              <span class="mc-mono">{{ formatDate(event.start_time) }}</span>
-              <span v-if="event.all_day" class="school__badge">All Day</span>
-            </div>
-            <div class="school__event-title">{{ event.title }}</div>
-            <div v-if="event.location" class="school__event-location">
-              <i class="pi pi-map-marker" /> {{ event.location }}
-            </div>
-            <div v-if="event.description" class="school__event-desc">
-              {{ event.description }}
+            <div
+              class="school__event-bar"
+              :style="{ background: childColour(event.child) }"
+            />
+            <div class="school__event-body">
+              <div class="school__event-top">
+                <span class="school__event-title">{{ event.summary }}</span>
+                <span
+                  v-if="event.child"
+                  class="school__event-child"
+                  :style="{ color: childColour(event.child) }"
+                >{{ event.child }}</span>
+              </div>
+              <div class="school__event-meta">
+                <span class="mc-mono">{{ formatDate(event.event_date) }}</span>
+                <span v-if="event.event_time" class="mc-mono">{{ event.event_time }}</span>
+                <span v-if="event.school_id" class="school__badge">{{ event.school_id }}</span>
+              </div>
+              <div v-if="event.description" class="school__event-desc">
+                {{ event.description }}
+              </div>
             </div>
           </div>
         </div>
@@ -139,14 +141,27 @@ function priorityClass(p: number): string {
             v-for="email in store.emails"
             :key="email.id"
             class="school__email"
-            :class="{ 'school__email--unread': !email.is_read }"
           >
-            <div class="school__email-header">
-              <span class="school__email-sender">{{ email.sender }}</span>
-              <span class="school__email-date mc-mono">{{ formatShortDate(email.received_at) }}</span>
+            <div
+              class="school__email-bar"
+              :style="{ background: childColour(email.child) }"
+            />
+            <div class="school__email-body">
+              <div class="school__email-header">
+                <span class="school__email-subject">{{ email.subject }}</span>
+                <span class="school__email-date mc-mono">{{ formatDateTime(email.processed_at) }}</span>
+              </div>
+              <div class="school__email-sender">{{ email.sender }}</div>
+              <div v-if="email.preview" class="school__email-preview">{{ email.preview }}</div>
+              <div class="school__email-tags">
+                <span
+                  v-if="email.child"
+                  class="school__email-child"
+                  :style="{ color: childColour(email.child) }"
+                >{{ email.child }}</span>
+                <span v-if="email.school_id" class="school__badge">{{ email.school_id }}</span>
+              </div>
             </div>
-            <div class="school__email-subject">{{ email.subject }}</div>
-            <div class="school__email-preview">{{ email.preview }}</div>
           </div>
         </div>
       </div>
@@ -161,21 +176,13 @@ function priorityClass(p: number): string {
             v-for="task in store.tasks"
             :key="task.id"
             class="school__task"
-            :class="{ 'school__task--done': task.is_completed }"
           >
-            <div class="school__task-check">
-              <span v-if="task.is_completed">&#x2705;</span>
-              <span v-else>&#x2b1c;</span>
-            </div>
+            <div class="school__task-check">⬜</div>
             <div class="school__task-body">
               <div class="school__task-content">{{ task.content }}</div>
               <div class="school__task-meta">
-                <span
-                  class="school__priority"
-                  :class="priorityClass(task.priority)"
-                >{{ priorityLabel(task.priority) }}</span>
                 <span v-if="task.due_date" class="mc-mono">Due: {{ task.due_date }}</span>
-                <span v-if="task.project_name" class="school__task-project">{{ task.project_name }}</span>
+                <span v-if="task.description" class="school__task-desc">{{ task.description }}</span>
               </div>
             </div>
           </div>
@@ -217,7 +224,6 @@ function priorityClass(p: number): string {
   font-size: 0.9rem;
 }
 
-/* Sections */
 .school__section {
   margin-bottom: 2rem;
 }
@@ -271,15 +277,6 @@ function priorityClass(p: number): string {
   border-bottom-color: var(--mc-accent);
 }
 
-.school__tab-count {
-  font-family: var(--mc-font-mono);
-  font-size: 0.7rem;
-  background: var(--mc-accent-subtle);
-  color: var(--mc-accent);
-  padding: 0.1rem 0.4rem;
-  border-radius: 99px;
-}
-
 /* Panel */
 .school__panel {
   min-height: 200px;
@@ -293,6 +290,8 @@ function priorityClass(p: number): string {
 
 /* Events */
 .school__event {
+  display: flex;
+  gap: 0.75rem;
   padding: 1rem 1.25rem;
   background: var(--mc-bg-surface);
   border: 1px solid var(--mc-border);
@@ -304,13 +303,52 @@ function priorityClass(p: number): string {
   border-color: var(--mc-border-strong);
 }
 
-.school__event-time {
+.school__event-bar {
+  width: 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  align-self: stretch;
+}
+
+.school__event-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.school__event-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.school__event-title {
+  font-weight: 600;
+}
+
+.school__event-child {
+  font-family: var(--mc-font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+.school__event-meta {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   font-size: 0.8rem;
-  color: var(--mc-accent);
+  color: var(--mc-text-muted);
   margin-bottom: 0.25rem;
+}
+
+.school__event-desc {
+  font-size: 0.85rem;
+  color: var(--mc-text-muted);
+  line-height: 1.4;
 }
 
 .school__badge {
@@ -323,28 +361,10 @@ function priorityClass(p: number): string {
   text-transform: uppercase;
 }
 
-.school__event-title {
-  font-weight: 600;
-  margin-bottom: 0.25rem;
-}
-
-.school__event-location {
-  font-size: 0.8rem;
-  color: var(--mc-text-muted);
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  margin-bottom: 0.25rem;
-}
-
-.school__event-desc {
-  font-size: 0.85rem;
-  color: var(--mc-text-muted);
-  line-height: 1.4;
-}
-
 /* Emails */
 .school__email {
+  display: flex;
+  gap: 0.75rem;
   padding: 1rem 1.25rem;
   background: var(--mc-bg-surface);
   border: 1px solid var(--mc-border);
@@ -356,8 +376,16 @@ function priorityClass(p: number): string {
   border-color: var(--mc-border-strong);
 }
 
-.school__email--unread {
-  border-left: 3px solid var(--mc-accent);
+.school__email-bar {
+  width: 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  align-self: stretch;
+}
+
+.school__email-body {
+  flex: 1;
+  min-width: 0;
 }
 
 .school__email-header {
@@ -367,19 +395,26 @@ function priorityClass(p: number): string {
   margin-bottom: 0.25rem;
 }
 
-.school__email-sender {
-  font-size: 0.85rem;
-  font-weight: 500;
+.school__email-subject {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .school__email-date {
   font-size: 0.75rem;
   color: var(--mc-text-muted);
+  flex-shrink: 0;
 }
 
-.school__email-subject {
-  font-weight: 600;
+.school__email-sender {
+  font-size: 0.8rem;
+  color: var(--mc-text-muted);
   margin-bottom: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .school__email-preview {
@@ -388,6 +423,21 @@ function priorityClass(p: number): string {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  margin-bottom: 0.25rem;
+}
+
+.school__email-tags {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.school__email-child {
+  font-family: var(--mc-font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 /* Tasks */
@@ -404,10 +454,6 @@ function priorityClass(p: number): string {
 
 .school__task:hover {
   border-color: var(--mc-border-strong);
-}
-
-.school__task--done {
-  opacity: 0.55;
 }
 
 .school__task-check {
@@ -434,38 +480,10 @@ function priorityClass(p: number): string {
   color: var(--mc-text-muted);
 }
 
-.school__priority {
-  font-size: 0.65rem;
-  font-weight: 600;
-  padding: 0.1rem 0.4rem;
-  border-radius: 99px;
-  text-transform: uppercase;
-}
-
-.school__priority--urgent {
-  color: var(--mc-danger);
-  background: color-mix(in srgb, var(--mc-danger) 10%, transparent);
-}
-
-.school__priority--high {
-  color: var(--mc-warning);
-  background: color-mix(in srgb, var(--mc-warning) 10%, transparent);
-}
-
-.school__priority--medium {
-  color: var(--mc-info);
-  background: color-mix(in srgb, var(--mc-info) 10%, transparent);
-}
-
-.school__priority--low {
-  color: var(--mc-text-muted);
-  background: var(--mc-bg-elevated);
-}
-
-.school__task-project {
-  background: var(--mc-bg-elevated);
-  padding: 0.1rem 0.4rem;
-  border-radius: 4px;
+.school__task-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Empty / Loading / Error */

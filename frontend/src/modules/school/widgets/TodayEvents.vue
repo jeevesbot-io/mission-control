@@ -5,10 +5,11 @@ import { useApi } from '@/composables/useApi'
 
 interface SchoolEvent {
   id: number
-  title: string
-  start_time: string
-  all_day: boolean
-  location: string | null
+  child: string | null
+  summary: string
+  event_date: string | null
+  event_time: string | null
+  school_id: string | null
 }
 
 const api = useApi()
@@ -24,14 +25,13 @@ onMounted(async () => {
   }
 })
 
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+function childColour(child: string | null): string {
+  if (!child) return 'var(--mc-accent)'
+  const lower = child.toLowerCase()
+  if (lower.includes('natty')) return 'var(--mc-info)'
+  if (lower.includes('elodie')) return '#a78bfa'
+  if (lower.includes('florence')) return 'var(--mc-success)'
+  return 'var(--mc-accent)'
 }
 </script>
 
@@ -57,10 +57,13 @@ function formatTime(iso: string): string {
         :key="event.id"
         class="today-events__item"
       >
-        <div class="today-events__dot" />
+        <div class="today-events__dot" :style="{ background: childColour(event.child) }" />
         <div class="today-events__info">
-          <span class="today-events__name">{{ event.title }}</span>
-          <span class="today-events__time mc-mono">{{ formatTime(event.start_time) }}</span>
+          <span class="today-events__name">{{ event.summary }}</span>
+          <span class="today-events__time mc-mono">
+            {{ event.event_date }}
+            <template v-if="event.event_time"> · {{ event.event_time }}</template>
+          </span>
         </div>
       </div>
     </div>
@@ -115,7 +118,6 @@ function formatTime(iso: string): string {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--mc-accent);
   margin-top: 0.35rem;
   flex-shrink: 0;
 }

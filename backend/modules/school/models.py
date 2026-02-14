@@ -7,12 +7,13 @@ from pydantic import BaseModel
 
 class SchoolEvent(BaseModel):
     id: int
-    title: str
+    child: str | None
+    summary: str
     description: str | None
-    start_time: datetime.datetime
-    end_time: datetime.datetime | None
-    location: str | None
-    all_day: bool
+    event_date: str | None
+    event_end_date: str | None
+    event_time: str | None
+    school_id: str | None
 
 
 class SchoolEventsResponse(BaseModel):
@@ -22,11 +23,13 @@ class SchoolEventsResponse(BaseModel):
 
 class SchoolEmail(BaseModel):
     id: int
-    subject: str
-    sender: str
-    preview: str
-    received_at: datetime.datetime
-    is_read: bool
+    email_id: str
+    subject: str | None
+    sender: str | None
+    child: str | None
+    school_id: str | None
+    preview: str | None
+    processed_at: datetime.datetime | None
 
 
 class SchoolEmailsResponse(BaseModel):
@@ -38,10 +41,9 @@ class TodoistTask(BaseModel):
     id: str
     content: str
     description: str | None
-    priority: int
     due_date: str | None
-    is_completed: bool
-    project_name: str | None
+    todoist_id: str | None
+    created_at: datetime.datetime | None
 
 
 class TodoistTasksResponse(BaseModel):
@@ -51,6 +53,5 @@ class TodoistTasksResponse(BaseModel):
 
 class SchoolStatsResponse(BaseModel):
     upcoming_events: int
-    unread_emails: int
-    pending_tasks: int
-    completed_today: int
+    total_emails: int
+    total_tasks: int

@@ -21,10 +21,11 @@ class SchoolService:
         try:
             result = await db.execute(
                 text("""
-                    SELECT id, title, description, start_time, end_time, location, all_day
+                    SELECT id, child, summary, description, event_date, event_end_date,
+                           event_time::text as event_time, school_id
                     FROM school_events
-                    WHERE start_time >= NOW() - INTERVAL '1 day'
-                    ORDER BY start_time ASC
+                    WHERE event_date >= CURRENT_DATE - INTERVAL '1 day'
+                    ORDER BY event_date ASC, event_time ASC NULLS LAST
                     LIMIT :limit
                 """),
                 {"limit": limit},
@@ -32,12 +33,13 @@ class SchoolService:
             return [
                 SchoolEvent(
                     id=row.id,
-                    title=row.title,
+                    child=row.child,
+                    summary=row.summary,
                     description=row.description,
-                    start_time=row.start_time,
-                    end_time=row.end_time,
-                    location=row.location,
-                    all_day=row.all_day,
+                    event_date=row.event_date.isoformat() if row.event_date else None,
+                    event_end_date=row.event_end_date.isoformat() if row.event_end_date else None,
+                    event_time=row.event_time,
+                    school_id=row.school_id,
                 )
                 for row in result.fetchall()
             ]
@@ -52,9 +54,10 @@ class SchoolService:
         try:
             result = await db.execute(
                 text("""
-                    SELECT id, subject, sender, preview, received_at, is_read
+                    SELECT id, email_id, subject, sender, child, school_id,
+                           LEFT(body_text, 200) as preview, processed_at
                     FROM school_emails
-                    ORDER BY received_at DESC
+                    ORDER BY processed_at DESC
                     LIMIT :limit
                 """),
                 {"limit": limit},
@@ -62,11 +65,13 @@ class SchoolService:
             return [
                 SchoolEmail(
                     id=row.id,
+                    email_id=row.email_id,
                     subject=row.subject,
                     sender=row.sender,
+                    child=row.child,
+                    school_id=row.school_id,
                     preview=row.preview,
-                    received_at=row.received_at,
-                    is_read=row.is_read,
+                    processed_at=row.processed_at,
                 )
                 for row in result.fetchall()
             ]
@@ -81,9 +86,9 @@ class SchoolService:
         try:
             result = await db.execute(
                 text("""
-                    SELECT id, content, description, priority, due_date, is_completed, project_name
+                    SELECT id, content, description, due_date, todoist_id, created_at
                     FROM todoist_tasks
-                    ORDER BY priority DESC, due_date ASC NULLS LAST
+                    ORDER BY due_date ASC NULLS LAST, created_at DESC
                     LIMIT :limit
                 """),
                 {"limit": limit},
@@ -93,10 +98,9 @@ class SchoolService:
                     id=str(row.id),
                     content=row.content,
                     description=row.description,
-                    priority=row.priority,
-                    due_date=row.due_date,
-                    is_completed=row.is_completed,
-                    project_name=row.project_name,
+                    due_date=row.due_date.isoformat() if row.due_date else None,
+                    todoist_id=row.todoist_id,
+                    created_at=row.created_at,
                 )
                 for row in result.fetchall()
             ]
@@ -110,7 +114,8 @@ class SchoolService:
             events_result = await db.execute(
                 text("""
                     SELECT COUNT(*) FROM school_events
-                    WHERE start_time >= NOW() AND start_time < NOW() + INTERVAL '7 days'
+                    WHERE event_date >= CURRENT_DATE
+                      AND event_date < CURRENT_DATE + INTERVAL '7 days'
                 """)
             )
             upcoming_events = events_result.scalar_one()
@@ -119,39 +124,24 @@ class SchoolService:
 
         try:
             emails_result = await db.execute(
-                text("SELECT COUNT(*) FROM school_emails WHERE is_read = false")
+                text("SELECT COUNT(*) FROM school_emails")
             )
-            unread_emails = emails_result.scalar_one()
+            total_emails = emails_result.scalar_one()
         except Exception:
-            unread_emails = 0
+            total_emails = 0
 
         try:
             tasks_result = await db.execute(
-                text("SELECT COUNT(*) FROM todoist_tasks WHERE is_completed = false")
+                text("SELECT COUNT(*) FROM todoist_tasks")
             )
-            pending_tasks = tasks_result.scalar_one()
+            total_tasks = tasks_result.scalar_one()
         except Exception:
-            pending_tasks = 0
-
-        try:
-            today = datetime.date.today()
-            completed_result = await db.execute(
-                text("""
-                    SELECT COUNT(*) FROM todoist_tasks
-                    WHERE is_completed = true
-                    AND completed_at >= :today
-                """),
-                {"today": today},
-            )
-            completed_today = completed_result.scalar_one()
-        except Exception:
-            completed_today = 0
+            total_tasks = 0
 
         return SchoolStatsResponse(
             upcoming_events=upcoming_events,
-            unread_emails=unread_emails,
-            pending_tasks=pending_tasks,
-            completed_today=completed_today,
+            total_emails=total_emails,
+            total_tasks=total_tasks,
         )
 
 
