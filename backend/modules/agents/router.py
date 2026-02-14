@@ -8,7 +8,7 @@ from core.websocket import manager
 
 from .models import (
     AgentInfo,
-    AgentRunsPage,
+    AgentLogPage,
     AgentStatsResponse,
     CronResponse,
     TriggerResponse,
@@ -20,13 +20,13 @@ router = APIRouter()
 
 @router.get("/", response_model=list[AgentInfo])
 async def list_agents(db: AsyncSession = Depends(get_db)):
-    """List known agents with last run info."""
+    """List known agents with activity summary."""
     return await agent_service.list_agents(db)
 
 
 @router.get("/stats", response_model=AgentStatsResponse)
 async def get_stats(db: AsyncSession = Depends(get_db)):
-    """Aggregate stats: total runs, success rate, 24h count."""
+    """Aggregate stats: total entries, health rate, 24h count."""
     return await agent_service.get_stats(db)
 
 
@@ -37,19 +37,19 @@ async def get_cron():
     return CronResponse(jobs=jobs)
 
 
-@router.get("/{agent_id}/runs", response_model=AgentRunsPage)
-async def get_agent_runs(
+@router.get("/{agent_id}/log", response_model=AgentLogPage)
+async def get_agent_log(
     agent_id: str,
-    status: str | None = Query(None),
+    level: str | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
 ):
-    """Paginated run history for a specific agent."""
-    runs, total = await agent_service.get_runs(
-        db, agent_id=agent_id, status=status, page=page, page_size=page_size
+    """Paginated log history for a specific agent."""
+    entries, total = await agent_service.get_log(
+        db, agent_id=agent_id, level=level, page=page, page_size=page_size
     )
-    return AgentRunsPage(runs=runs, total=total, page=page, page_size=page_size)
+    return AgentLogPage(entries=entries, total=total, page=page, page_size=page_size)
 
 
 @router.post("/{agent_id}/trigger", response_model=TriggerResponse)
@@ -59,7 +59,6 @@ async def trigger_agent(agent_id: str):
     if not success:
         raise HTTPException(status_code=502, detail=message)
 
-    # Broadcast trigger event on WebSocket
     await manager.broadcast(
         "agents:activity",
         {"event": "trigger", "agent_id": agent_id, "message": message},

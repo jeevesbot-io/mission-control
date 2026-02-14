@@ -21,18 +21,18 @@ function mockJsonResponse(data: unknown, status = 200) {
 
 const mockOverviewData: OverviewData = {
   stats: {
-    agents_active: 3,
+    agents_active: 1,
     events_this_week: 5,
-    emails_processed: 42,
-    tasks_pending: 7,
+    emails_processed: 17,
+    tasks_pending: 3,
   },
   agent_summary: {
-    total_runs: 100,
-    success_count: 90,
-    failure_count: 5,
-    runs_24h: 12,
-    unique_agents: 3,
-    success_rate: 90.0,
+    total_entries: 61,
+    info_count: 57,
+    warning_count: 3,
+    entries_24h: 12,
+    unique_agents: 1,
+    health_rate: 93.4,
   },
   upcoming_events: [
     {
@@ -56,13 +56,10 @@ const mockOverviewData: OverviewData = {
   ],
   recent_activity: [
     {
-      id: 'abc-123',
+      id: '1',
       agent_id: 'matron',
-      run_type: 'scheduled',
-      trigger: 'cron',
-      status: 'success',
-      summary: 'Daily digest sent',
-      duration_ms: 1500,
+      level: 'info',
+      message: 'Urgent check: No unread emails',
       created_at: '2026-02-13T08:00:00Z',
     },
   ],
@@ -107,10 +104,10 @@ describe('overview store', () => {
       const store = useOverviewStore()
       await store.fetchOverview()
 
-      expect(store.data?.stats.agents_active).toBe(3)
+      expect(store.data?.stats.agents_active).toBe(1)
       expect(store.data?.stats.events_this_week).toBe(5)
-      expect(store.data?.stats.emails_processed).toBe(42)
-      expect(store.data?.stats.tasks_pending).toBe(7)
+      expect(store.data?.stats.emails_processed).toBe(17)
+      expect(store.data?.stats.tasks_pending).toBe(3)
     })
 
     it('has correct upcoming events', async () => {

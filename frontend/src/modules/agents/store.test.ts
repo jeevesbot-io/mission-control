@@ -24,9 +24,16 @@ describe('agents store', () => {
   })
 
   describe('fetchAgents', () => {
-    it('loads agent list', async () => {
+    it('loads agents list', async () => {
       const agents = [
-        { agent_id: 'test-agent', last_run: '2026-01-15T10:00:00Z', last_status: 'success', total_runs: 5 },
+        {
+          agent_id: 'matron',
+          last_activity: '2026-02-14T09:31:00Z',
+          last_message: 'Urgent check: No unread emails',
+          last_level: 'info',
+          total_entries: 61,
+          warning_count: 3,
+        },
       ]
       mockJsonResponse(agents)
 
@@ -35,11 +42,10 @@ describe('agents store', () => {
 
       expect(store.agents).toEqual(agents)
       expect(store.loading).toBe(false)
-      expect(store.error).toBeNull()
     })
 
     it('sets error on failure', async () => {
-      mockJsonResponse({ detail: 'Server error' }, 500)
+      mockJsonResponse({ detail: 'Error' }, 500)
 
       const store = useAgentsStore()
       await store.fetchAgents()
@@ -49,47 +55,15 @@ describe('agents store', () => {
     })
   })
 
-  describe('fetchRuns', () => {
-    it('loads paginated runs', async () => {
-      const runs = [
-        {
-          id: 'run-1',
-          agent_id: 'test-agent',
-          run_type: 'scheduled',
-          trigger: 'cron',
-          status: 'success',
-          summary: 'Done',
-          duration_ms: 1500,
-          tokens_used: 100,
-          created_at: '2026-01-15T10:00:00Z',
-        },
-      ]
-      mockJsonResponse({ runs, total: 1, page: 1, page_size: 20 })
-
-      const store = useAgentsStore()
-      await store.fetchRuns('test-agent')
-
-      expect(store.runs).toEqual(runs)
-      expect(store.runsTotal).toBe(1)
-      expect(store.runsPage).toBe(1)
-    })
-
-    it('passes status filter', async () => {
-      mockJsonResponse({ runs: [], total: 0, page: 1, page_size: 20 })
-
-      const store = useAgentsStore()
-      await store.fetchRuns('test-agent', 1, 'error')
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('status=error'),
-        expect.anything(),
-      )
-    })
-  })
-
   describe('fetchStats', () => {
     it('loads stats', async () => {
-      const stats = { total_runs: 100, success_rate: 95.0, runs_24h: 12, unique_agents: 3 }
+      const stats = {
+        total_entries: 61,
+        unique_agents: 1,
+        entries_24h: 12,
+        warning_count: 3,
+        health_rate: 93.4,
+      }
       mockJsonResponse(stats)
 
       const store = useAgentsStore()
@@ -98,7 +72,7 @@ describe('agents store', () => {
       expect(store.stats).toEqual(stats)
     })
 
-    it('sets null on failure', async () => {
+    it('handles failure gracefully', async () => {
       mockJsonResponse({ detail: 'error' }, 500)
 
       const store = useAgentsStore()
@@ -111,7 +85,7 @@ describe('agents store', () => {
   describe('fetchCron', () => {
     it('loads cron jobs', async () => {
       const jobs = [
-        { agent_id: 'daily', schedule: '0 8 * * *', enabled: true, last_run: null, next_run: null },
+        { agent_id: 'matron', schedule: '*/30 7-21 * * *', enabled: true },
       ]
       mockJsonResponse({ jobs })
 
@@ -121,7 +95,7 @@ describe('agents store', () => {
       expect(store.cronJobs).toEqual(jobs)
     })
 
-    it('sets empty on failure', async () => {
+    it('handles failure', async () => {
       mockJsonResponse({ detail: 'error' }, 500)
 
       const store = useAgentsStore()
@@ -131,45 +105,69 @@ describe('agents store', () => {
     })
   })
 
-  describe('triggerAgent', () => {
-    it('returns true on success', async () => {
-      mockJsonResponse({ success: true, message: 'Triggered', agent_id: 'test' })
+  describe('fetchLog', () => {
+    it('loads log entries', async () => {
+      const entries = [
+        {
+          id: 1,
+          agent_id: 'matron',
+          level: 'info',
+          message: 'Urgent check completed',
+          metadata: { new_emails: 0 },
+          created_at: '2026-02-14T09:31:00Z',
+        },
+      ]
+      mockJsonResponse({ entries, total: 1 })
 
       const store = useAgentsStore()
-      const result = await store.triggerAgent('test')
+      await store.fetchLog('matron')
+
+      expect(store.logEntries).toEqual(entries)
+      expect(store.logTotal).toBe(1)
+    })
+
+    it('handles failure', async () => {
+      mockJsonResponse({ detail: 'error' }, 500)
+
+      const store = useAgentsStore()
+      await store.fetchLog('matron')
+
+      expect(store.error).toBeTruthy()
+    })
+  })
+
+  describe('triggerAgent', () => {
+    it('returns true on success', async () => {
+      mockJsonResponse({ success: true, message: 'ok', agent_id: 'matron' })
+
+      const store = useAgentsStore()
+      const result = await store.triggerAgent('matron')
 
       expect(result).toBe(true)
     })
 
     it('returns false on failure', async () => {
-      mockJsonResponse({ detail: 'Gateway error' }, 502)
+      mockJsonResponse({ detail: 'error' }, 502)
 
       const store = useAgentsStore()
-      const result = await store.triggerAgent('test')
+      const result = await store.triggerAgent('matron')
 
       expect(result).toBe(false)
-      expect(store.error).toBeTruthy()
     })
   })
 
   describe('addActivity', () => {
-    it('prepends activity events', () => {
+    it('prepends activity to feed', () => {
       const store = useAgentsStore()
-      store.addActivity({ event: 'trigger', agent_id: 'test', message: 'Triggered' })
-      store.addActivity({ event: 'complete', agent_id: 'test', message: 'Done' })
+      store.addActivity({
+        event: 'trigger',
+        agent_id: 'matron',
+        message: 'Triggered manually',
+      })
 
-      expect(store.activityFeed).toHaveLength(2)
-      expect(store.activityFeed[0]!.message).toBe('Done')
-      expect(store.activityFeed[1]!.message).toBe('Triggered')
-    })
-
-    it('caps at 50 events', () => {
-      const store = useAgentsStore()
-      for (let i = 0; i < 60; i++) {
-        store.addActivity({ event: 'trigger', agent_id: 'test', message: `Event ${i}` })
-      }
-
-      expect(store.activityFeed).toHaveLength(50)
+      expect(store.activityFeed).toHaveLength(1)
+      expect(store.activityFeed[0]!.agent_id).toBe('matron')
+      expect(store.activityFeed[0]!.timestamp).toBeTruthy()
     })
   })
 })

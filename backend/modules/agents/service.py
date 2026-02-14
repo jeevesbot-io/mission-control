@@ -1,146 +1,169 @@
-"""Agents module service — queries agent_runs, triggers via OpenClaw gateway."""
+"""Agents module service — queries agent_log table, triggers via OpenClaw gateway."""
 
 import datetime
 import logging
 
 import httpx
-from sqlalchemy import Select, desc, distinct, func, select
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
-from core.models import AgentRun
 
-from .models import AgentInfo, AgentRunResponse, AgentStatsResponse, CronJob
+from .models import AgentInfo, AgentLogEntry, AgentStatsResponse, CronJob
 
 logger = logging.getLogger(__name__)
 
 
 class AgentService:
-    """Query agent_runs table and interact with OpenClaw gateway."""
+    """Query agent_log table and interact with OpenClaw gateway."""
 
     async def list_agents(self, db: AsyncSession) -> list[AgentInfo]:
-        """List known agents with last run info."""
-        # Subquery for last run per agent
-        subq = (
-            select(
-                AgentRun.agent_id,
-                func.count().label("total_runs"),
-                func.max(AgentRun.created_at).label("last_run"),
+        """List known agents with summary stats from agent_log."""
+        try:
+            result = await db.execute(
+                text("""
+                    SELECT
+                        agent,
+                        COUNT(*) as total_entries,
+                        MAX(created_at) as last_activity,
+                        COUNT(*) FILTER (WHERE level IN ('warning', 'WARNING', 'error', 'ERROR')) as warning_count
+                    FROM agent_log
+                    GROUP BY agent
+                    ORDER BY last_activity DESC
+                """)
             )
-            .group_by(AgentRun.agent_id)
-            .subquery()
-        )
-
-        result = await db.execute(
-            select(subq.c.agent_id, subq.c.total_runs, subq.c.last_run)
-            .order_by(desc(subq.c.last_run))
-        )
-        rows = result.all()
-
-        agents: list[AgentInfo] = []
-        for row in rows:
-            # Get last status
-            last_run_q = await db.execute(
-                select(AgentRun.status)
-                .where(AgentRun.agent_id == row.agent_id)
-                .order_by(desc(AgentRun.created_at))
-                .limit(1)
-            )
-            last_status = last_run_q.scalar_one_or_none()
-
-            agents.append(
-                AgentInfo(
-                    agent_id=row.agent_id,
-                    last_run=row.last_run,
-                    last_status=last_status,
-                    total_runs=row.total_runs,
+            agents = []
+            for row in result.fetchall():
+                # Get last message for status context
+                last_msg_result = await db.execute(
+                    text("""
+                        SELECT message, level FROM agent_log
+                        WHERE agent = :agent
+                        ORDER BY created_at DESC LIMIT 1
+                    """),
+                    {"agent": row.agent},
                 )
-            )
+                last = last_msg_result.fetchone()
 
-        return agents
+                agents.append(
+                    AgentInfo(
+                        agent_id=row.agent,
+                        last_activity=row.last_activity,
+                        last_message=last.message if last else None,
+                        last_level=last.level.lower() if last else None,
+                        total_entries=row.total_entries,
+                        warning_count=row.warning_count,
+                    )
+                )
+            return agents
+        except Exception as exc:
+            logger.warning("Failed to list agents: %s", exc)
+            return []
 
-    async def get_runs(
+    async def get_log(
         self,
         db: AsyncSession,
         agent_id: str | None = None,
-        status: str | None = None,
+        level: str | None = None,
         page: int = 1,
         page_size: int = 20,
-    ) -> tuple[list[AgentRunResponse], int]:
-        """Paginated run history with optional filters."""
-        query: Select = select(AgentRun).order_by(desc(AgentRun.created_at))
-        count_query = select(func.count()).select_from(AgentRun)
+    ) -> tuple[list[AgentLogEntry], int]:
+        """Paginated log history with optional filters."""
+        try:
+            filters = []
+            params: dict = {}
 
-        if agent_id:
-            query = query.where(AgentRun.agent_id == agent_id)
-            count_query = count_query.where(AgentRun.agent_id == agent_id)
+            if agent_id:
+                filters.append("agent = :agent_id")
+                params["agent_id"] = agent_id
 
-        if status:
-            query = query.where(AgentRun.status == status)
-            count_query = count_query.where(AgentRun.status == status)
+            if level:
+                filters.append("LOWER(level) = :level")
+                params["level"] = level.lower()
 
-        total_result = await db.execute(count_query)
-        total = total_result.scalar_one()
+            where = f"WHERE {' AND '.join(filters)}" if filters else ""
 
-        offset = (page - 1) * page_size
-        query = query.offset(offset).limit(page_size)
-
-        result = await db.execute(query)
-        runs = [
-            AgentRunResponse(
-                id=str(run.id),
-                agent_id=run.agent_id,
-                run_type=run.run_type,
-                trigger=run.trigger,
-                status=run.status,
-                summary=run.summary,
-                duration_ms=run.duration_ms,
-                tokens_used=run.tokens_used,
-                created_at=run.created_at,
+            count_result = await db.execute(
+                text(f"SELECT COUNT(*) FROM agent_log {where}"), params
             )
-            for run in result.scalars().all()
-        ]
+            total = count_result.scalar_one()
 
-        return runs, total
+            offset = (page - 1) * page_size
+            params["limit"] = page_size
+            params["offset"] = offset
+
+            result = await db.execute(
+                text(f"""
+                    SELECT id, agent, level, message, metadata, created_at
+                    FROM agent_log
+                    {where}
+                    ORDER BY created_at DESC
+                    LIMIT :limit OFFSET :offset
+                """),
+                params,
+            )
+
+            entries = [
+                AgentLogEntry(
+                    id=row.id,
+                    agent_id=row.agent,
+                    level=row.level.lower(),
+                    message=row.message,
+                    metadata=row.metadata,
+                    created_at=row.created_at,
+                )
+                for row in result.fetchall()
+            ]
+
+            return entries, total
+        except Exception as exc:
+            logger.warning("Failed to get agent log: %s", exc)
+            return [], 0
 
     async def get_stats(self, db: AsyncSession) -> AgentStatsResponse:
-        """Aggregate stats: total runs, success rate, 24h count, unique agents."""
-        total_result = await db.execute(select(func.count()).select_from(AgentRun))
-        total_runs = total_result.scalar_one()
-
-        if total_runs == 0:
-            return AgentStatsResponse(
-                total_runs=0, success_rate=0.0, runs_24h=0, unique_agents=0
+        """Aggregate stats from agent_log."""
+        try:
+            result = await db.execute(
+                text("""
+                    SELECT
+                        COUNT(*) as total_entries,
+                        COUNT(DISTINCT agent) as unique_agents,
+                        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours') as entries_24h,
+                        COUNT(*) FILTER (WHERE level IN ('warning', 'WARNING', 'error', 'ERROR')) as warning_count,
+                        COUNT(*) FILTER (WHERE level IN ('info', 'INFO')) as info_count
+                    FROM agent_log
+                """)
             )
+            row = result.fetchone()
 
-        success_result = await db.execute(
-            select(func.count())
-            .select_from(AgentRun)
-            .where(AgentRun.status == "success")
-        )
-        success_count = success_result.scalar_one()
+            if not row or row.total_entries == 0:
+                return AgentStatsResponse(
+                    total_entries=0,
+                    unique_agents=0,
+                    entries_24h=0,
+                    warning_count=0,
+                    health_rate=100.0,
+                )
 
-        cutoff = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=24)
-        recent_result = await db.execute(
-            select(func.count())
-            .select_from(AgentRun)
-            .where(AgentRun.created_at >= cutoff)
-        )
-        runs_24h = recent_result.scalar_one()
+            # Health rate = percentage of non-warning/error entries
+            health_rate = round(row.info_count / row.total_entries * 100, 1)
 
-        unique_result = await db.execute(
-            select(func.count(distinct(AgentRun.agent_id)))
-        )
-        unique_agents = unique_result.scalar_one()
-
-        success_rate = round(success_count / total_runs * 100, 1) if total_runs else 0.0
-
-        return AgentStatsResponse(
-            total_runs=total_runs,
-            success_rate=success_rate,
-            runs_24h=runs_24h,
-            unique_agents=unique_agents,
-        )
+            return AgentStatsResponse(
+                total_entries=row.total_entries,
+                unique_agents=row.unique_agents,
+                entries_24h=row.entries_24h,
+                warning_count=row.warning_count,
+                health_rate=health_rate,
+            )
+        except Exception as exc:
+            logger.warning("Failed to get agent stats: %s", exc)
+            return AgentStatsResponse(
+                total_entries=0,
+                unique_agents=0,
+                entries_24h=0,
+                warning_count=0,
+                health_rate=0.0,
+            )
 
     async def trigger_agent(self, agent_id: str) -> tuple[bool, str]:
         """Trigger agent via OpenClaw gateway HTTP call."""

@@ -4,35 +4,28 @@ import { useApi } from '@/composables/useApi'
 
 interface AgentInfo {
   agent_id: string
-  last_run: string | null
-  last_status: string | null
-  total_runs: number
+  last_activity: string | null
+  last_message: string | null
+  last_level: string | null
+  total_entries: number
+  warning_count: number
 }
 
-interface AgentRun {
-  id: string
+interface AgentLogEntry {
+  id: number
   agent_id: string
-  run_type: string
-  trigger: string
-  status: string
-  summary: string | null
-  duration_ms: number | null
-  tokens_used: number | null
+  level: string
+  message: string
+  metadata: Record<string, unknown> | null
   created_at: string
 }
 
-interface AgentRunsPage {
-  runs: AgentRun[]
-  total: number
-  page: number
-  page_size: number
-}
-
 interface AgentStats {
-  total_runs: number
-  success_rate: number
-  runs_24h: number
+  total_entries: number
   unique_agents: number
+  entries_24h: number
+  warning_count: number
+  health_rate: number
 }
 
 interface CronJob {
@@ -43,25 +36,24 @@ interface CronJob {
   next_run: string | null
 }
 
-export interface AgentActivityEvent {
+interface ActivityEvent {
   event: string
   agent_id: string
   message: string
   timestamp?: string
 }
 
-export type { AgentInfo, AgentRun, AgentRunsPage, AgentStats, CronJob }
+export type { AgentInfo, AgentLogEntry, AgentStats, CronJob, ActivityEvent }
 
 export const useAgentsStore = defineStore('agents', () => {
   const api = useApi()
 
   const agents = ref<AgentInfo[]>([])
-  const runs = ref<AgentRun[]>([])
-  const runsTotal = ref(0)
-  const runsPage = ref(1)
   const stats = ref<AgentStats | null>(null)
   const cronJobs = ref<CronJob[]>([])
-  const activityFeed = ref<AgentActivityEvent[]>([])
+  const logEntries = ref<AgentLogEntry[]>([])
+  const logTotal = ref(0)
+  const activityFeed = ref<ActivityEvent[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
 
@@ -72,23 +64,6 @@ export const useAgentsStore = defineStore('agents', () => {
       agents.value = await api.get<AgentInfo[]>('/api/agents/')
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Failed to load agents'
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function fetchRuns(agentId: string, page = 1, status?: string) {
-    loading.value = true
-    error.value = null
-    try {
-      let url = `/api/agents/${agentId}/runs?page=${page}`
-      if (status) url += `&status=${encodeURIComponent(status)}`
-      const data = await api.get<AgentRunsPage>(url)
-      runs.value = data.runs
-      runsTotal.value = data.total
-      runsPage.value = data.page
-    } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : 'Failed to load runs'
     } finally {
       loading.value = false
     }
@@ -111,37 +86,49 @@ export const useAgentsStore = defineStore('agents', () => {
     }
   }
 
+  async function fetchLog(agentId: string, page = 1) {
+    loading.value = true
+    try {
+      const data = await api.get<{ entries: AgentLogEntry[]; total: number }>(
+        `/api/agents/${agentId}/log?page=${page}`
+      )
+      logEntries.value = data.entries
+      logTotal.value = data.total
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to load log'
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function triggerAgent(agentId: string): Promise<boolean> {
     try {
-      await api.post(`/api/agents/${agentId}/trigger`)
+      await api.post<{ success: boolean }>(`/api/agents/${agentId}/trigger`)
       return true
-    } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : 'Failed to trigger agent'
+    } catch {
       return false
     }
   }
 
-  function addActivity(event: AgentActivityEvent) {
-    activityFeed.value = [
-      { ...event, timestamp: event.timestamp ?? new Date().toISOString() },
-      ...activityFeed.value,
-    ].slice(0, 50)
+  function addActivity(event: ActivityEvent) {
+    event.timestamp = new Date().toISOString()
+    activityFeed.value.unshift(event)
+    if (activityFeed.value.length > 50) activityFeed.value.pop()
   }
 
   return {
     agents,
-    runs,
-    runsTotal,
-    runsPage,
     stats,
     cronJobs,
+    logEntries,
+    logTotal,
     activityFeed,
     loading,
     error,
     fetchAgents,
-    fetchRuns,
     fetchStats,
     fetchCron,
+    fetchLog,
     triggerAgent,
     addActivity,
   }

@@ -22,18 +22,18 @@ def _mock_overview(**overrides) -> OverviewResponse:
     """Build a mock OverviewResponse with sensible defaults."""
     defaults = dict(
         stats=OverviewStats(
-            agents_active=3,
+            agents_active=1,
             events_this_week=5,
-            emails_processed=42,
-            tasks_pending=7,
+            emails_processed=17,
+            tasks_pending=3,
         ),
         agent_summary=AgentStatusSummary(
-            total_runs=100,
-            success_count=90,
-            failure_count=5,
-            runs_24h=12,
-            unique_agents=3,
-            success_rate=90.0,
+            total_entries=61,
+            info_count=57,
+            warning_count=3,
+            entries_24h=12,
+            unique_agents=1,
+            health_rate=93.4,
         ),
         upcoming_events=[
             UpcomingEvent(
@@ -57,13 +57,10 @@ def _mock_overview(**overrides) -> OverviewResponse:
         ],
         recent_activity=[
             RecentActivity(
-                id="abc-123",
+                id="1",
                 agent_id="matron",
-                run_type="scheduled",
-                trigger="cron",
-                status="success",
-                summary="Daily digest sent",
-                duration_ms=1500,
+                level="info",
+                message="Urgent check: No unread emails",
                 created_at=datetime.datetime(2026, 2, 13, 8, 0, tzinfo=datetime.UTC),
             ),
         ],
@@ -123,10 +120,10 @@ def test_overview_stats_shape():
         data = client.get("/api/overview/").json()
         stats = data["stats"]
 
-        assert stats["agents_active"] == 3
+        assert stats["agents_active"] == 1
         assert stats["events_this_week"] == 5
-        assert stats["emails_processed"] == 42
-        assert stats["tasks_pending"] == 7
+        assert stats["emails_processed"] == 17
+        assert stats["tasks_pending"] == 3
 
 
 def test_overview_upcoming_events():
@@ -159,7 +156,8 @@ def test_overview_recent_activity():
 
         assert len(activity) == 1
         assert activity[0]["agent_id"] == "matron"
-        assert activity[0]["status"] == "success"
+        assert activity[0]["level"] == "info"
+        assert activity[0]["message"] == "Urgent check: No unread emails"
 
 
 def test_overview_health():
@@ -187,12 +185,12 @@ def test_overview_empty_state():
             tasks_pending=0,
         ),
         agent_summary=AgentStatusSummary(
-            total_runs=0,
-            success_count=0,
-            failure_count=0,
-            runs_24h=0,
+            total_entries=0,
+            info_count=0,
+            warning_count=0,
+            entries_24h=0,
             unique_agents=0,
-            success_rate=0.0,
+            health_rate=100.0,
         ),
         upcoming_events=[],
         recent_activity=[],
@@ -220,9 +218,9 @@ def test_overview_agent_summary_fields():
         data = client.get("/api/overview/").json()
         summary = data["agent_summary"]
 
-        assert summary["total_runs"] == 100
-        assert summary["success_count"] == 90
-        assert summary["failure_count"] == 5
-        assert summary["runs_24h"] == 12
-        assert summary["unique_agents"] == 3
-        assert summary["success_rate"] == 90.0
+        assert summary["total_entries"] == 61
+        assert summary["info_count"] == 57
+        assert summary["warning_count"] == 3
+        assert summary["entries_24h"] == 12
+        assert summary["unique_agents"] == 1
+        assert summary["health_rate"] == 93.4

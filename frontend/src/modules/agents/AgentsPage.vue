@@ -16,29 +16,39 @@ onMounted(() => {
 
   subscribe('agents:activity', (data) => {
     store.addActivity(data as { event: string; agent_id: string; message: string })
-    // Refresh agents list on new activity
     store.fetchAgents()
     store.fetchStats()
   })
 })
 
-function statusClass(status: string | null): string {
-  if (!status) return ''
-  if (status === 'success') return 'agents__status--success'
-  if (status === 'error' || status === 'failed') return 'agents__status--error'
-  if (status === 'running' || status === 'pending') return 'agents__status--running'
+function levelClass(level: string | null): string {
+  if (!level) return ''
+  if (level === 'info') return 'agents__level--info'
+  if (level === 'warning') return 'agents__level--warning'
+  if (level === 'error') return 'agents__level--error'
   return ''
 }
 
-function formatDate(iso: string | null): string {
+function formatRelative(iso: string | null): string {
   if (!iso) return 'Never'
-  const d = new Date(iso)
-  return d.toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  const now = Date.now()
+  const then = new Date(iso).getTime()
+  const diff = now - then
+  const mins = Math.round(diff / 60000)
+  if (mins < 1) return 'Just now'
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.round(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.round(hours / 24)
+  return `${days}d ago`
+}
+
+function agentIcon(agentId: string): string {
+  const lower = agentId.toLowerCase()
+  if (lower.includes('matron')) return '🏥'
+  if (lower.includes('archivist')) return '📜'
+  if (lower.includes('jeeves')) return '🫖'
+  return '🤖'
 }
 
 async function handleTrigger(agentId: string) {
@@ -55,21 +65,22 @@ async function handleTrigger(agentId: string) {
     <div class="agents">
       <div class="agents__header">
         <h2 class="agents__title">Agent Control</h2>
-        <p class="agents__subtitle">Monitor and trigger agent runs</p>
+        <p class="agents__subtitle">Monitor agent activity and logs</p>
       </div>
 
       <!-- Stats -->
       <section class="agents__section" v-if="store.stats">
         <h3 class="agents__section-title">Telemetry</h3>
         <div class="agents__stats mc-stagger">
-          <StatCard icon="&#x1f4ca;" :value="store.stats.total_runs" label="Total Runs" />
+          <StatCard icon="📊" :value="store.stats.total_entries" label="Total Log Entries" />
           <StatCard
-            icon="&#x2705;"
-            :value="`${store.stats.success_rate}%`"
-            label="Success Rate"
+            icon="💚"
+            :value="`${store.stats.health_rate}%`"
+            label="Health Rate"
           />
-          <StatCard icon="&#x1f552;" :value="store.stats.runs_24h" label="Runs (24h)" />
-          <StatCard icon="&#x1f916;" :value="store.stats.unique_agents" label="Unique Agents" />
+          <StatCard icon="🕒" :value="store.stats.entries_24h" label="Entries (24h)" />
+          <StatCard icon="🤖" :value="store.stats.unique_agents" label="Unique Agents" />
+          <StatCard icon="⚠️" :value="store.stats.warning_count" label="Warnings" />
         </div>
       </section>
 
@@ -81,7 +92,7 @@ async function handleTrigger(agentId: string) {
         </h3>
 
         <div v-if="store.agents.length === 0 && !store.loading" class="agents__empty">
-          <p>No agent runs recorded yet.</p>
+          <p>No agent activity recorded yet.</p>
         </div>
 
         <div class="agents__grid mc-stagger">
@@ -91,19 +102,28 @@ async function handleTrigger(agentId: string) {
             class="agents__card"
           >
             <div class="agents__card-header">
-              <RouterLink
-                :to="`/agents/${agent.agent_id}`"
-                class="agents__card-name"
-              >
-                {{ agent.agent_id }}
-              </RouterLink>
-              <span class="agents__status" :class="statusClass(agent.last_status)">
-                {{ agent.last_status ?? 'unknown' }}
+              <div class="agents__card-name-row">
+                <span class="agents__card-icon">{{ agentIcon(agent.agent_id) }}</span>
+                <RouterLink
+                  :to="`/agents/${agent.agent_id}`"
+                  class="agents__card-name"
+                >
+                  {{ agent.agent_id }}
+                </RouterLink>
+              </div>
+              <span class="agents__level" :class="levelClass(agent.last_level)">
+                {{ agent.last_level ?? 'unknown' }}
               </span>
             </div>
+            <div class="agents__card-message" v-if="agent.last_message">
+              {{ agent.last_message }}
+            </div>
             <div class="agents__card-meta">
-              <span>{{ agent.total_runs }} runs</span>
-              <span>Last: {{ formatDate(agent.last_run) }}</span>
+              <span>{{ agent.total_entries }} entries</span>
+              <span v-if="agent.warning_count > 0" class="agents__card-warnings">
+                ⚠️ {{ agent.warning_count }} warnings
+              </span>
+              <span>Last: {{ formatRelative(agent.last_activity) }}</span>
             </div>
             <button class="agents__trigger-btn" @click="handleTrigger(agent.agent_id)">
               <i class="pi pi-play" /> Trigger
@@ -142,7 +162,7 @@ async function handleTrigger(agentId: string) {
             :key="i"
             class="agents__feed-item"
           >
-            <span class="agents__feed-time mc-mono">{{ formatDate(event.timestamp ?? null) }}</span>
+            <span class="agents__feed-time mc-mono">{{ formatRelative(event.timestamp ?? null) }}</span>
             <span class="agents__feed-agent">{{ event.agent_id }}</span>
             <span class="agents__feed-msg">{{ event.message }}</span>
           </div>
@@ -179,7 +199,6 @@ async function handleTrigger(agentId: string) {
   font-size: 0.9rem;
 }
 
-/* Sections */
 .agents__section {
   margin-bottom: 2rem;
 }
@@ -206,17 +225,15 @@ async function handleTrigger(agentId: string) {
   font-family: var(--mc-font-mono);
 }
 
-/* Stats */
 .agents__stats {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 1rem;
 }
 
-/* Agent Cards */
 .agents__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 1rem;
 }
 
@@ -240,19 +257,39 @@ async function handleTrigger(agentId: string) {
   margin-bottom: 0.5rem;
 }
 
+.agents__card-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.agents__card-icon {
+  font-size: 1.25rem;
+}
+
 .agents__card-name {
   font-family: var(--mc-font-display);
   font-weight: 600;
   font-size: 1rem;
   color: var(--mc-text);
   text-decoration: none;
+  text-transform: capitalize;
 }
 
 .agents__card-name:hover {
   color: var(--mc-accent);
 }
 
-.agents__status {
+.agents__card-message {
+  font-size: 0.8rem;
+  color: var(--mc-text-muted);
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agents__level {
   font-family: var(--mc-font-mono);
   font-size: 0.7rem;
   font-weight: 600;
@@ -263,19 +300,19 @@ async function handleTrigger(agentId: string) {
   background: var(--mc-bg-elevated);
 }
 
-.agents__status--success {
+.agents__level--info {
   color: var(--mc-success);
   background: color-mix(in srgb, var(--mc-success) 10%, transparent);
 }
 
-.agents__status--error {
-  color: var(--mc-danger);
-  background: color-mix(in srgb, var(--mc-danger) 10%, transparent);
+.agents__level--warning {
+  color: var(--mc-warning);
+  background: color-mix(in srgb, var(--mc-warning) 10%, transparent);
 }
 
-.agents__status--running {
-  color: var(--mc-live);
-  background: color-mix(in srgb, var(--mc-live) 10%, transparent);
+.agents__level--error {
+  color: var(--mc-danger);
+  background: color-mix(in srgb, var(--mc-danger) 10%, transparent);
 }
 
 .agents__card-meta {
@@ -284,6 +321,10 @@ async function handleTrigger(agentId: string) {
   font-size: 0.8rem;
   color: var(--mc-text-muted);
   margin-bottom: 0.75rem;
+}
+
+.agents__card-warnings {
+  color: var(--mc-warning);
 }
 
 .agents__trigger-btn {
@@ -307,7 +348,6 @@ async function handleTrigger(agentId: string) {
   color: white;
 }
 
-/* Cron */
 .agents__cron-list {
   display: flex;
   flex-direction: column;
@@ -352,7 +392,6 @@ async function handleTrigger(agentId: string) {
   background: var(--mc-bg-elevated);
 }
 
-/* Activity Feed */
 .agents__feed {
   display: flex;
   flex-direction: column;
@@ -388,7 +427,6 @@ async function handleTrigger(agentId: string) {
   color: var(--mc-text-muted);
 }
 
-/* Empty / Error */
 .agents__empty {
   text-align: center;
   padding: 2rem;

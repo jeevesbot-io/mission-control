@@ -93,10 +93,10 @@ function formatEventTime(event: UpcomingEvent): string {
   return 'All day'
 }
 
-function statusIcon(status: string): string {
-  if (status === 'success') return '✅'
-  if (status === 'error' || status === 'failed') return '❌'
-  if (status === 'running') return '⏳'
+function levelIcon(level: string): string {
+  if (level === 'info') return '✅'
+  if (level === 'warning') return '⚠️'
+  if (level === 'error') return '❌'
   return '➖'
 }
 
@@ -131,7 +131,7 @@ function agentIcon(agentId: string): string {
           <h2 class="overview__greeting">{{ greeting }}</h2>
           <p class="overview__subtitle">
             <template v-if="store.data">
-              {{ store.data.agent_summary.runs_24h }} agent runs today ·
+              {{ store.data.agent_summary.entries_24h }} agent entries today ·
               {{ store.data.upcoming_events.length }} events this week
             </template>
             <template v-else-if="store.loading">Loading systems...</template>
@@ -173,9 +173,9 @@ function agentIcon(agentId: string): string {
             label="Tasks Pending"
           />
           <StatCard
-            icon="🎯"
-            :value="store.data ? `${store.data.agent_summary.success_rate}%` : '—'"
-            label="Success Rate"
+            icon="💚"
+            :value="store.data ? `${store.data.agent_summary.health_rate}%` : '—'"
+            label="Health Rate"
           />
           <StatCard
             icon="⏱️"
@@ -234,19 +234,19 @@ function agentIcon(agentId: string): string {
             </div>
             <div v-else class="overview__activity-list">
               <div
-                v-for="run in store.data.recent_activity"
-                :key="run.id"
+                v-for="entry in store.data.recent_activity"
+                :key="entry.id"
                 class="overview__activity"
               >
-                <span class="overview__activity-icon">{{ agentIcon(run.agent_id) }}</span>
+                <span class="overview__activity-icon">{{ agentIcon(entry.agent_id) }}</span>
                 <div class="overview__activity-content">
                   <div class="overview__activity-top">
-                    <span class="overview__activity-agent">{{ run.agent_id }}</span>
-                    <span class="overview__activity-status">{{ statusIcon(run.status) }}</span>
+                    <span class="overview__activity-agent">{{ entry.agent_id }}</span>
+                    <span class="overview__activity-status">{{ levelIcon(entry.level) }}</span>
                   </div>
-                  <span class="overview__activity-summary">{{ run.summary ?? run.status }}</span>
+                  <span class="overview__activity-summary">{{ entry.message }}</span>
                 </div>
-                <span class="overview__activity-time mc-mono">{{ formatRelativeTime(run.created_at) }}</span>
+                <span class="overview__activity-time mc-mono">{{ formatRelativeTime(entry.created_at) }}</span>
               </div>
             </div>
           </div>

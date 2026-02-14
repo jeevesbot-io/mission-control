@@ -4,60 +4,48 @@ import { RouterLink } from 'vue-router'
 import { useApi } from '@/composables/useApi'
 import { useWebSocket } from '@/composables/useWebSocket'
 
-interface AgentRun {
-  id: string
+interface AgentLogEntry {
+  id: number
   agent_id: string
-  status: string
+  level: string
+  message: string
   created_at: string
-  summary: string | null
+}
+
+interface AgentInfo {
+  agent_id: string
 }
 
 const api = useApi()
 const { subscribe } = useWebSocket()
-const recentRuns = ref<AgentRun[]>([])
+const recentEntries = ref<AgentLogEntry[]>([])
 const error = ref(false)
 
 onMounted(async () => {
+  await refreshLog()
+  subscribe('agents:activity', () => refreshLog())
+})
+
+async function refreshLog() {
   try {
-    // Fetch most recent runs across all agents — use stats to find the most recent agent
-    const agents = await api.get<{ agent_id: string }[]>('/api/agents/')
+    const agents = await api.get<AgentInfo[]>('/api/agents/')
     const first = agents[0]
     if (first) {
-      const data = await api.get<{ runs: AgentRun[] }>(
-        `/api/agents/${first.agent_id}/runs?page_size=5`,
+      const data = await api.get<{ entries: AgentLogEntry[] }>(
+        `/api/agents/${first.agent_id}/log?page_size=5`,
       )
-      recentRuns.value = data.runs
+      recentEntries.value = data.entries
     }
   } catch {
     error.value = true
   }
-
-  subscribe('agents:activity', () => {
-    // Refresh on new activity
-    refreshRuns()
-  })
-})
-
-async function refreshRuns() {
-  try {
-    const agents = await api.get<{ agent_id: string }[]>('/api/agents/')
-    const first = agents[0]
-    if (first) {
-      const data = await api.get<{ runs: AgentRun[] }>(
-        `/api/agents/${first.agent_id}/runs?page_size=5`,
-      )
-      recentRuns.value = data.runs
-    }
-  } catch {
-    // Silent refresh failure
-  }
 }
 
-function statusIcon(status: string): string {
-  if (status === 'success') return '\u2705'
-  if (status === 'error' || status === 'failed') return '\u274c'
-  if (status === 'running') return '\u23f3'
-  return '\u2796'
+function levelIcon(level: string): string {
+  if (level === 'info') return '✅'
+  if (level === 'warning') return '⚠️'
+  if (level === 'error') return '❌'
+  return '➖'
 }
 
 function formatTime(iso: string): string {
@@ -82,22 +70,22 @@ function formatTime(iso: string): string {
       Agents module unavailable
     </div>
 
-    <div v-else-if="recentRuns.length === 0" class="agent-activity__empty">
+    <div v-else-if="recentEntries.length === 0" class="agent-activity__empty">
       No recent agent activity
     </div>
 
     <div v-else class="agent-activity__list">
       <div
-        v-for="run in recentRuns"
-        :key="run.id"
+        v-for="entry in recentEntries"
+        :key="entry.id"
         class="agent-activity__item"
       >
-        <span class="agent-activity__icon">{{ statusIcon(run.status) }}</span>
+        <span class="agent-activity__icon">{{ levelIcon(entry.level) }}</span>
         <div class="agent-activity__info">
-          <span class="agent-activity__agent">{{ run.agent_id }}</span>
-          <span class="agent-activity__summary">{{ run.summary ?? run.status }}</span>
+          <span class="agent-activity__agent">{{ entry.agent_id }}</span>
+          <span class="agent-activity__summary">{{ entry.message }}</span>
         </div>
-        <span class="agent-activity__time mc-mono">{{ formatTime(run.created_at) }}</span>
+        <span class="agent-activity__time mc-mono">{{ formatTime(entry.created_at) }}</span>
       </div>
     </div>
   </div>
@@ -169,6 +157,7 @@ function formatTime(iso: string): string {
 .agent-activity__agent {
   font-size: 0.8rem;
   font-weight: 500;
+  text-transform: capitalize;
 }
 
 .agent-activity__summary {

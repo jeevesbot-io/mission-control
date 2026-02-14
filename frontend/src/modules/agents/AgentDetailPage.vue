@@ -6,43 +6,43 @@ import PageShell from '@/components/layout/PageShell.vue'
 
 const route = useRoute()
 const store = useAgentsStore()
-const statusFilter = ref<string>('')
+const levelFilter = ref<string>('')
 const currentPage = ref(1)
 
 const agentId = ref(route.params.agentId as string)
 
 onMounted(() => {
-  loadRuns()
+  loadLog()
 })
 
 watch(() => route.params.agentId, (newId) => {
   if (newId) {
     agentId.value = newId as string
     currentPage.value = 1
-    statusFilter.value = ''
-    loadRuns()
+    levelFilter.value = ''
+    loadLog()
   }
 })
 
-function loadRuns() {
-  store.fetchRuns(agentId.value, currentPage.value, statusFilter.value || undefined)
+function loadLog() {
+  store.fetchLog(agentId.value, currentPage.value)
 }
 
-function setStatusFilter(status: string) {
-  statusFilter.value = status
+function setLevelFilter(level: string) {
+  levelFilter.value = level
   currentPage.value = 1
-  loadRuns()
+  loadLog()
 }
 
 function goPage(page: number) {
   currentPage.value = page
-  loadRuns()
+  loadLog()
 }
 
-function statusClass(status: string): string {
-  if (status === 'success') return 'detail__status--success'
-  if (status === 'error' || status === 'failed') return 'detail__status--error'
-  if (status === 'running' || status === 'pending') return 'detail__status--running'
+function levelClass(level: string): string {
+  if (level === 'info') return 'detail__level--info'
+  if (level === 'warning') return 'detail__level--warning'
+  if (level === 'error') return 'detail__level--error'
   return ''
 }
 
@@ -56,18 +56,27 @@ function formatDate(iso: string): string {
   })
 }
 
-function formatDuration(ms: number | null): string {
-  if (ms === null) return '—'
-  if (ms < 1000) return `${ms}ms`
-  return `${(ms / 1000).toFixed(1)}s`
+function formatMetadata(meta: Record<string, unknown> | null): string {
+  if (!meta) return '—'
+  return Object.entries(meta)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join(', ')
+}
+
+function agentIcon(id: string): string {
+  const lower = id.toLowerCase()
+  if (lower.includes('matron')) return '🏥'
+  if (lower.includes('archivist')) return '📜'
+  if (lower.includes('jeeves')) return '🫖'
+  return '🤖'
 }
 
 async function handleTrigger() {
   const ok = await store.triggerAgent(agentId.value)
-  if (ok) loadRuns()
+  if (ok) loadLog()
 }
 
-const totalPages = () => Math.ceil(store.runsTotal / 20) || 1
+const totalPages = () => Math.ceil(store.logTotal / 20) || 1
 </script>
 
 <template>
@@ -80,12 +89,15 @@ const totalPages = () => Math.ceil(store.runsTotal / 20) || 1
       </div>
 
       <div class="detail__header">
-        <div>
-          <h2 class="detail__title mc-mono">{{ agentId }}</h2>
-          <p class="detail__subtitle">{{ store.runsTotal }} total runs</p>
+        <div class="detail__header-left">
+          <span class="detail__icon">{{ agentIcon(agentId) }}</span>
+          <div>
+            <h2 class="detail__title">{{ agentId }}</h2>
+            <p class="detail__subtitle">{{ store.logTotal }} log entries</p>
+          </div>
         </div>
         <button class="detail__trigger-btn" @click="handleTrigger">
-          <i class="pi pi-play" /> Trigger Run
+          <i class="pi pi-play" /> Trigger
         </button>
       </div>
 
@@ -93,56 +105,50 @@ const totalPages = () => Math.ceil(store.runsTotal / 20) || 1
       <div class="detail__filters">
         <button
           class="detail__filter-btn"
-          :class="{ 'detail__filter-btn--active': statusFilter === '' }"
-          @click="setStatusFilter('')"
+          :class="{ 'detail__filter-btn--active': levelFilter === '' }"
+          @click="setLevelFilter('')"
         >All</button>
         <button
           class="detail__filter-btn"
-          :class="{ 'detail__filter-btn--active': statusFilter === 'success' }"
-          @click="setStatusFilter('success')"
-        >Success</button>
+          :class="{ 'detail__filter-btn--active': levelFilter === 'info' }"
+          @click="setLevelFilter('info')"
+        >Info</button>
         <button
           class="detail__filter-btn"
-          :class="{ 'detail__filter-btn--active': statusFilter === 'error' }"
-          @click="setStatusFilter('error')"
+          :class="{ 'detail__filter-btn--active': levelFilter === 'warning' }"
+          @click="setLevelFilter('warning')"
+        >Warning</button>
+        <button
+          class="detail__filter-btn"
+          :class="{ 'detail__filter-btn--active': levelFilter === 'error' }"
+          @click="setLevelFilter('error')"
         >Error</button>
-        <button
-          class="detail__filter-btn"
-          :class="{ 'detail__filter-btn--active': statusFilter === 'running' }"
-          @click="setStatusFilter('running')"
-        >Running</button>
       </div>
 
-      <!-- Run History Table -->
+      <!-- Log Table -->
       <div class="detail__table-wrap">
         <table class="detail__table">
           <thead>
             <tr>
               <th>Time</th>
-              <th>Type</th>
-              <th>Trigger</th>
-              <th>Status</th>
-              <th>Duration</th>
-              <th>Tokens</th>
-              <th>Summary</th>
+              <th>Level</th>
+              <th>Message</th>
+              <th>Metadata</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-if="store.runs.length === 0 && !store.loading">
-              <td colspan="7" class="detail__empty">No runs found</td>
+            <tr v-if="store.logEntries.length === 0 && !store.loading">
+              <td colspan="4" class="detail__empty">No log entries found</td>
             </tr>
-            <tr v-for="run in store.runs" :key="run.id">
-              <td class="mc-mono">{{ formatDate(run.created_at) }}</td>
-              <td>{{ run.run_type }}</td>
-              <td>{{ run.trigger }}</td>
+            <tr v-for="entry in store.logEntries" :key="entry.id">
+              <td class="mc-mono detail__time">{{ formatDate(entry.created_at) }}</td>
               <td>
-                <span class="detail__status" :class="statusClass(run.status)">
-                  {{ run.status }}
+                <span class="detail__level" :class="levelClass(entry.level)">
+                  {{ entry.level }}
                 </span>
               </td>
-              <td class="mc-mono">{{ formatDuration(run.duration_ms) }}</td>
-              <td class="mc-mono">{{ run.tokens_used ?? '—' }}</td>
-              <td class="detail__summary">{{ run.summary ?? '—' }}</td>
+              <td class="detail__message">{{ entry.message }}</td>
+              <td class="detail__meta mc-mono">{{ formatMetadata(entry.metadata) }}</td>
             </tr>
           </tbody>
         </table>
@@ -213,11 +219,22 @@ const totalPages = () => Math.ceil(store.runsTotal / 20) || 1
   margin-bottom: 1.5rem;
 }
 
+.detail__header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.detail__icon {
+  font-size: 2rem;
+}
+
 .detail__title {
   font-family: var(--mc-font-display);
   font-size: 1.5rem;
   font-weight: 700;
-  margin-bottom: 0.25rem;
+  text-transform: capitalize;
+  margin-bottom: 0.1rem;
 }
 
 .detail__subtitle {
@@ -245,7 +262,6 @@ const totalPages = () => Math.ceil(store.runsTotal / 20) || 1
   opacity: 0.85;
 }
 
-/* Filters */
 .detail__filters {
   display: flex;
   gap: 0.5rem;
@@ -275,7 +291,6 @@ const totalPages = () => Math.ceil(store.runsTotal / 20) || 1
   color: var(--mc-accent);
 }
 
-/* Table */
 .detail__table-wrap {
   overflow-x: auto;
   margin-bottom: 1rem;
@@ -313,7 +328,12 @@ const totalPages = () => Math.ceil(store.runsTotal / 20) || 1
   background: var(--mc-bg-surface);
 }
 
-.detail__status {
+.detail__time {
+  white-space: nowrap;
+  font-size: 0.75rem;
+}
+
+.detail__level {
   font-family: var(--mc-font-mono);
   font-size: 0.7rem;
   font-weight: 600;
@@ -322,26 +342,31 @@ const totalPages = () => Math.ceil(store.runsTotal / 20) || 1
   border-radius: 99px;
 }
 
-.detail__status--success {
+.detail__level--info {
   color: var(--mc-success);
   background: color-mix(in srgb, var(--mc-success) 10%, transparent);
 }
 
-.detail__status--error {
+.detail__level--warning {
+  color: var(--mc-warning);
+  background: color-mix(in srgb, var(--mc-warning) 10%, transparent);
+}
+
+.detail__level--error {
   color: var(--mc-danger);
   background: color-mix(in srgb, var(--mc-danger) 10%, transparent);
 }
 
-.detail__status--running {
-  color: var(--mc-live);
-  background: color-mix(in srgb, var(--mc-live) 10%, transparent);
+.detail__message {
+  max-width: 400px;
 }
 
-.detail__summary {
+.detail__meta {
   max-width: 250px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 0.75rem;
   color: var(--mc-text-muted);
 }
 
@@ -351,7 +376,6 @@ const totalPages = () => Math.ceil(store.runsTotal / 20) || 1
   padding: 2rem;
 }
 
-/* Pagination */
 .detail__pagination {
   display: flex;
   align-items: center;
@@ -389,7 +413,6 @@ const totalPages = () => Math.ceil(store.runsTotal / 20) || 1
   color: var(--mc-text-muted);
 }
 
-/* Loading / Error */
 .detail__loading {
   display: flex;
   align-items: center;

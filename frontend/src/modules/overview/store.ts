@@ -10,12 +10,12 @@ export interface OverviewStats {
 }
 
 export interface AgentStatusSummary {
-  total_runs: number
-  success_count: number
-  failure_count: number
-  runs_24h: number
+  total_entries: number
+  info_count: number
+  warning_count: number
+  entries_24h: number
   unique_agents: number
-  success_rate: number
+  health_rate: number
 }
 
 export interface UpcomingEvent {
@@ -31,11 +31,8 @@ export interface UpcomingEvent {
 export interface RecentActivity {
   id: string
   agent_id: string
-  run_type: string
-  trigger: string
-  status: string
-  summary: string | null
-  duration_ms: number | null
+  level: string
+  message: string
   created_at: string
 }
 

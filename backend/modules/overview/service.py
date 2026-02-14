@@ -4,10 +4,8 @@ import datetime
 import logging
 import time
 
-from sqlalchemy import distinct, func, select, text
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from core.models import AgentRun
 
 from .models import (
     AgentStatusSummary,
@@ -43,69 +41,50 @@ class OverviewService:
         )
 
     async def _get_agent_summary(self, db: AsyncSession) -> AgentStatusSummary:
-        """Query agent_runs for summary stats."""
+        """Query agent_log for summary stats."""
         try:
-            total_result = await db.execute(
-                select(func.count()).select_from(AgentRun)
+            result = await db.execute(
+                text("""
+                    SELECT
+                        COUNT(*) as total_entries,
+                        COUNT(*) FILTER (WHERE level IN ('info', 'INFO')) as info_count,
+                        COUNT(*) FILTER (WHERE level IN ('warning', 'WARNING', 'error', 'ERROR')) as warning_count,
+                        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours') as entries_24h,
+                        COUNT(DISTINCT agent) as unique_agents
+                    FROM agent_log
+                """)
             )
-            total_runs = total_result.scalar_one()
+            row = result.fetchone()
 
-            if total_runs == 0:
+            if not row or row.total_entries == 0:
                 return AgentStatusSummary(
-                    total_runs=0,
-                    success_count=0,
-                    failure_count=0,
-                    runs_24h=0,
+                    total_entries=0,
+                    info_count=0,
+                    warning_count=0,
+                    entries_24h=0,
                     unique_agents=0,
-                    success_rate=0.0,
+                    health_rate=100.0,
                 )
 
-            success_result = await db.execute(
-                select(func.count())
-                .select_from(AgentRun)
-                .where(AgentRun.status == "success")
-            )
-            success_count = success_result.scalar_one()
-
-            failure_result = await db.execute(
-                select(func.count())
-                .select_from(AgentRun)
-                .where(AgentRun.status.in_(["error", "failed"]))
-            )
-            failure_count = failure_result.scalar_one()
-
-            cutoff = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=24)
-            recent_result = await db.execute(
-                select(func.count())
-                .select_from(AgentRun)
-                .where(AgentRun.created_at >= cutoff)
-            )
-            runs_24h = recent_result.scalar_one()
-
-            unique_result = await db.execute(
-                select(func.count(distinct(AgentRun.agent_id)))
-            )
-            unique_agents = unique_result.scalar_one()
-
-            success_rate = round(success_count / total_runs * 100, 1)
+            health_rate = round(row.info_count / row.total_entries * 100, 1)
 
             return AgentStatusSummary(
-                total_runs=total_runs,
-                success_count=success_count,
-                failure_count=failure_count,
-                runs_24h=runs_24h,
-                unique_agents=unique_agents,
-                success_rate=success_rate,
+                total_entries=row.total_entries,
+                info_count=row.info_count,
+                warning_count=row.warning_count,
+                entries_24h=row.entries_24h,
+                unique_agents=row.unique_agents,
+                health_rate=health_rate,
             )
         except Exception as exc:
             logger.warning("Failed to get agent summary: %s", exc)
             return AgentStatusSummary(
-                total_runs=0,
-                success_count=0,
-                failure_count=0,
-                runs_24h=0,
+                total_entries=0,
+                info_count=0,
+                warning_count=0,
+                entries_24h=0,
                 unique_agents=0,
-                success_rate=0.0,
+                health_rate=0.0,
             )
 
     async def _get_upcoming_events(self, db: AsyncSession) -> list[UpcomingEvent]:
@@ -148,25 +127,25 @@ class OverviewService:
             return []
 
     async def _get_recent_activity(self, db: AsyncSession) -> list[RecentActivity]:
-        """Get the last 10 agent runs."""
+        """Get the last 10 agent log entries."""
         try:
             result = await db.execute(
-                select(AgentRun)
-                .order_by(AgentRun.created_at.desc())
-                .limit(10)
+                text("""
+                    SELECT id, agent, level, message, metadata, created_at
+                    FROM agent_log
+                    ORDER BY created_at DESC
+                    LIMIT 10
+                """)
             )
             return [
                 RecentActivity(
-                    id=str(run.id),
-                    agent_id=run.agent_id,
-                    run_type=run.run_type,
-                    trigger=run.trigger,
-                    status=run.status,
-                    summary=run.summary,
-                    duration_ms=run.duration_ms,
-                    created_at=run.created_at,
+                    id=str(row.id),
+                    agent_id=row.agent,
+                    level=row.level.lower(),
+                    message=row.message,
+                    created_at=row.created_at,
                 )
-                for run in result.scalars().all()
+                for row in result.fetchall()
             ]
         except Exception as exc:
             logger.warning("Failed to get recent activity: %s", exc)
@@ -198,7 +177,6 @@ class OverviewService:
         upcoming_events: list[UpcomingEvent],
     ) -> OverviewStats:
         """Build the top-level stat cards."""
-        # Emails processed (count from school_emails)
         emails_processed = 0
         try:
             result = await db.execute(text("SELECT COUNT(*) FROM school_emails"))
@@ -206,13 +184,10 @@ class OverviewService:
         except Exception:
             pass
 
-        # Tasks total
-        tasks_pending = 0
+        tasks_total = 0
         try:
-            result = await db.execute(
-                text("SELECT COUNT(*) FROM todoist_tasks")
-            )
-            tasks_pending = result.scalar_one()
+            result = await db.execute(text("SELECT COUNT(*) FROM todoist_tasks"))
+            tasks_total = result.scalar_one()
         except Exception:
             pass
 
@@ -220,7 +195,7 @@ class OverviewService:
             agents_active=agent_summary.unique_agents,
             events_this_week=len(upcoming_events),
             emails_processed=emails_processed,
-            tasks_pending=tasks_pending,
+            tasks_pending=tasks_total,
         )
 
 
