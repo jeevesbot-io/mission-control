@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, computed } from 'vue'
 import { useOverviewStore } from './store'
-import type { UpcomingEvent, RecentActivity } from './store'
+import type { UpcomingEvent } from './store'
 import { useWebSocket } from '@/composables/useWebSocket'
 import PageShell from '@/components/layout/PageShell.vue'
 import StatCard from '@/components/data/StatCard.vue'

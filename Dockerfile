@@ -33,6 +33,11 @@ COPY backend/ .
 # Copy built frontend into static directory
 COPY --from=frontend-build /frontend/dist ./static
 
+# Give non-root user ownership of app and create uv cache dir
+RUN chown -R mission:mission /app && \
+    mkdir -p /home/mission/.cache/uv && \
+    chown -R mission:mission /home/mission
+
 # Switch to non-root user
 USER mission
 
