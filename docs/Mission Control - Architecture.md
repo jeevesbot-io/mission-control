@@ -198,29 +198,16 @@ mission-control/
 
 ## Data Model
 
-### New Postgres Tables
+### Postgres Tables
+
+The `agent_log` table is managed by OpenClaw and pre-exists — Mission Control reads from it via raw SQL (no ORM model needed):
 
 ```sql
--- Agent run history (unified across all agents)
-CREATE TABLE IF NOT EXISTS agent_runs (
-    id SERIAL PRIMARY KEY,
-    agent_id VARCHAR(50) NOT NULL,
-    run_type VARCHAR(50),              -- 'cron', 'spawn', 'query', 'manual'
-    trigger VARCHAR(100),              -- cron job name, spawn source, or 'dashboard'
-    status VARCHAR(20),
-    summary TEXT,
-    duration_ms INT,
-    tokens_used INT,
-    metadata JSONB DEFAULT '{}',       -- agent-specific data (memories_added, emails_processed, etc.)
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE INDEX idx_agent_runs_agent_id ON agent_runs(agent_id);
-CREATE INDEX idx_agent_runs_created_at ON agent_runs(created_at DESC);
-CREATE INDEX idx_agent_runs_status ON agent_runs(status);
+-- Agent activity log (populated by OpenClaw agents)
+-- Columns: id (serial), agent (varchar), level (varchar), message (text),
+--          metadata (jsonb), created_at (timestamptz)
+-- Mission Control queries this read-only.
 ```
-
-> **Implemented:** The actual table uses UUID primary keys (not SERIAL), timezone-aware timestamps, and VARCHAR(100) for agent_id. See `backend/core/models.py` for the SQLAlchemy model.
 
 > **Note: No `memory_entries` table.** The original plan had a Postgres index of memory file metadata. This creates a sync problem — when agents modify markdown files, who updates the table? Instead: read memory files directly via the API and cache in-memory with a file watcher invalidation. If search performance becomes a problem, add full-text indexing later with a rebuild-from-source script, not a dual-write.
 
@@ -230,8 +217,9 @@ CREATE INDEX idx_agent_runs_status ON agent_runs(status);
 |------|--------|--------|
 | Memory files | `~/.openclaw/workspace/memory/*.md` | File read (Docker volume mount) |
 | MEMORY.md | `~/.openclaw/workspace/MEMORY.md` | File read |
-| School data | Postgres (`school_emails`, `school_events`, etc.) | Async DB query |
-| Agent runs | Postgres (`agent_runs`) | Async DB query |
+| Family calendar | Google Calendar (`sollyfamily3@gmail.com`) | `gog` CLI subprocess |
+| School data | Postgres (`school_emails`, `school_events`, `todoist_tasks`) | Async DB query (raw SQL) |
+| Agent activity | Postgres (`agent_log`) | Async DB query (raw SQL) |
 | Cron status | OpenClaw gateway API (`:18789`) | HTTP |
 
 ---
@@ -245,10 +233,10 @@ Landing page. Stats bar + widget grid assembled from all registered modules. Liv
 Search and browse memories. Full-text search, timeline view, category filters, MEMORY.md viewer with section navigation. The killer feature — "what did we decide about X?" with source citations.
 
 ### 🏥 School
-Port of Matron's dashboard. Events (today/week/upcoming), emails, action items, stats. Same Postgres data, same functionality, better home.
+Family calendar (Google Calendar via gog CLI) + Matron's school data. Tabbed view: Calendar (child colour-coded events), Emails, Tasks. Child inference from event summaries (QE→Natty, County→Elodie, Onslow→Florence).
 
 ### 🤖 Agents
-Agent status cards, run history table with filters, cron schedule, trigger buttons. Unified view across all agents.
+Agent status cards with level badges, log history table with level filters, cron schedule, trigger buttons. Unified view across all agents via `agent_log` table.
 
 ### 📊 Analytics (stretch)
 Memory growth, agent activity trends, email processing stats. Sparkline charts on Overview.
@@ -314,14 +302,15 @@ GET  /api/memory/search?q=...        → full-text search (min 2 chars)
 GET  /api/memory/stats               → memory system stats
 
 # Agents
-GET  /api/agents/                    → agent list with last run info
-GET  /api/agents/stats               → aggregate stats (total runs, success rate, 24h count, unique agents)
-GET  /api/agents/{id}/runs           → paginated run history (status/page filters)
+GET  /api/agents/                    → agent list with activity summary
+GET  /api/agents/stats               → aggregate stats (entries, health rate, 24h, unique agents)
+GET  /api/agents/{id}/log            → paginated log history (filterable by level)
 GET  /api/agents/cron                → cron schedule from OpenClaw gateway
 POST /api/agents/{id}/trigger        → trigger agent via gateway + WebSocket broadcast
 
 # School
-GET  /api/school/events              → upcoming school events
+GET  /api/school/calendar            → Google Calendar events (next N days, via gog CLI)
+GET  /api/school/events              → upcoming school events from DB
 GET  /api/school/emails              → recent school emails
 GET  /api/school/tasks               → todoist tasks/action items
 GET  /api/school/stats               → counts and summaries
@@ -367,8 +356,8 @@ Default: unsubscribed clients receive all messages. Backend `ConnectionManager` 
 | **1. Scaffolding** | FastAPI factory + module registry + Alembic, Vue 3 + Vite + PrimeVue + Pinia, docker-compose.dev.yml, openapi-typescript pipeline | **Done** |
 | **2. Shell + theme** | App layout (Sidebar, Header, PageShell), Ground Control dark/light theme, shared composables (useApi, useWebSocket), StatCard, Badge | **Done** |
 | **3. Module: Memory** | File reader, full-text search, markdown renderer. MemoryPage, search, MEMORY.md viewer with TOC, RecentMemories widget | **Done** |
-| **4. Module: Agents** | Agent list/stats/runs/cron/trigger APIs. AgentsPage, AgentDetailPage (run history table), AgentActivity widget. WebSocket live feed with reconnection | **Done** |
-| **5. Module: School** | Queries existing Matron Postgres tables. SchoolPage (tabbed Events/Emails/Tasks), TodayEvents widget. Graceful degradation | **Done** |
+| **4. Module: Agents** | Agent list/stats/log/cron/trigger APIs. AgentsPage, AgentDetailPage (log history table), AgentActivity widget. WebSocket live feed with reconnection | **Done** |
+| **5. Module: School** | Google Calendar via gog CLI + existing Matron Postgres tables. SchoolPage (tabbed Calendar/Emails/Tasks), TodayEvents widget. Child inference from event summaries. Graceful degradation | **Done** |
 | **6. Overview** | `/api/overview` aggregating all system data. Health checks, stat cards, upcoming events (child colour-coded), agent activity feed, two-column layout, auto-refresh | **Done** |
 | **7. Docker + deploy** | Multi-stage Dockerfile (Vite build → FastAPI static mount), production docker-compose on port 5050, SPA route handling | **Done** |
 | **8. Polish + testing** | 42 backend tests (pytest), 41 frontend tests (vitest), Playwright e2e suites for all modules | **Done** |
@@ -408,7 +397,7 @@ Mission Control replaces Matron's dashboard, but the transition should be safe.
 - **Feature parity gate:** School module is ready for cutover when it matches Matron's existing views (events, emails, action items, stats). Side-by-side comparison before switching.
 - **Cutover:** Swap Docker containers. If using the same port (`:5050`), it's a single container replacement. If new port, update bookmarks/Tailscale.
 - **Rollback:** Keep the `matron-dashboard` Docker image tagged. If Mission Control has issues, re-deploy Matron in minutes.
-- **Decommission:** Remove Matron's Flask code and `agent_log` table once the School module has been stable for a reasonable period. Migrate any `agent_log` history into `agent_runs` via a one-time script.
+- **Decommission:** Remove Matron's Flask code once the School module has been stable for a reasonable period. The `agent_log` table is shared with OpenClaw and remains in use.
 
 ---
 
@@ -416,7 +405,7 @@ Mission Control replaces Matron's dashboard, but the transition should be safe.
 
 1. **Port** — `:5055` during development, take over `:5050` at Matron cutover
 2. **External access** — Yes, via Tailscale. Session cookies with `Secure` flag + Tailscale domain.
-3. **Alerts** — Yes. Flag anomalies (agent overdue, failed runs). Simple cron checking `agent_runs` + expected schedules.
+3. **Alerts** — Yes. Flag anomalies (agent overdue, warnings). Simple cron checking `agent_log` + expected schedules.
 4. **Memory editing** — Read-only in v1. Nick edits via filesystem.
 5. **First non-agent module** — TBC, parked
 

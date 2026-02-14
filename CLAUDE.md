@@ -122,8 +122,9 @@ mission-control/
 |------|--------|---------------|
 | Memory files | `~/.openclaw/workspace/memory/*.md` | File read (Docker volume mount), cached in-memory with file watcher |
 | MEMORY.md | `~/.openclaw/workspace/MEMORY.md` | File read |
-| School data | Postgres (`school_emails`, `school_events`, `todoist_tasks`) | Async DB query |
-| Agent runs | Postgres (`agent_runs`) | Async DB query |
+| Family calendar | Google Calendar (`sollyfamily3@gmail.com`) | `gog` CLI subprocess |
+| School data | Postgres (`school_emails`, `school_events`, `todoist_tasks`) | Async DB query (raw SQL) |
+| Agent activity | Postgres (`agent_log`) | Async DB query (raw SQL) |
 | Cron status | OpenClaw gateway API (`:18789`) | HTTP |
 
 No `memory_entries` table — memory files are the source of truth. No Redis or message queue.
@@ -142,8 +143,8 @@ No `memory_entries` table — memory files are the source of truth. No Redis or 
 1. ~~Scaffolding~~ — FastAPI + Alembic + Vue 3 + Vite + PrimeVue + openapi-typescript
 2. ~~Shell + theme~~ — layout, dark/light theme, shared composables, Ground Control design system
 3. ~~Memory module~~ — file browser, full-text search, MEMORY.md viewer, TOC navigation
-4. ~~Agents module + WebSocket~~ — agent list, run history, cron, triggers, live activity feed
-5. ~~School module~~ — events, emails, tasks (tabbed view), stats from existing Postgres tables
+4. ~~Agents module + WebSocket~~ — agent list, log history, cron, triggers, live activity feed
+5. ~~School module~~ — Google Calendar + emails, tasks (tabbed view), child inference, stats
 6. ~~Overview page~~ — unified dashboard with `/api/overview` aggregating all system data, health checks, upcoming events, agent activity feed, stat cards
 7. ~~Docker + deploy~~ — multi-stage production Dockerfile, production docker-compose on port 5050
 8. ~~Polish + testing~~ — 42 backend tests, 41 frontend tests, Playwright e2e test suites
@@ -159,12 +160,13 @@ GET  /api/memory/files/{date}        → daily memory content + sections
 GET  /api/memory/long-term           → MEMORY.md content + sections
 GET  /api/memory/search?q=...        → full-text search
 GET  /api/memory/stats               → memory stats
-GET  /api/agents/                    → agent list with last run info
-GET  /api/agents/stats               → aggregate stats (runs, success rate, 24h)
-GET  /api/agents/{id}/runs           → paginated run history (filterable)
+GET  /api/agents/                    → agent list with activity summary
+GET  /api/agents/stats               → aggregate stats (entries, health rate, 24h, unique agents)
+GET  /api/agents/{id}/log            → paginated log history (filterable by level)
 GET  /api/agents/cron                → cron schedule from OpenClaw gateway
 POST /api/agents/{id}/trigger        → trigger agent via gateway + WebSocket broadcast
-GET  /api/school/events              → upcoming school events
+GET  /api/school/calendar            → Google Calendar events (next N days, via gog CLI)
+GET  /api/school/events              → upcoming school events from DB
 GET  /api/school/emails              → recent school emails
 GET  /api/school/tasks               → todoist tasks
 GET  /api/school/stats               → school summary stats

@@ -20,8 +20,8 @@ title: Mission Control — Backlog
 - [x] Phase 1: Scaffolding (FastAPI + Alembic + Vue 3 + Vite + PrimeVue + openapi-typescript pipeline) — *done 2026-02-13*
 - [x] Phase 2: Shell + theme (layout, dark/light theme, Ground Control design system, shared composables) — *done 2026-02-13*
 - [x] Phase 3: Module — Memory (file browser, full-text search, MEMORY.md viewer, TOC nav, RecentMemories widget) — *done 2026-02-13*
-- [x] Phase 4: Module — Agents + WebSocket live feed (agent list, run history, cron, triggers, live activity feed, `useWebSocket` composable) — *done 2026-02-13*
-- [x] Phase 5: Module — School (events, emails, tasks tabbed view, stats from existing Postgres tables, TodayEvents widget) — *done 2026-02-13*
+- [x] Phase 4: Module — Agents + WebSocket live feed (agent list, log history, cron, triggers, live activity feed, `useWebSocket` composable) — *done 2026-02-13*
+- [x] Phase 5: Module — School (Google Calendar via gog CLI, emails, tasks tabbed view, child inference, TodayEvents widget) — *done 2026-02-13*
 - [x] Phase 6: Overview page (`/api/overview` endpoint aggregating all data, health checks, upcoming events, agent activity, stat cards, two-column layout) — *done 2026-02-13*
 - [x] Phase 7: Docker + deploy (multi-stage Dockerfile, production docker-compose on port 5050, SPA static serving) — *done 2026-02-13*
 - [x] Phase 8: Polish + testing (42 backend tests, 41 frontend tests, Playwright e2e suites) — *done 2026-02-13*
@@ -39,5 +39,5 @@ title: Mission Control — Backlog
 ## Technical Debt / Migration
 
 - [ ] Matron's Flask dashboard decommissioning once School module is live and stable
-- [ ] Migrate `agent_log` history into `agent_runs` via one-time script, then drop `agent_log`
+- [ ] Review `agent_log` table ownership — shared between OpenClaw (writes) and Mission Control (reads)
 - [ ] Session secret management — move from Docker env var to proper secrets (Docker secrets or mounted file)

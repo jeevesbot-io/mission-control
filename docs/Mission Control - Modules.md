@@ -15,9 +15,9 @@ Every domain in Mission Control is a self-contained module with a backend router
 
 ### 🏠 Overview (`navOrder: 0`)
 - **Purpose:** Landing page and unified dashboard. Aggregates data from all modules via a single `/api/overview` endpoint.
-- **Backend:** `GET /api/overview` — returns health status, stats (agents, events, emails, tasks), upcoming events (7 days), recent agent activity (last 10 runs), system health (DB, uptime, version)
-- **Frontend:** Stat cards (6), upcoming events list (colour-coded by child), recent agent activity feed, system health indicators, WebSocket subscription + 30s auto-refresh
-- **Data sources:** Aggregates from `agent_runs`, `school_events`, `school_emails`, `todoist_tasks` tables + system health checks
+- **Backend:** `GET /api/overview` — returns health status, stats (agents active, events this week, emails processed, tasks pending), upcoming events (7 days from Google Calendar), recent agent activity (last 10 log entries), system health (DB, uptime, version)
+- **Frontend:** Stat cards, upcoming events list (colour-coded by child), recent agent activity feed, system health indicators, WebSocket subscription + 30s auto-refresh
+- **Data sources:** Aggregates from `agent_log`, Google Calendar (via gog CLI), `school_emails`, `todoist_tasks` tables + system health checks
 - **Key views:** Overview dashboard with two-column layout (events + activity)
 
 ### 📜 Memory (`navOrder: 1`)
@@ -30,19 +30,19 @@ Every domain in Mission Control is a self-contained module with a backend router
 - **Tests:** 8 backend integration tests, 9 frontend store tests, 28 Playwright e2e tests
 
 ### ⚡ Agents (`navOrder: 2`)
-- **Purpose:** Agent monitoring, run history, cron schedule, manual triggers, live activity feed
-- **Backend:** `GET /api/agents/`, `/stats`, `/{id}/runs`, `/cron`, `POST /{id}/trigger`
-- **Frontend:** Agent cards grid with status badges, run history table (paginated, filterable by status), cron schedule, trigger buttons, live WebSocket activity feed
-- **Data sources:** Postgres (`agent_runs` — UUID PK, JSONB metadata), OpenClaw gateway API (`:18789`) for cron status + trigger execution
+- **Purpose:** Agent monitoring, log history, cron schedule, manual triggers, live activity feed
+- **Backend:** `GET /api/agents/`, `/stats`, `/{id}/log`, `/cron`, `POST /{id}/trigger`
+- **Frontend:** Agent cards grid with level badges (info/warning/error), log history table (paginated, filterable by level), cron schedule, trigger buttons, live WebSocket activity feed
+- **Data sources:** Postgres (`agent_log` — serial PK, JSONB metadata, `agent` column for agent ID), OpenClaw gateway API (`:18789`) for cron status + trigger execution
 - **WebSocket:** Trigger events broadcast on `agents:activity` topic
-- **Overview widget:** Agent activity (recent runs with status icons)
+- **Overview widget:** Agent activity (recent log entries with level icons)
 - **Tests:** 12 backend integration tests, 12 frontend store tests, Playwright e2e suite
 
 ### 🏥 School (`navOrder: 3`)
-- **Purpose:** School events, emails, tasks (Matron's domain, now in Mission Control)
-- **Backend:** `GET /api/school/events`, `/emails`, `/tasks`, `/stats`
-- **Frontend:** Tabbed view (Events | Emails | Tasks) with stat cards, colour-coded priorities, unread indicators
-- **Data sources:** Postgres (`school_emails`, `school_events`, `todoist_tasks`) via raw SQL (queries existing Matron tables, no ORM models needed). Graceful degradation if tables don't exist.
+- **Purpose:** Family calendar, school emails, tasks (Matron's domain, now in Mission Control)
+- **Backend:** `GET /api/school/calendar` (Google Calendar via gog CLI), `/events`, `/emails`, `/tasks`, `/stats`
+- **Frontend:** Tabbed view (Calendar | Emails | Tasks) with stat cards, child colour bars (Natty=blue, Elodie=purple, Florence=green), child inference from event summaries
+- **Data sources:** Google Calendar via `gog` CLI subprocess (`sollyfamily3@gmail.com` account), Postgres (`school_emails`, `school_events`, `todoist_tasks`) via raw SQL. Graceful degradation if tables don't exist or gog times out.
 - **Agent:** [[Matron - MOC|Matron 🏥]]
 - **Overview widget:** Upcoming events (next 5)
 - **Tests:** 10 backend integration tests, 8 frontend store tests, Playwright e2e suite
