@@ -7,14 +7,8 @@ services:
       - "5050:5050"
     volumes:
       - ~/.openclaw/workspace/memory:/memory:ro
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://jeeves@host.docker.internal:5432/jeeves
-      - PORT=5050
-      - DEBUG=false
-      - SESSION_SECRET=${SESSION_SECRET:-mission-control-prod-secret-change-me}
-      - CORS_ORIGINS=http://localhost:5050
-      - MEMORY_PATH=/memory
-      - OPENCLAW_URL=http://host.docker.internal:18789
+    env_file:
+      - .env.production
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped

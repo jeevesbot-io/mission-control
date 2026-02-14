@@ -1,9 +1,10 @@
 """Agents module API endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
+from core.rate_limit import limiter
 from core.websocket import manager
 
 from .models import (
@@ -53,7 +54,8 @@ async def get_agent_log(
 
 
 @router.post("/{agent_id}/trigger", response_model=TriggerResponse)
-async def trigger_agent(agent_id: str):
+@limiter.limit("5/minute")
+async def trigger_agent(request: Request, agent_id: str):
     """Trigger agent via OpenClaw gateway."""
     success, message = await agent_service.trigger_agent(agent_id)
     if not success:

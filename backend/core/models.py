@@ -39,6 +39,7 @@ class AgentRun(Base):
 class HealthResponse(BaseModel):
     status: str = "ok"
     version: str = "0.1.0"
+    database: bool = True
 
 
 class ModuleInfoResponse(BaseModel):

@@ -18,9 +18,10 @@ from .models import (
     TodoistTask,
 )
 
+from core.config import settings
+
 logger = logging.getLogger(__name__)
 
-GOG_PATH = "/opt/homebrew/bin/gog"
 CALENDAR_ACCOUNT = "sollyfamily3@gmail.com"
 
 # Patterns to infer which child an event relates to
@@ -50,12 +51,20 @@ class SchoolService:
         today = datetime.date.today()
         window_end = today + datetime.timedelta(days=days)
 
+        # When gog_path is empty, calendar is disabled (e.g. in Docker)
+        if not settings.gog_path:
+            return CalendarEventsResponse(
+                events=[], total=0,
+                window_start=today.isoformat(),
+                window_end=window_end.isoformat(),
+            )
+
         from_iso = f"{today.isoformat()}T00:00:00Z"
         to_iso = f"{window_end.isoformat()}T00:00:00Z"
 
         try:
             proc = await asyncio.create_subprocess_exec(
-                GOG_PATH, "calendar", "events", "primary",
+                settings.gog_path, "calendar", "events", "primary",
                 "--account", CALENDAR_ACCOUNT,
                 "--from", from_iso,
                 "--to", to_iso,
@@ -79,7 +88,7 @@ class SchoolService:
             # gog paginates — fetch remaining pages
             while data.get("nextPageToken"):
                 proc2 = await asyncio.create_subprocess_exec(
-                    GOG_PATH, "calendar", "events", "primary",
+                    settings.gog_path, "calendar", "events", "primary",
                     "--account", CALENDAR_ACCOUNT,
                     "--from", from_iso,
                     "--to", to_iso,

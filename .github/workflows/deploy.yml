@@ -1,0 +1,24 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Mac mini
+        uses: appleboy/ssh-action@v1
+        with:
+          host: nicks-mac-mini.tailcb3c3c.ts.net
+          username: jeeves
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd /Users/jeeves/projects/MissionControls
+            git pull origin main
+            docker compose build
+            docker compose up -d
+            sleep 5
+            curl -f http://localhost:5050/api/health || (echo "Health check failed" && exit 1)

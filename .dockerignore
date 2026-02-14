@@ -1,0 +1,17 @@
+.git
+.env
+.env.*
+__pycache__
+*.pyc
+node_modules
+.venv
+.pytest_cache
+.coverage
+htmlcov
+.DS_Store
+docs/
+.github/
+.vscode/
+.idea/
+backend/tests/
+frontend/e2e/

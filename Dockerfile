@@ -1,4 +1,4 @@
-# Multi-stage production build: Vite frontend → FastAPI static mount
+# Multi-stage production build: Vite frontend -> FastAPI static mount
 # Stage 1: Build frontend
 FROM node:22-slim AS frontend-build
 
@@ -15,6 +15,9 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
+# Create non-root user
+RUN groupadd -r mission && useradd -r -g mission mission
+
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
@@ -30,6 +33,12 @@ COPY backend/ .
 # Copy built frontend into static directory
 COPY --from=frontend-build /frontend/dist ./static
 
+# Switch to non-root user
+USER mission
+
 EXPOSE 5050
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5050/api/health')"
 
 CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5050"]

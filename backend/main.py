@@ -7,14 +7,21 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from sqlalchemy import text
 
+from core.cloudflare_auth import CloudflareAccessMiddleware, validate_cf_token
 from core.config import settings
-from core.database import engine
+from core.database import async_session, engine
+from core.logging_config import setup_logging
 from core.models import HealthResponse, ModuleInfoResponse
+from core.rate_limit import limiter
 from core.registry import discover_modules
+from core.security_headers import SecurityHeadersMiddleware
 from core.websocket import manager
 
-logging.basicConfig(level=logging.DEBUG if settings.debug else logging.INFO)
+setup_logging()
 logger = logging.getLogger(__name__)
 
 
@@ -29,13 +36,24 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     app = FastAPI(title="Mission Control", version="0.1.0", lifespan=lifespan)
 
-    # CORS
+    # Rate limiter
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+    # Middleware stack (outermost first)
+    # 1. Security headers (outermost — runs on every response)
+    app.add_middleware(SecurityHeadersMiddleware)
+
+    # 2. Cloudflare Access auth (skipped when cf_access_team is empty)
+    app.add_middleware(CloudflareAccessMiddleware)
+
+    # 3. CORS
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origin_list,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization", "Cf-Access-Jwt-Assertion"],
     )
 
     # Discover and mount modules
@@ -50,7 +68,17 @@ def create_app() -> FastAPI:
     # Core routes
     @app.get("/api/health", response_model=HealthResponse)
     async def health_check():
-        return HealthResponse()
+        db_ok = True
+        try:
+            async with async_session() as session:
+                await session.execute(text("SELECT 1"))
+        except Exception:
+            db_ok = False
+            logger.warning("Health check: database unreachable")
+        return HealthResponse(
+            status="ok" if db_ok else "degraded",
+            database=db_ok,
+        )
 
     @app.get("/api/modules", response_model=list[ModuleInfoResponse])
     async def list_modules():
@@ -64,6 +92,17 @@ def create_app() -> FastAPI:
     # WebSocket
     @app.websocket("/ws/live")
     async def websocket_endpoint(websocket: WebSocket):
+        # Validate CF Access token on WebSocket when enabled
+        if settings.cf_access_team:
+            token = websocket.cookies.get("CF_Authorization")
+            if not token:
+                await websocket.close(code=4003, reason="Missing CF Access token")
+                return
+            email = await validate_cf_token(token)
+            if not email:
+                await websocket.close(code=4003, reason="Invalid CF Access token")
+                return
+
         await manager.connect(websocket)
         try:
             while True:
