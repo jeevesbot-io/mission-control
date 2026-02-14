@@ -56,8 +56,8 @@ describe('chat store', () => {
       await store.sendMessage('Hello')
 
       expect(store.messages).toHaveLength(2)
-      expect(store.messages[0].role).toBe('user')
-      expect(store.messages[1].role).toBe('system')
+      expect(store.messages[0]!.role).toBe('user')
+      expect(store.messages[1]!.role).toBe('system')
       expect(store.error).toBeTruthy()
     })
 
@@ -83,7 +83,7 @@ describe('chat store', () => {
 
       // Only the first message should be in the array (second was blocked)
       expect(store.messages).toHaveLength(1)
-      expect(store.messages[0].content).toBe('First')
+      expect(store.messages[0]!.content).toBe('First')
 
       // Resolve first request
       resolveFirst!({
