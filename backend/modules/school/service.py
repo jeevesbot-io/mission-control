@@ -115,7 +115,6 @@ class SchoolService:
                 text("""
                     SELECT COUNT(*) FROM school_events
                     WHERE event_date >= CURRENT_DATE
-                      AND event_date < CURRENT_DATE + INTERVAL '7 days'
                 """)
             )
             upcoming_events = events_result.scalar_one()
