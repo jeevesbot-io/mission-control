@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Mission Control is a unified dashboard and life operating system. It replaces Matron's standalone Flask dashboard with a plugin-based platform where each life domain (agents, memory, school, health, finance, etc.) is a self-contained module. **Status: All build phases (1–8) complete. Core system, all modules (Memory, Agents, School, Overview), WebSocket live feed, Docker production build, and full test suite are live. Ready for deployment and Matron cutover.**
+Mission Control is a unified dashboard and life operating system. It replaces Matron's standalone Flask dashboard with a plugin-based platform where each life domain (agents, memory, school, health, finance, etc.) is a self-contained module. **Status: All build phases (1–9) complete. Core system, all modules (Memory, Agents, School, Overview, War Room), WebSocket live feed, Docker production build, and full test suite are live. VidClaw dashboard fully migrated into War Room module.**
 
 All architecture documentation lives in `docs/`:
 - `Mission Control - Architecture.md` — full technical blueprint (stack, structure, API, wireframes, implementation plan)
@@ -126,6 +126,11 @@ mission-control/
 | School data | Postgres (`school_emails`, `school_events`, `todoist_tasks`) | Async DB query (raw SQL) |
 | Agent activity | Postgres (`agent_log`) | Async DB query (raw SQL) |
 | Cron status | OpenClaw gateway API (`:18789`) | HTTP |
+| Tasks / Projects | `~/.openclaw/workspace/dashboard/data/tasks.json`, `projects.json` | File read/write (WarRoomService, thread-locked) |
+| Skills | `~/.openclaw/skills/`, `~/.openclaw/workspace/skills/` | Filesystem scan |
+| Soul files | `~/.openclaw/workspace/SOUL.md`, `IDENTITY.md`, `USER.md`, `AGENTS.md` | File read/write with history |
+| OpenClaw config | `~/.openclaw/openclaw.json` | File read/write (model, skill enabled state) |
+| Usage sessions | `~/.openclaw/agents/main/sessions/*.jsonl` | Parsed async, 60s TTL cache |
 
 No `memory_entries` table — memory files are the source of truth. No Redis or message queue.
 
@@ -147,7 +152,8 @@ No `memory_entries` table — memory files are the source of truth. No Redis or 
 5. ~~School module~~ — Google Calendar + emails, tasks (tabbed view), child inference, stats
 6. ~~Overview page~~ — unified dashboard with `/api/overview` aggregating all system data, health checks, upcoming events, agent activity feed, stat cards
 7. ~~Docker + deploy~~ — multi-stage production Dockerfile, production docker-compose on port 5050
-8. ~~Polish + testing~~ — 42 backend tests, 41 frontend tests, Playwright e2e test suites
+8. ~~Polish + testing~~ — 79 backend tests, 68 frontend tests, Playwright e2e test suites
+9. ~~War Room module~~ — full VidClaw migration: Kanban board (drag-and-drop), task queue protocol for agents (heartbeat/pickup/complete), projects, tags, skills, soul/identity editor, activity calendar, usage & model switcher, WarRoomSummary overview widget
 
 ## API Endpoints
 
@@ -171,4 +177,33 @@ GET  /api/school/emails              → recent school emails
 GET  /api/school/tasks               → todoist tasks
 GET  /api/school/stats               → school summary stats
 WS   /ws/live                        → real-time activity (topic-based pub/sub)
+
+# War Room
+GET    /api/warroom/tasks             → list tasks (filterable by project/priority/tags/status)
+POST   /api/warroom/tasks             → create task
+PUT    /api/warroom/tasks/{id}        → update task
+DELETE /api/warroom/tasks/{id}        → delete task
+GET    /api/warroom/tasks/queue       → agent queue (todo/backlog, unpicked, sorted by priority)
+POST   /api/warroom/tasks/{id}/pickup → mark picked up (agent heartbeat protocol)
+POST   /api/warroom/tasks/{id}/complete → mark complete with result/error
+GET    /api/warroom/projects          → list projects with task_count
+POST   /api/warroom/projects          → create project
+PUT    /api/warroom/projects/{id}     → update project
+DELETE /api/warroom/projects/{id}     → delete project (422 if tasks exist)
+GET    /api/warroom/tags              → sorted unique tag list
+GET    /api/warroom/usage             → usage tiers + active model
+GET    /api/warroom/models            → available model list
+POST   /api/warroom/model             → set active model
+GET    /api/warroom/heartbeat         → last heartbeat timestamp
+POST   /api/warroom/heartbeat         → record heartbeat
+GET    /api/warroom/skills            → list skills (managed + workspace)
+POST   /api/warroom/skills            → create workspace skill
+POST   /api/warroom/skills/{id}/toggle → enable/disable skill
+DELETE /api/warroom/skills/{id}       → delete workspace skill
+GET    /api/warroom/workspace-file    → get SOUL.md / IDENTITY.md / USER.md / AGENTS.md
+PUT    /api/warroom/workspace-file    → update + save history (max 20 entries)
+GET    /api/warroom/workspace-file/history → file edit history
+GET    /api/warroom/soul/templates    → 6 static soul templates
+GET    /api/warroom/calendar          → activity heatmap {date: {memory, tasks}}
+GET    /api/warroom/stats             → overview widget stats (in_progress, todo, heartbeat, model)
 ```

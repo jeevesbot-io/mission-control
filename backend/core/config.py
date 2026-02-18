@@ -16,6 +16,11 @@ class Settings(BaseSettings):
     session_secret: str = "change-me"
     cors_origins: str = "http://localhost:5173,http://localhost:5055"
     memory_path: str = "~/.openclaw/workspace/memory"
+    dashboard_data_dir: str = "~/.openclaw/workspace/dashboard/data"
+    workspace_dir: str = "~/.openclaw/workspace"
+    openclaw_dir: str = "~/.openclaw"
+    sessions_dir: str = "~/.openclaw/agents/main/sessions"
+    bundled_skills_dir: str = ""  # empty = disabled (Linux path doesn't exist on macOS)
     openclaw_url: str = "http://localhost:18789"
     openclaw_token: str = ""
 
@@ -42,6 +47,22 @@ class Settings(BaseSettings):
     @property
     def memory_dir(self) -> Path:
         return Path(self.memory_path).expanduser()
+
+    @property
+    def dashboard_data_path(self) -> Path:
+        return Path(self.dashboard_data_dir).expanduser()
+
+    @property
+    def workspace_path(self) -> Path:
+        return Path(self.workspace_dir).expanduser()
+
+    @property
+    def openclaw_path(self) -> Path:
+        return Path(self.openclaw_dir).expanduser()
+
+    @property
+    def sessions_path(self) -> Path:
+        return Path(self.sessions_dir).expanduser()
 
 
 settings = Settings()

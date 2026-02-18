@@ -21,6 +21,21 @@ import {
   Hospital,
   PartyPopper,
   Square,
+  // War Room icons
+  Swords,
+  Kanban,
+  Tag,
+  FolderOpen,
+  ToggleLeft,
+  ToggleRight,
+  Cpu,
+  Flame,
+  Link,
+  BookOpen,
+  FileText,
+  Sparkles,
+  RefreshCw,
+  GripVertical,
 } from 'lucide-vue-next'
 
 export const iconMap: Record<string, Component> = {
@@ -45,6 +60,21 @@ export const iconMap: Record<string, Component> = {
   hospital: Hospital,
   'party-popper': PartyPopper,
   square: Square,
+  // War Room icons
+  swords: Swords,
+  kanban: Kanban,
+  tag: Tag,
+  'folder-open': FolderOpen,
+  'toggle-left': ToggleLeft,
+  'toggle-right': ToggleRight,
+  cpu: Cpu,
+  flame: Flame,
+  link: Link,
+  'book-open': BookOpen,
+  'file-text': FileText,
+  sparkles: Sparkles,
+  'refresh-cw': RefreshCw,
+  'grip-vertical': GripVertical,
 }
 
 export function resolveIcon(name: string): Component | null {

@@ -25,6 +25,7 @@ title: Mission Control — Backlog
 - [x] Phase 6: Overview page (`/api/overview` endpoint aggregating all data, health checks, upcoming events, agent activity, stat cards, two-column layout) — *done 2026-02-13*
 - [x] Phase 7: Docker + deploy (multi-stage Dockerfile, production docker-compose on port 5050, SPA static serving) — *done 2026-02-13*
 - [x] Phase 8: Polish + testing (42 backend tests, 41 frontend tests, Playwright e2e suites) — *done 2026-02-13*
+- [x] Phase 9: War Room module — full VidClaw migration (Kanban + drag-and-drop, agent queue protocol, projects, tags, skills, soul/identity editor, activity calendar, usage & model switcher, WarRoomSummary widget; 79 backend tests, 68 frontend tests, 45 e2e tests) — *done 2026-02-18*
 
 ## Future Features
 
@@ -39,5 +40,6 @@ title: Mission Control — Backlog
 ## Technical Debt / Migration
 
 - [ ] Matron's Flask dashboard decommissioning once School module is live and stable
+- [ ] VidClaw (`localhost:3333`) cutover — update HEARTBEAT.md URLs and stop `com.vidclaw.dashboard` launchd service once War Room is confirmed stable
 - [ ] Review `agent_log` table ownership — shared between OpenClaw (writes) and Mission Control (reads)
 - [ ] Session secret management — move from Docker env var to proper secrets (Docker secrets or mounted file)

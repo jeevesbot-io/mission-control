@@ -8,6 +8,7 @@ import StatCard from '@/components/data/StatCard.vue'
 import Badge from '@/components/ui/Badge.vue'
 import McIcon from '@/components/ui/McIcon.vue'
 import { getAgentIconName, getLevelIconName } from '@/composables/useIcons'
+import WarRoomSummary from '@/modules/warroom/widgets/WarRoomSummary.vue'
 
 const store = useOverviewStore()
 const { subscribe } = useWebSocket()
@@ -246,6 +247,14 @@ function formatRelativeTime(iso: string): string {
           </div>
         </section>
       </div>
+
+      <!-- Module Widgets -->
+      <section class="overview__section">
+        <h3 class="overview__section-title">Activity</h3>
+        <div class="overview__widgets">
+          <WarRoomSummary />
+        </div>
+      </section>
 
       <!-- System Health -->
       <section class="overview__section" v-if="store.data">
@@ -501,6 +510,13 @@ function formatRelativeTime(iso: string): string {
   color: var(--mc-text-muted);
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+/* Module widgets */
+.overview__widgets {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
 }
 
 /* Health */
