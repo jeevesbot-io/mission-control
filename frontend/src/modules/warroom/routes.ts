@@ -1,3 +1,15 @@
+import type { RouteRecordRaw } from 'vue-router'
+import WarRoomPage from './WarRoomPage.vue'
+
+const routes: RouteRecordRaw[] = [
+  {
+    path: '/warroom',
+    name: 'warroom',
+    component: WarRoomPage,
+    meta: { title: 'War Room' },
+  },
+]
+
 export default {
   module: {
     id: 'warroom',
@@ -5,13 +17,7 @@ export default {
     icon: 'swords',
     navOrder: 5,
   },
-  routes: [
-    {
-      path: '/warroom',
-      component: () => import('./WarRoomPage.vue'),
-      meta: { title: 'War Room' },
-    },
-  ],
+  routes,
   overviewWidgets: [
     {
       id: 'warroom-summary',
