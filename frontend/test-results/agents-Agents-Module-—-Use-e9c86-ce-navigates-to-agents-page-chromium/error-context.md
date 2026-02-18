@@ -1,0 +1,105 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e4]:
+  - complementary [ref=e5]:
+    - generic [ref=e6]:
+      - img [ref=e10]
+      - generic [ref=e18]:
+        - generic [ref=e19]: Mission Control
+        - generic [ref=e20]: LIFE OPS
+    - navigation [ref=e21]:
+      - link "Overview" [ref=e22] [cursor=pointer]:
+        - /url: /
+        - img [ref=e24]
+        - generic [ref=e27]: Overview
+      - link "Memory" [ref=e28] [cursor=pointer]:
+        - /url: /memory
+        - img [ref=e30]
+        - generic [ref=e33]: Memory
+      - link "Agents" [ref=e34] [cursor=pointer]:
+        - /url: /agents
+        - img [ref=e37]
+        - generic [ref=e39]: Agents
+      - link "School" [ref=e40] [cursor=pointer]:
+        - /url: /school
+        - img [ref=e42]
+        - generic [ref=e45]: School
+      - link "Chat" [ref=e46] [cursor=pointer]:
+        - /url: /chat
+        - img [ref=e48]
+        - generic [ref=e50]: Chat
+      - link "War Room" [ref=e51] [cursor=pointer]:
+        - /url: /warroom
+        - img [ref=e53]
+        - generic [ref=e62]: War Room
+    - button "" [ref=e64] [cursor=pointer]:
+      - generic [ref=e65]: 
+  - generic [ref=e66]:
+    - banner [ref=e67]:
+      - generic [ref=e68]:
+        - text: 
+        - heading "Agents" [level=1] [ref=e69]
+      - generic [ref=e70]:
+        - generic [ref=e71]:
+          - generic [ref=e73]: 06:12 PM
+          - generic [ref=e74]: /
+          - generic [ref=e75]: Wed, Feb 18
+        - button "" [ref=e76] [cursor=pointer]:
+          - generic [ref=e77]: 
+        - button "Switch to light mode" [ref=e78] [cursor=pointer]:
+          - generic [ref=e79]: 
+    - generic [ref=e82]:
+      - generic [ref=e83]:
+        - heading "Agent Control" [level=2] [ref=e84]
+        - paragraph [ref=e85]: Fleet status, logs, and dispatch
+      - generic [ref=e86]:
+        - heading "Telemetry" [level=3] [ref=e87]
+        - generic [ref=e88]:
+          - generic [ref=e91]:
+            - img [ref=e94]
+            - generic [ref=e96]:
+              - generic [ref=e97]: "381"
+              - generic [ref=e98]: Total Log Entries
+          - generic [ref=e101]:
+            - img [ref=e104]
+            - generic [ref=e107]:
+              - generic [ref=e108]: 98.7%
+              - generic [ref=e109]: Health Rate
+          - generic [ref=e112]:
+            - img [ref=e115]
+            - generic [ref=e118]:
+              - generic [ref=e119]: "54"
+              - generic [ref=e120]: Entries (24h)
+          - generic [ref=e123]:
+            - img [ref=e126]
+            - generic [ref=e129]:
+              - generic [ref=e130]: "1"
+              - generic [ref=e131]: Unique Agents
+          - generic [ref=e134]:
+            - img [ref=e137]
+            - generic [ref=e139]:
+              - generic [ref=e140]: "3"
+              - generic [ref=e141]: Warnings
+      - generic [ref=e142]:
+        - heading "Agents 1" [level=3] [ref=e143]:
+          - text: Agents
+          - generic [ref=e144]: "1"
+        - generic [ref=e146]:
+          - generic [ref=e147]:
+            - generic [ref=e148]:
+              - img [ref=e149]
+              - link "matron" [ref=e153] [cursor=pointer]:
+                - /url: /agents/matron
+            - generic [ref=e154]: info
+          - generic [ref=e155]: Evening summary completed
+          - generic [ref=e156]:
+            - generic [ref=e157]: 381 entries
+            - generic [ref=e158]:
+              - img [ref=e159]
+              - text: 3 warnings
+            - generic [ref=e161]: "Last: 11m ago"
+          - button " Trigger" [ref=e162] [cursor=pointer]:
+            - generic [ref=e163]: 
+            - text: Trigger
+```

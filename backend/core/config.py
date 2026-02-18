@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     bundled_skills_dir: str = ""  # empty = disabled (Linux path doesn't exist on macOS)
     openclaw_url: str = "http://localhost:18789"
     openclaw_token: str = ""
+    openclaw_gateway_url: str = "http://localhost:18789"
+    openclaw_gateway_token: str = ""
 
     # Cloudflare Access (empty = disabled)
     cf_access_team: str = ""

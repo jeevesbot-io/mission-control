@@ -1,0 +1,184 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e4]:
+  - complementary [ref=e5]:
+    - generic [ref=e6]:
+      - img [ref=e10]
+      - generic [ref=e18]:
+        - generic [ref=e19]: Mission Control
+        - generic [ref=e20]: LIFE OPS
+    - navigation [ref=e21]:
+      - link "Overview" [ref=e22] [cursor=pointer]:
+        - /url: /
+        - img [ref=e24]
+        - generic [ref=e27]: Overview
+      - link "Memory" [ref=e28] [cursor=pointer]:
+        - /url: /memory
+        - img [ref=e30]
+        - generic [ref=e33]: Memory
+      - link "Agents" [ref=e34] [cursor=pointer]:
+        - /url: /agents
+        - img [ref=e36]
+        - generic [ref=e38]: Agents
+      - link "School" [ref=e39] [cursor=pointer]:
+        - /url: /school
+        - img [ref=e41]
+        - generic [ref=e44]: School
+      - link "Chat" [ref=e45] [cursor=pointer]:
+        - /url: /chat
+        - img [ref=e47]
+        - generic [ref=e49]: Chat
+      - link "War Room" [ref=e50] [cursor=pointer]:
+        - /url: /warroom
+        - img [ref=e53]
+        - generic [ref=e62]: War Room
+    - button "" [ref=e64] [cursor=pointer]:
+      - generic [ref=e65]: 
+  - generic [ref=e66]:
+    - banner [ref=e67]:
+      - generic [ref=e68]:
+        - text: 
+        - heading "War Room" [level=1] [ref=e69]
+      - generic [ref=e70]:
+        - generic [ref=e71]:
+          - generic [ref=e73]: 05:53 PM
+          - generic [ref=e74]: /
+          - generic [ref=e75]: Wed, Feb 18
+        - button "" [ref=e76] [cursor=pointer]:
+          - generic [ref=e77]: 
+        - button "Switch to light mode" [ref=e78] [cursor=pointer]:
+          - generic [ref=e79]: 
+    - generic [ref=e82]:
+      - generic [ref=e83]:
+        - button "Kanban" [ref=e84] [cursor=pointer]:
+          - img [ref=e85]
+          - text: Kanban
+        - button "Usage & Model" [ref=e86] [cursor=pointer]:
+          - img [ref=e87]
+          - text: Usage & Model
+        - button "Skills" [ref=e90] [cursor=pointer]:
+          - img [ref=e91]
+          - text: Skills
+        - button "Soul & Identity" [ref=e94] [cursor=pointer]:
+          - img [ref=e95]
+          - text: Soul & Identity
+        - button "Calendar" [ref=e98] [cursor=pointer]:
+          - img [ref=e99]
+          - text: Calendar
+      - generic [ref=e102]:
+        - generic [ref=e104]:
+          - button "All" [ref=e105] [cursor=pointer]
+          - button "Mission Control 1" [ref=e106] [cursor=pointer]:
+            - text: Mission Control
+            - generic [ref=e107]: "1"
+          - button "Matron 1" [ref=e108] [cursor=pointer]:
+            - text: Matron
+            - generic [ref=e109]: "1"
+          - button "Sports Dashboard 0" [ref=e110] [cursor=pointer]:
+            - text: Sports Dashboard
+            - generic [ref=e111]: "0"
+          - button "The Curator 0" [ref=e112] [cursor=pointer]:
+            - text: The Curator
+            - generic [ref=e113]: "0"
+          - button "The Archivist 0" [ref=e114] [cursor=pointer]:
+            - text: The Archivist
+            - generic [ref=e115]: "0"
+          - button "Job Hunt 1" [ref=e116] [cursor=pointer]:
+            - text: Job Hunt
+            - generic [ref=e117]: "1"
+          - button "OpenClaw Platform 8" [ref=e118] [cursor=pointer]:
+            - text: OpenClaw Platform
+            - generic [ref=e119]: "8"
+          - button "War Room 0" [ref=e120] [cursor=pointer]:
+            - text: War Room
+            - generic [ref=e121]: "0"
+          - button "Social Media 0" [ref=e122] [cursor=pointer]:
+            - text: Social Media
+            - generic [ref=e123]: "0"
+          - button "Side Hustles 0" [ref=e124] [cursor=pointer]:
+            - text: Side Hustles
+            - generic [ref=e125]: "0"
+          - button "Unassigned" [ref=e126] [cursor=pointer]
+        - generic [ref=e127]:
+          - generic [ref=e128]:
+            - generic [ref=e129]:
+              - generic [ref=e130]: Backlog
+              - generic [ref=e131]: "11"
+            - generic [ref=e132]:
+              - generic [ref=e133] [cursor=pointer]:
+                - generic [ref=e135]: OpenClaw Platform
+                - paragraph [ref=e136]: Build Security Council
+                - paragraph [ref=e137]: "Nightly codebase audit with 4 perspectives: offensive, defensive, data privacy, operational realism. Reviews entire codebase, commit history, logs. Delivers numbered findings to Telegram. Inspired by Matt Wolfe setup."
+                - generic [ref=e138]:
+                  - generic [ref=e139]: high
+                  - generic [ref=e140]: 1 ref
+              - generic [ref=e141] [cursor=pointer]:
+                - generic [ref=e143]: Job Hunt
+                - paragraph [ref=e144]: Build Job Hunt Decision Council
+                - paragraph [ref=e145]: "Adapt Business Council pattern for job hunt: 7 existing agents + synthesizer that discusses, ranks, and delivers strategic recommendations. Should analyze all job hunt data sources and suggest focus areas, CV improvements, application strategies."
+                - generic [ref=e147]: high
+              - generic [ref=e148] [cursor=pointer]:
+                - generic [ref=e150]: OpenClaw Platform
+                - paragraph [ref=e151]: Build Knowledge Base with RAG
+                - paragraph [ref=e152]: "Centralized research capture system: drop URLs (articles, papers, X posts, YouTube) into Telegram, auto-ingest + embed in vector DB, support natural language search. Could replace/augment Archivist function. Inspired by Matt Wolfe setup."
+                - generic [ref=e153]:
+                  - generic [ref=e154]: high
+                  - generic [ref=e155]: 1 ref
+              - generic [ref=e156] [cursor=pointer]:
+                - generic [ref=e158]: OpenClaw Platform
+                - paragraph [ref=e159]: Build Daily Briefing System
+                - paragraph [ref=e160]: "Morning digest consolidating overnight jobs: job hunt updates, sports results, school calendar, action items, meetings + context. Single Telegram message to start the day informed. Runs after all overnight councils complete."
+                - generic [ref=e162]: high
+              - generic [ref=e163] [cursor=pointer]:
+                - generic [ref=e165]: OpenClaw Platform
+                - paragraph [ref=e166]: Implement Model-Specific Prompt Optimization
+                - paragraph [ref=e167]: "Download prompting best practices from Anthropic, OpenAI, etc. Store locally. Reference guides when updating prompts. Example: Opus 4.6 specific patterns. Improves all agent output quality."
+                - generic [ref=e169]: high
+              - generic [ref=e170] [cursor=pointer]:
+                - generic [ref=e172]: OpenClaw Platform
+                - paragraph [ref=e173]: Adopt Hybrid Code Philosophy
+                - paragraph [ref=e174]: Shift deterministic tasks to Python scripts (backups, security scans, data sanitization). Use LLMs for reasoning, traditional code for reliability. Document which tasks should be scripted vs LLM-driven.
+                - generic [ref=e176]: high
+              - generic [ref=e177] [cursor=pointer]:
+                - generic [ref=e179]: OpenClaw Platform
+                - paragraph [ref=e180]: Build Platform Council
+                - paragraph [ref=e181]: Documentation drift detection, log monitoring, backup health checks. General code health beyond security. Lower priority than Security Council but still valuable for maintaining Mission Control, Job Hunt, Sports Dashboard.
+                - generic [ref=e183]: medium
+              - generic [ref=e184] [cursor=pointer]:
+                - generic [ref=e186]: Matron
+                - paragraph [ref=e187]: Implement Urgent Email Monitoring
+                - paragraph [ref=e188]: Every 30 min scan for urgent emails. Tuned thresholds to avoid noise — only alert on immediate needs (deals, contracts, commitments). Sends alerts to Telegram. Need careful tuning.
+                - generic [ref=e190]: medium
+              - generic [ref=e191] [cursor=pointer]:
+                - generic [ref=e193]: OpenClaw Platform
+                - paragraph [ref=e194]: Self-Updating OpenClaw Checker
+                - paragraph [ref=e195]: Nightly check for OpenClaw updates at 9pm. Posts changelog summary to Telegram. User approves with "update" command. Auto-updates and restarts gateway. Low effort, high value.
+                - generic [ref=e197]: medium
+              - generic [ref=e198] [cursor=pointer]:
+                - generic [ref=e200]: OpenClaw Platform
+                - paragraph [ref=e201]: Learning from Feedback System
+                - paragraph [ref=e202]: "Self-improving filters: Job Hunt CV match scoring learns from accept/reject. Matron urgent email detection learns from false positives. Action item extraction learns from rejections. Updates prompts automatically."
+                - generic [ref=e204]: medium
+              - generic [ref=e205] [cursor=pointer]:
+                - generic [ref=e207]: Mission Control
+                - paragraph [ref=e208]: Cron Job Monitoring Dashboard
+                - paragraph [ref=e209]: Expose agent_runs table in Mission Control. Show success/failure rates, last run times, error patterns. Already logged in DB, just needs UI.
+                - generic [ref=e211]: medium
+            - button "+ Add task" [active] [ref=e212] [cursor=pointer]
+          - generic [ref=e213]:
+            - generic [ref=e214]:
+              - generic [ref=e215]: Todo
+              - generic [ref=e216]: "0"
+              - 'generic "Last heartbeat: 2/18/2026, 5:51:40 PM" [ref=e217]':
+                - generic [ref=e219]: 1m ago
+            - button "+ Add task" [ref=e221] [cursor=pointer]
+          - generic [ref=e223]:
+            - generic [ref=e224]: In Progress
+            - generic [ref=e225]: "0"
+            - generic [ref=e226]: agent
+          - generic [ref=e229]:
+            - generic [ref=e230]: Done
+            - generic [ref=e231]: "0"
+            - generic [ref=e232]: agent
+```

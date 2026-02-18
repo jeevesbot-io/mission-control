@@ -1,0 +1,81 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e4]:
+  - complementary [ref=e5]:
+    - generic [ref=e6]:
+      - img [ref=e10]
+      - generic [ref=e18]:
+        - generic [ref=e19]: Mission Control
+        - generic [ref=e20]: LIFE OPS
+    - navigation [ref=e21]:
+      - link "Overview" [ref=e22] [cursor=pointer]:
+        - /url: /
+        - img [ref=e24]
+        - generic [ref=e27]: Overview
+      - link "Memory" [ref=e28] [cursor=pointer]:
+        - /url: /memory
+        - img [ref=e30]
+        - generic [ref=e33]: Memory
+      - link "Agents" [ref=e34] [cursor=pointer]:
+        - /url: /agents
+        - img [ref=e36]
+        - generic [ref=e38]: Agents
+      - link "School" [ref=e39] [cursor=pointer]:
+        - /url: /school
+        - img [ref=e42]
+        - generic [ref=e45]: School
+      - link "Chat" [ref=e46] [cursor=pointer]:
+        - /url: /chat
+        - img [ref=e48]
+        - generic [ref=e50]: Chat
+      - link "War Room" [ref=e51] [cursor=pointer]:
+        - /url: /warroom
+        - img [ref=e53]
+        - generic [ref=e62]: War Room
+    - button "" [ref=e64] [cursor=pointer]:
+      - generic [ref=e65]: 
+  - generic [ref=e66]:
+    - banner [ref=e67]:
+      - generic [ref=e68]:
+        - text: 
+        - heading "School" [level=1] [ref=e69]
+      - generic [ref=e70]:
+        - generic [ref=e71]:
+          - generic [ref=e73]: 06:12 PM
+          - generic [ref=e74]: /
+          - generic [ref=e75]: Wed, Feb 18
+        - button "" [ref=e76] [cursor=pointer]:
+          - generic [ref=e77]: 
+        - button "Switch to light mode" [ref=e78] [cursor=pointer]:
+          - generic [ref=e79]: 
+    - generic [ref=e82]:
+      - generic [ref=e83]:
+        - heading "School & Family" [level=2] [ref=e84]
+        - paragraph [ref=e85]: Keeping the crew on schedule
+      - generic [ref=e86]:
+        - heading "Overview" [level=3] [ref=e87]
+        - generic [ref=e88]:
+          - generic [ref=e91]:
+            - img [ref=e94]
+            - generic [ref=e96]:
+              - generic [ref=e97]: "0"
+              - generic [ref=e98]: Events (7 days)
+          - generic [ref=e101]:
+            - img [ref=e104]
+            - generic [ref=e107]:
+              - generic [ref=e108]: "19"
+              - generic [ref=e109]: Total Emails
+          - generic [ref=e112]:
+            - img [ref=e115]
+            - generic [ref=e118]:
+              - generic [ref=e119]: "3"
+              - generic [ref=e120]: Tasks
+      - generic [ref=e121]:
+        - button "Calendar" [ref=e122] [cursor=pointer]
+        - button "Emails" [ref=e123] [cursor=pointer]
+        - button "Tasks" [ref=e124] [cursor=pointer]
+      - generic [ref=e125]:
+        - generic [ref=e126]: Feb 18 – Feb 25
+        - generic [ref=e127]: Week looks clear
+```

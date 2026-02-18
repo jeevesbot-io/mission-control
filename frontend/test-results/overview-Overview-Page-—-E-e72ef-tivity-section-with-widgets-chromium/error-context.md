@@ -1,0 +1,215 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e4]:
+  - complementary [ref=e5]:
+    - generic [ref=e6]:
+      - img [ref=e10]
+      - generic [ref=e18]:
+        - generic [ref=e19]: Mission Control
+        - generic [ref=e20]: LIFE OPS
+    - navigation [ref=e21]:
+      - link "Overview" [ref=e22] [cursor=pointer]:
+        - /url: /
+        - img [ref=e25]
+        - generic [ref=e28]: Overview
+      - link "Memory" [ref=e29] [cursor=pointer]:
+        - /url: /memory
+        - img [ref=e31]
+        - generic [ref=e34]: Memory
+      - link "Agents" [ref=e35] [cursor=pointer]:
+        - /url: /agents
+        - img [ref=e37]
+        - generic [ref=e39]: Agents
+      - link "School" [ref=e40] [cursor=pointer]:
+        - /url: /school
+        - img [ref=e42]
+        - generic [ref=e45]: School
+      - link "Chat" [ref=e46] [cursor=pointer]:
+        - /url: /chat
+        - img [ref=e48]
+        - generic [ref=e50]: Chat
+      - link "War Room" [ref=e51] [cursor=pointer]:
+        - /url: /warroom
+        - img [ref=e53]
+        - generic [ref=e62]: War Room
+    - button "" [ref=e64] [cursor=pointer]:
+      - generic [ref=e65]: 
+  - generic [ref=e66]:
+    - banner [ref=e67]:
+      - generic [ref=e68]:
+        - text: 
+        - heading "Overview" [level=1] [ref=e69]
+      - generic [ref=e70]:
+        - generic [ref=e71]:
+          - generic [ref=e73]: 06:12 PM
+          - generic [ref=e74]: /
+          - generic [ref=e75]: Wed, Feb 18
+        - button "" [ref=e76] [cursor=pointer]:
+          - generic [ref=e77]: 
+        - button "Switch to light mode" [ref=e78] [cursor=pointer]:
+          - generic [ref=e79]: 
+    - generic [ref=e82]:
+      - generic [ref=e83]:
+        - generic [ref=e84]:
+          - heading "Good evening, Nick" [level=2] [ref=e85]
+          - paragraph [ref=e86]: 54 agent entries today · 0 events this week
+        - generic [ref=e88]: ALL SYSTEMS GO
+      - generic [ref=e89]:
+        - heading "System Telemetry" [level=3] [ref=e90]
+        - generic [ref=e91]:
+          - generic [ref=e94]:
+            - img [ref=e97]
+            - generic [ref=e100]:
+              - generic [ref=e101]: "1"
+              - generic [ref=e102]: Active Agents
+          - generic [ref=e105]:
+            - img [ref=e108]
+            - generic [ref=e110]:
+              - generic [ref=e111]: "0"
+              - generic [ref=e112]: Events This Week
+          - generic [ref=e115]:
+            - img [ref=e118]
+            - generic [ref=e121]:
+              - generic [ref=e122]: "19"
+              - generic [ref=e123]: Emails Processed
+          - generic [ref=e126]:
+            - img [ref=e129]
+            - generic [ref=e132]:
+              - generic [ref=e133]: "3"
+              - generic [ref=e134]: Tasks Pending
+          - generic [ref=e137]:
+            - img [ref=e140]
+            - generic [ref=e143]:
+              - generic [ref=e144]: 98.7%
+              - generic [ref=e145]: Health Rate
+          - generic [ref=e148]:
+            - img [ref=e151]
+            - generic [ref=e154]:
+              - generic [ref=e155]: 23s
+              - generic [ref=e156]: Uptime
+      - generic [ref=e157]:
+        - generic [ref=e158]:
+          - heading "Upcoming Events" [level=3] [ref=e159]
+          - generic [ref=e161]:
+            - img [ref=e162]
+            - generic [ref=e168]: Clear skies ahead
+        - generic [ref=e169]:
+          - heading "Recent Agent Activity" [level=3] [ref=e170]
+          - generic [ref=e172]:
+            - generic [ref=e173]:
+              - img [ref=e174]
+              - generic [ref=e178]:
+                - generic [ref=e179]:
+                  - generic [ref=e180]: matron
+                  - img [ref=e181]
+                - generic [ref=e184]: Evening summary completed
+              - generic [ref=e185]: 11m ago
+            - generic [ref=e186]:
+              - img [ref=e187]
+              - generic [ref=e191]:
+                - generic [ref=e192]:
+                  - generic [ref=e193]: matron
+                  - img [ref=e194]
+                - generic [ref=e197]: Email processing pipeline completed
+              - generic [ref=e198]: 11m ago
+            - generic [ref=e199]:
+              - img [ref=e200]
+              - generic [ref=e204]:
+                - generic [ref=e205]:
+                  - generic [ref=e206]: matron
+                  - img [ref=e207]
+                - generic [ref=e210]: Starting email processing pipeline
+              - generic [ref=e211]: 12m ago
+            - generic [ref=e212]:
+              - img [ref=e213]
+              - generic [ref=e217]:
+                - generic [ref=e218]:
+                  - generic [ref=e219]: matron
+                  - img [ref=e220]
+                - generic [ref=e223]: Urgent check completed
+              - generic [ref=e224]: 12m ago
+            - generic [ref=e225]:
+              - img [ref=e226]
+              - generic [ref=e230]:
+                - generic [ref=e231]:
+                  - generic [ref=e232]: matron
+                  - img [ref=e233]
+                - generic [ref=e236]: Email processing pipeline completed
+              - generic [ref=e237]: 12m ago
+            - generic [ref=e238]:
+              - img [ref=e239]
+              - generic [ref=e243]:
+                - generic [ref=e244]:
+                  - generic [ref=e245]: matron
+                  - img [ref=e246]
+                - generic [ref=e249]: Starting email processing pipeline
+              - generic [ref=e250]: 12m ago
+            - generic [ref=e251]:
+              - img [ref=e252]
+              - generic [ref=e256]:
+                - generic [ref=e257]:
+                  - generic [ref=e258]: matron
+                  - img [ref=e259]
+                - generic [ref=e262]: Urgent check completed
+              - generic [ref=e263]: 42m ago
+            - generic [ref=e264]:
+              - img [ref=e265]
+              - generic [ref=e269]:
+                - generic [ref=e270]:
+                  - generic [ref=e271]: matron
+                  - img [ref=e272]
+                - generic [ref=e275]: Email processing pipeline completed
+              - generic [ref=e276]: 42m ago
+            - generic [ref=e277]:
+              - img [ref=e278]
+              - generic [ref=e282]:
+                - generic [ref=e283]:
+                  - generic [ref=e284]: matron
+                  - img [ref=e285]
+                - generic [ref=e288]: Starting email processing pipeline
+              - generic [ref=e289]: 42m ago
+            - generic [ref=e290]:
+              - img [ref=e291]
+              - generic [ref=e295]:
+                - generic [ref=e296]:
+                  - generic [ref=e297]: matron
+                  - img [ref=e298]
+                - generic [ref=e301]: Urgent check completed
+              - generic [ref=e302]: 1h ago
+      - generic [ref=e303]:
+        - heading "Activity" [level=3] [ref=e304]
+        - generic [ref=e306]:
+          - generic [ref=e307]:
+            - heading "War Room" [level=3] [ref=e308]
+            - link "View all" [ref=e309] [cursor=pointer]:
+              - /url: /warroom
+          - generic [ref=e310]:
+            - generic [ref=e311]:
+              - img [ref=e312]
+              - generic [ref=e314]: In progress
+              - generic [ref=e315]: "0"
+            - generic [ref=e316]:
+              - img [ref=e317]
+              - generic [ref=e318]: In queue
+              - generic [ref=e319]: "0"
+            - generic [ref=e320]:
+              - generic [ref=e322]: Last heartbeat
+              - generic [ref=e323]: just now
+            - generic [ref=e324]:
+              - img [ref=e325]
+              - generic [ref=e328]: Model
+              - generic [ref=e329]: claude-sonnet-4-5
+      - generic [ref=e330]:
+        - heading "System Health" [level=3] [ref=e331]
+        - generic [ref=e332]:
+          - generic [ref=e333]:
+            - generic [ref=e335]: Database
+            - generic [ref=e336]: Connected
+          - generic [ref=e337]:
+            - generic [ref=e339]: API Server
+            - generic [ref=e340]: v0.1.0
+          - generic [ref=e341]:
+            - generic [ref=e343]: Uptime
+            - generic [ref=e344]: 23s
+```
