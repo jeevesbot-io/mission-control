@@ -11,13 +11,31 @@
     </div>
 
     <div class="calendar-controls mb-4">
-      <Button
-        label="Today"
-        icon="pi pi-calendar"
-        @click="goToToday"
-        :outlined="true"
-        size="small"
-      />
+      <div class="controls-left">
+        <Button
+          label="Today"
+          icon="pi pi-calendar"
+          @click="goToToday"
+          :outlined="true"
+          size="small"
+        />
+        <SelectButton
+          v-model="viewMode"
+          :options="viewModes"
+          optionLabel="label"
+          optionValue="value"
+          size="small"
+        />
+        <Dropdown
+          v-model="daysAhead"
+          :options="daysOptions"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Time range"
+          size="small"
+          @change="refresh"
+        />
+      </div>
       <Button
         label="Refresh"
         icon="pi pi-refresh"
@@ -30,7 +48,7 @@
 
     <div class="calendar-content">
       <!-- Timeline View -->
-      <Panel header="Upcoming Events" class="timeline-panel mb-4">
+      <Panel v-if="viewMode === 'timeline'" header="Upcoming Events" class="timeline-panel mb-4">
         <ProgressSpinner v-if="loading" class="loading-spinner" />
         <Timeline
           v-else-if="events.length > 0"
@@ -82,6 +100,52 @@
             </Card>
           </template>
         </Timeline>
+        <div v-else class="no-events">
+          <i class="pi pi-calendar-times mb-3" style="font-size: 3rem; opacity: 0.5"></i>
+          <p>No upcoming events scheduled</p>
+        </div>
+      </Panel>
+
+      <!-- Grid View -->
+      <Panel v-if="viewMode === 'grid'" header="Upcoming Events" class="grid-panel mb-4">
+        <ProgressSpinner v-if="loading" class="loading-spinner" />
+        <div v-else-if="events.length > 0" class="events-grid">
+          <Card v-for="event in events" :key="event.id" class="event-grid-card">
+            <template #header>
+              <div class="event-grid-header">
+                <span
+                  class="event-icon"
+                  :class="`event-icon-${event.type}`"
+                >
+                  <i :class="getEventIcon(event)"></i>
+                </span>
+                <Tag
+                  :value="event.type"
+                  :severity="getTypeSeverity(event.type)"
+                  class="ml-2"
+                />
+              </div>
+            </template>
+            <template #title>
+              {{ event.title }}
+            </template>
+            <template #subtitle>
+              <div class="event-grid-time">
+                <i class="pi pi-clock mr-1"></i>
+                {{ formatDateTime(event.start) }}
+              </div>
+            </template>
+            <template #content>
+              <p v-if="event.description" class="event-description">
+                {{ event.description }}
+              </p>
+              <div v-if="event.agent" class="agent-badge">
+                <i class="pi pi-user mr-1"></i>
+                {{ event.agent }}
+              </div>
+            </template>
+          </Card>
+        </div>
         <div v-else class="no-events">
           <i class="pi pi-calendar-times mb-3" style="font-size: 3rem; opacity: 0.5"></i>
           <p>No upcoming events scheduled</p>
@@ -140,7 +204,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
+import { onMounted, computed, ref } from 'vue'
 import { useCalendarStore } from './store'
 import Button from 'primevue/button'
 import Panel from 'primevue/panel'
@@ -150,6 +214,8 @@ import Tag from 'primevue/tag'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import ProgressSpinner from 'primevue/progressspinner'
+import SelectButton from 'primevue/selectbutton'
+import Dropdown from 'primevue/dropdown'
 import type { components } from '@/types/api'
 
 type CalendarEvent = components['schemas']['CalendarEvent']
@@ -162,17 +228,32 @@ const cronJobs = computed(() => store.cronJobs)
 const loading = computed(() => store.loading)
 const error = computed(() => store.error)
 
+const viewMode = ref('timeline')
+const viewModes = [
+  { label: 'Timeline', value: 'timeline' },
+  { label: 'Grid', value: 'grid' },
+]
+
+const daysAhead = ref(14)
+const daysOptions = [
+  { label: '7 days', value: 7 },
+  { label: '14 days', value: 14 },
+  { label: '30 days', value: 30 },
+  { label: '90 days', value: 90 },
+]
+
 onMounted(() => {
-  store.fetchCalendar()
+  store.fetchCalendar(daysAhead.value)
 })
 
 function refresh() {
-  store.fetchCalendar()
+  store.fetchCalendar(daysAhead.value)
 }
 
 function goToToday() {
   // Scroll to today's events
-  store.fetchCalendar()
+  store.fetchCalendar(daysAhead.value)
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 function getEventIcon(event: CalendarEvent): string {
@@ -270,7 +351,15 @@ function formatSchedule(schedule: CronSchedule): string {
 
 .calendar-controls {
   display: flex;
+  justify-content: space-between;
+  align-items: center;
   gap: 1rem;
+}
+
+.controls-left {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
 }
 
 .calendar-content {
@@ -355,5 +444,64 @@ function formatSchedule(schedule: CronSchedule): string {
 .schedule-detail {
   font-size: 0.9rem;
   color: var(--text-color-secondary);
+}
+
+/* Grid View */
+.events-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.event-grid-card {
+  height: 100%;
+}
+
+.event-grid-header {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  background: var(--surface-50);
+}
+
+.event-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  color: white;
+  font-size: 1.2rem;
+}
+
+.event-icon-cron {
+  background: var(--blue-500);
+}
+
+.event-icon-task {
+  background: var(--orange-500);
+}
+
+.event-icon-reminder {
+  background: var(--green-500);
+}
+
+.event-grid-time {
+  display: flex;
+  align-items: center;
+  color: var(--text-color-secondary);
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.agent-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: var(--surface-100);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  margin-top: 1rem;
 }
 </style>

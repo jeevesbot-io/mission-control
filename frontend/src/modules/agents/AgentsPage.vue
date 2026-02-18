@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useAgentsStore } from './store'
 import { useWebSocket } from '@/composables/useWebSocket'
@@ -7,9 +7,13 @@ import PageShell from '@/components/layout/PageShell.vue'
 import StatCard from '@/components/data/StatCard.vue'
 import McIcon from '@/components/ui/McIcon.vue'
 import { getAgentIconName } from '@/composables/useIcons'
+import TabView from 'primevue/tabview'
+import TabPanel from 'primevue/tabpanel'
+import TeamView from './TeamView.vue'
 
 const store = useAgentsStore()
 const { subscribe } = useWebSocket()
+const activeTab = ref(0)
 
 onMounted(() => {
   store.fetchAgents()
@@ -62,7 +66,9 @@ async function handleTrigger(agentId: string) {
         <p class="agents__subtitle">Fleet status, logs, and dispatch</p>
       </div>
 
-      <!-- Stats -->
+      <TabView v-model:activeIndex="activeTab">
+        <TabPanel header="Fleet Status">
+          <!-- Stats -->
       <section class="agents__section" v-if="store.stats">
         <h3 class="agents__section-title">Telemetry</h3>
         <div class="agents__stats mc-stagger">
@@ -169,6 +175,12 @@ async function handleTrigger(agentId: string) {
         <i class="pi pi-exclamation-triangle" />
         {{ store.error }}
       </div>
+        </TabPanel>
+
+        <TabPanel header="Team Structure">
+          <TeamView />
+        </TabPanel>
+      </TabView>
     </div>
   </PageShell>
 </template>
