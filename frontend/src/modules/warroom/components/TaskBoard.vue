@@ -2,8 +2,14 @@
   <div class="task-board">
     <!-- Filters bar -->
     <div class="board-filters">
-      <ProjectFilter />
-      <TagFilter />
+      <div class="filters-row">
+        <ProjectFilter />
+        <TagFilter />
+        <label class="hide-blocked-toggle">
+          <input type="checkbox" v-model="hideBlocked" />
+          <span>Hide Blocked</span>
+        </label>
+      </div>
     </div>
 
     <!-- Columns -->
@@ -120,18 +126,25 @@ import HeartbeatStatus from './HeartbeatStatus.vue'
 
 const store = useWarRoomStore()
 
+const hideBlocked = ref(false)
+
+function filterBlocked(tasks: Task[]): Task[] {
+  if (!hideBlocked.value) return tasks
+  return tasks.filter((t) => !store.isTaskBlocked(t))
+}
+
 // Local ref arrays for DnD — synced from store.tasksByStatus
 const backlogTasks = ref<Task[]>([])
 const todoTasks = ref<Task[]>([])
-const inProgressTasks = computed(() => store.tasksByStatus['in-progress'])
+const inProgressTasks = computed(() => filterBlocked(store.tasksByStatus['in-progress']))
 const doneTasks = computed(() => store.tasksByStatus['done'])
 
 // Keep local DnD arrays in sync with store (e.g. after fetch or filter change)
 watch(
-  () => store.tasksByStatus,
-  (val) => {
-    backlogTasks.value = [...val.backlog]
-    todoTasks.value = [...val.todo]
+  [() => store.tasksByStatus, hideBlocked],
+  ([val]) => {
+    backlogTasks.value = [...filterBlocked(val.backlog)]
+    todoTasks.value = [...filterBlocked(val.todo)]
   },
   { immediate: true, deep: true },
 )
@@ -199,12 +212,26 @@ async function onRun(id: string) {
 .task-board { display: flex; flex-direction: column; gap: 1rem; height: 100%; }
 
 .board-filters {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid rgba(255,255,255,0.06);
 }
+
+.filters-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.hide-blocked-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--mc-text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+.hide-blocked-toggle input { cursor: pointer; }
 
 .board-columns {
   display: grid;

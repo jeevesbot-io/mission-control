@@ -1,13 +1,16 @@
 <template>
   <div
     class="task-card"
-    :class="[`priority-${task.priority}`, { 'is-done': task.status === 'done', 'is-in-progress': task.status === 'in-progress' }]"
+    :class="[`priority-${task.priority}`, { 'is-done': task.status === 'done', 'is-in-progress': task.status === 'in-progress', 'is-blocked': blocked }]"
     :style="projectAccentStyle"
     :data-task-id="task.id"
     @click="$emit('click', task)"
   >
     <div class="task-card-header">
       <ProjectBadge v-if="project" :project="project" />
+      <span v-if="blocked" class="blocked-badge" title="Blocked by dependencies">
+        <i class="pi pi-lock" style="font-size: 0.6rem"></i>
+      </span>
       <span v-if="task.status === 'in-progress'" class="status-dot" title="In progress" />
     </div>
 
@@ -61,6 +64,8 @@ const project = computed(() => props.task.project
   : null,
 )
 
+const blocked = computed(() => store.isTaskBlocked(props.task))
+
 const projectAccentStyle = computed(() => {
   if (!project.value) return {}
   const color = COLOR_MAP[project.value.color] ?? COLOR_MAP['purple']
@@ -101,6 +106,10 @@ const scheduleLabel = computed(() => {
 }
 .task-card.is-done {
   opacity: 0.65;
+}
+.task-card.is-blocked {
+  opacity: 0.55;
+  border-left-color: rgba(248,113,113,0.4);
 }
 
 .task-card-header {
@@ -192,5 +201,16 @@ const scheduleLabel = computed(() => {
 }
 .schedule {
   color: var(--mc-warning);
+}
+
+.blocked-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(248,113,113,0.15);
+  color: #f87171;
 }
 </style>

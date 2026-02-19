@@ -78,18 +78,21 @@ export const useContentStore = defineStore('content', () => {
   }
 
   async function moveItem(itemId: string, targetStage: string): Promise<boolean> {
-    loading.value = true
-    error.value = null
+    // Optimistic update
+    const item = items.value.find((i) => i.id === itemId)
+    const previousStage = item?.stage
+    if (item) (item as any).stage = targetStage
+
     try {
       await api.post(`/api/content/${itemId}/move/${targetStage}`)
       await fetchPipeline()
       return true
     } catch (e) {
+      // Rollback on failure
+      if (item && previousStage) (item as any).stage = previousStage
       error.value = e instanceof Error ? e.message : 'Unknown error'
       console.error('Error moving content:', e)
       return false
-    } finally {
-      loading.value = false
     }
   }
 

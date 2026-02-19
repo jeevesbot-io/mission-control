@@ -46,6 +46,8 @@ class Task(BaseModel):
     schedule: str | None = None
     scheduledAt: str | None = None
     references: list[Reference] = []
+    blockedBy: list[str] = []
+    blocks: list[str] = []
     startedAt: str | None = None
     completedAt: str | None = None
     result: str | None = None
@@ -67,6 +69,7 @@ class TaskCreate(BaseModel):
     skill: str | None = None
     schedule: str | None = None
     scheduledAt: str | None = None
+    blockedBy: list[str] = []
     estimatedHours: float | None = None
 
 
@@ -80,6 +83,8 @@ class TaskUpdate(BaseModel):
     skill: str | None = None
     schedule: str | None = None
     scheduledAt: str | None = None
+    blockedBy: list[str] | None = None
+    blocks: list[str] | None = None
     result: str | None = None
     error: str | None = None
     startedAt: str | None = None

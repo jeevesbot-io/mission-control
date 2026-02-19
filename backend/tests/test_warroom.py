@@ -454,3 +454,64 @@ def test_get_stats():
         assert data["in_progress_count"] == 2
         assert data["todo_count"] == 5
         assert data["active_model"] == "claude-sonnet-4-6"
+
+
+# ---------------------------------------------------------------------------
+# Task Dependencies
+# ---------------------------------------------------------------------------
+
+def test_create_task_with_dependencies():
+    from modules.warroom.models import Task
+
+    created = Task(
+        id="dep1",
+        title="Dependent Task",
+        status="backlog",
+        priority="medium",
+        project=None,
+        tags=[],
+        blockedBy=["abc1"],
+        blocks=[],
+        createdAt="2026-02-18T00:00:00+00:00",
+        updatedAt="2026-02-18T00:00:00+00:00",
+    )
+    with patch("modules.warroom.service.WarRoomService.create_task", new_callable=AsyncMock) as mock:
+        mock.return_value = created
+        response = client.post("/api/warroom/tasks", json={"title": "Dependent Task", "blockedBy": ["abc1"]})
+        assert response.status_code == 200
+        data = response.json()
+        assert data["blockedBy"] == ["abc1"]
+
+
+def test_create_task_dependency_validation_returns_422():
+    with patch("modules.warroom.service.WarRoomService.create_task", new_callable=AsyncMock) as mock:
+        mock.side_effect = ValueError("Unknown task IDs in dependencies: nonexistent")
+        response = client.post("/api/warroom/tasks", json={"title": "Bad Dep", "blockedBy": ["nonexistent"]})
+        assert response.status_code == 422
+        assert "Unknown task IDs" in response.json()["detail"]
+
+
+def test_update_task_cycle_detection_returns_422():
+    with patch("modules.warroom.service.WarRoomService.update_task", new_callable=AsyncMock) as mock:
+        mock.side_effect = ValueError("Dependency cycle detected")
+        response = client.put("/api/warroom/tasks/abc1", json={"blockedBy": ["abc2"]})
+        assert response.status_code == 422
+        assert "cycle" in response.json()["detail"].lower()
+
+
+def test_queue_excludes_blocked_tasks():
+    from modules.warroom.models import Task
+
+    # Only the unblocked task should appear in queue
+    tasks = [
+        Task(id="1", title="Unblocked", status="todo", priority="high", project=None, tags=[],
+             blockedBy=[], blocks=["2"],
+             createdAt="2026-02-01T00:00:00+00:00", updatedAt="2026-02-01T00:00:00+00:00"),
+    ]
+    with patch("modules.warroom.service.WarRoomService.get_queue", new_callable=AsyncMock) as mock:
+        mock.return_value = tasks
+        response = client.get("/api/warroom/tasks/queue")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["id"] == "1"

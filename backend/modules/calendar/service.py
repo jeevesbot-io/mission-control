@@ -5,6 +5,8 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+import httpx
+
 from core.config import settings
 
 from .models import (
@@ -26,15 +28,18 @@ class CalendarService:
         self.gateway_token = settings.openclaw_gateway_token
 
     async def get_cron_jobs(self) -> list[CronJob]:
-        """Fetch all cron jobs from OpenClaw gateway.
-        
-        NOTE: Direct HTTP access to gateway cron isn't currently exposed.
-        This will be implemented when gateway provides an HTTP endpoint for cron listing.
-        For now, returns empty list - cron visibility will come later.
-        """
-        # TODO: Implement when gateway HTTP API exposes cron endpoints
-        # The cron tool works internally but isn't accessible via HTTP
-        return []
+        """Fetch all cron jobs from OpenClaw gateway."""
+        url = f"{self.gateway_url}/api/cron"
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(url)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    return [CronJob(**job) for job in data.get("jobs", [])]
+                return []
+        except httpx.RequestError as exc:
+            logger.warning("Failed to fetch cron jobs: %s", exc)
+            return []
 
     async def get_upcoming_tasks(self, days_ahead: int = 14) -> list[CalendarEvent]:
         """Get upcoming scheduled tasks from War Room."""
@@ -56,7 +61,7 @@ class CalendarService:
             events = []
             for task in tasks:
                 # Check if task has a scheduled_for field
-                scheduled = task.get("scheduled_for")
+                scheduled = task.get("scheduledAt")
                 if not scheduled:
                     continue
 

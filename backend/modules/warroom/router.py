@@ -49,7 +49,10 @@ async def list_tasks(
 
 @router.post("/tasks", response_model=Task)
 async def create_task(payload: TaskCreate) -> Task:
-    task = await warroom_service.create_task(payload)
+    try:
+        task = await warroom_service.create_task(payload)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     await activity_service.log_event(ActivityLogRequest(
         actor="user", action="task.created", resource_type="task",
         resource_id=task.id, resource_name=task.title, module="warroom",
@@ -59,7 +62,10 @@ async def create_task(payload: TaskCreate) -> Task:
 
 @router.put("/tasks/{task_id}", response_model=Task)
 async def update_task(task_id: str, payload: TaskUpdate) -> Task:
-    task = await warroom_service.update_task(task_id, payload)
+    try:
+        task = await warroom_service.update_task(task_id, payload)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
     await activity_service.log_event(ActivityLogRequest(

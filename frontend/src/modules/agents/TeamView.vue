@@ -128,13 +128,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import Panel from 'primevue/panel'
 import OrganizationChart from 'primevue/organizationchart'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Card from 'primevue/card'
 import Tag from 'primevue/tag'
+import { useAgentsStore } from './store'
 
 interface Agent {
   id: string
@@ -147,119 +148,152 @@ interface Agent {
   skills?: string[]
 }
 
-const loading = ref(false)
+const agentsStore = useAgentsStore()
+const loading = computed(() => agentsStore.loading)
 
-// Organizational structure
-const orgData = ref({
-  label: 'Jeeves',
-  type: 'lead',
-  role: 'Personal Assistant & System Coordinator',
-  icon: 'pi pi-home',
-  status: 'active',
-  children: [
-    {
-      label: 'Matron',
-      type: 'specialist',
-      role: 'School Communications',
-      icon: 'pi pi-graduation-cap',
-      status: 'active',
-    },
-    {
-      label: 'The Archivist',
-      type: 'specialist',
-      role: 'Memory Curator',
-      icon: 'pi pi-book',
-      status: 'active',
-    },
-    {
-      label: 'The Curator',
-      type: 'specialist',
-      role: 'Media Library Manager',
-      icon: 'pi pi-video',
-      status: 'active',
-    },
-    {
-      label: 'The Foundry',
-      type: 'team',
-      role: 'Autonomous Builder',
-      icon: 'pi pi-cog',
-      status: 'scheduled',
-      children: [
-        { label: 'Scout', type: 'worker', role: 'Trend Discovery', icon: 'pi pi-search', status: 'active' },
-        { label: 'Spec Writer', type: 'worker', role: 'Specifications', icon: 'pi pi-file-edit', status: 'active' },
-        { label: 'Builder', type: 'worker', role: 'Implementation', icon: 'pi pi-wrench', status: 'active' },
-      ],
-    },
-  ],
-})
-
-// Agent roster with full details
-const agents = ref<Agent[]>([
-  {
-    id: 'main',
+// Known agent metadata (static config that API doesn't provide)
+const KNOWN_AGENTS: Record<string, Omit<Agent, 'id' | 'status'>> = {
+  main: {
     role: 'System Coordinator',
     model: 'claude-sonnet-4-5',
     workspace: '/Users/jeeves/.openclaw/workspace',
     allowedAgents: ['matron', 'archivist', 'curator', 'foundry-blacksmith'],
-    status: 'active',
   },
-  {
-    id: 'matron',
+  matron: {
     role: 'School Communications Agent',
     model: 'claude-sonnet-4-5',
     workspace: '/Users/jeeves/.openclaw/workspace-matron',
     allowedAgents: ['archivist'],
-    status: 'active',
   },
-  {
-    id: 'archivist',
+  archivist: {
     role: 'Memory Curator',
     model: 'claude-sonnet-4-5',
     workspace: '/Users/jeeves/.openclaw/workspace',
     allowedAgents: [],
-    status: 'active',
   },
-  {
-    id: 'curator',
+  curator: {
     role: 'Media Library Manager',
     model: 'claude-sonnet-4-5',
     workspace: '/Users/jeeves/.openclaw/workspace',
     allowedAgents: [],
-    status: 'on-demand',
   },
-  {
-    id: 'foundry-blacksmith',
+  'foundry-blacksmith': {
     role: 'Build Coordinator',
     model: 'claude-opus-4-6',
     workspace: '/Users/jeeves/.openclaw/workspace-foundry-blacksmith',
     allowedAgents: ['foundry-scout', 'foundry-spec', 'foundry-builder'],
-    status: 'scheduled',
   },
-  {
-    id: 'foundry-scout',
+  'foundry-scout': {
     role: 'Trend Scout',
     model: 'claude-haiku-4',
     workspace: '/Users/jeeves/.openclaw/workspace-foundry-scout',
     allowedAgents: [],
-    status: 'scheduled',
   },
-  {
-    id: 'foundry-spec',
+  'foundry-spec': {
     role: 'Specification Writer',
     model: 'claude-sonnet-4-5',
     workspace: '/Users/jeeves/.openclaw/workspace-foundry-spec',
     allowedAgents: [],
-    status: 'scheduled',
   },
-  {
-    id: 'foundry-builder',
+  'foundry-builder': {
     role: 'MVP Builder',
     model: 'claude-opus-4-6',
     workspace: '/Users/jeeves/.openclaw/workspace-foundry-builder',
     allowedAgents: [],
-    status: 'scheduled',
   },
-])
+}
+
+onMounted(() => {
+  agentsStore.fetchAgents()
+})
+
+// Dynamic agents: merge live API data with static metadata
+const agents = computed<Agent[]>(() => {
+  const liveAgents = agentsStore.agents
+  const liveMap = new Map(liveAgents.map((a) => [a.agent_id, a]))
+  const seen = new Set<string>()
+  const result: Agent[] = []
+
+  // First: all known agents, enriched with live status
+  for (const [id, meta] of Object.entries(KNOWN_AGENTS)) {
+    seen.add(id)
+    const live = liveMap.get(id)
+    const hasRecentActivity = live?.last_activity
+      ? Date.now() - new Date(live.last_activity).getTime() < 24 * 60 * 60 * 1000
+      : false
+    result.push({
+      id,
+      ...meta,
+      status: hasRecentActivity ? 'active' : live ? 'idle' : 'scheduled',
+    })
+  }
+
+  // Then: any agents from API not in KNOWN_AGENTS
+  for (const live of liveAgents) {
+    if (!seen.has(live.agent_id)) {
+      result.push({
+        id: live.agent_id,
+        role: 'Unknown Agent',
+        model: 'unknown',
+        workspace: '',
+        allowedAgents: [],
+        status: live.last_activity ? 'active' : 'idle',
+      })
+    }
+  }
+
+  return result
+})
+
+// Organizational structure with live status
+const orgData = computed(() => {
+  const getStatus = (id: string) => {
+    const agent = agents.value.find((a) => a.id === id)
+    return agent?.status || 'scheduled'
+  }
+  return {
+    label: 'Jeeves',
+    type: 'lead',
+    role: 'Personal Assistant & System Coordinator',
+    icon: 'pi pi-home',
+    status: getStatus('main'),
+    children: [
+      {
+        label: 'Matron',
+        type: 'specialist',
+        role: 'School Communications',
+        icon: 'pi pi-graduation-cap',
+        status: getStatus('matron'),
+      },
+      {
+        label: 'The Archivist',
+        type: 'specialist',
+        role: 'Memory Curator',
+        icon: 'pi pi-book',
+        status: getStatus('archivist'),
+      },
+      {
+        label: 'The Curator',
+        type: 'specialist',
+        role: 'Media Library Manager',
+        icon: 'pi pi-video',
+        status: getStatus('curator'),
+      },
+      {
+        label: 'The Foundry',
+        type: 'team',
+        role: 'Autonomous Builder',
+        icon: 'pi pi-cog',
+        status: getStatus('foundry-blacksmith'),
+        children: [
+          { label: 'Scout', type: 'worker', role: 'Trend Discovery', icon: 'pi pi-search', status: getStatus('foundry-scout') },
+          { label: 'Spec Writer', type: 'worker', role: 'Specifications', icon: 'pi pi-file-edit', status: getStatus('foundry-spec') },
+          { label: 'Builder', type: 'worker', role: 'Implementation', icon: 'pi pi-wrench', status: getStatus('foundry-builder') },
+        ],
+      },
+    ],
+  }
+})
 
 // Agents with detailed responsibilities
 const agentsWithRoles = computed(() => [

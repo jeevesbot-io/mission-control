@@ -104,6 +104,27 @@
         />
       </div>
 
+      <!-- Dependencies -->
+      <div class="field">
+        <label>Blocked By</label>
+        <Select
+          v-model="selectedBlocker"
+          :options="availableBlockers"
+          option-label="title"
+          option-value="id"
+          placeholder="Add dependency..."
+          class="w-full"
+          filter
+          @change="addBlocker"
+        />
+        <div v-if="form.blockedBy.length > 0" class="blockers-list">
+          <div v-for="bid in form.blockedBy" :key="bid" class="blocker-chip">
+            <span>{{ getTaskTitle(bid) }}</span>
+            <button class="tag-remove" @click="removeBlocker(bid)">x</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Estimated hours -->
       <div class="field">
         <label>Estimated hours <span class="label-muted">(optional)</span></label>
@@ -204,6 +225,32 @@ const projectOptions = computed(() => [
   ...store.activeProjectsWithCounts.map((p) => ({ value: p.id, label: p.name })),
 ])
 
+// Blocker picker
+const selectedBlocker = ref<string | null>(null)
+
+const availableBlockers = computed(() => {
+  const currentId = props.task?.id
+  return store.tasks
+    .filter((t) => t.id !== currentId && !form.value.blockedBy.includes(t.id))
+    .map((t) => ({ id: t.id, title: `${t.title} (${t.status})` }))
+})
+
+function addBlocker() {
+  if (selectedBlocker.value && !form.value.blockedBy.includes(selectedBlocker.value)) {
+    form.value.blockedBy.push(selectedBlocker.value)
+  }
+  selectedBlocker.value = null
+}
+
+function removeBlocker(id: string) {
+  form.value.blockedBy = form.value.blockedBy.filter((b) => b !== id)
+}
+
+function getTaskTitle(id: string): string {
+  const task = store.tasks.find((t) => t.id === id)
+  return task ? task.title : id
+}
+
 // Form state
 const defaultForm = () => ({
   title: '',
@@ -214,6 +261,7 @@ const defaultForm = () => ({
   tags: [] as string[],
   skill: null as string | null,
   references: [] as Reference[],
+  blockedBy: [] as string[],
   estimatedHours: null as number | null,
 })
 
@@ -239,6 +287,7 @@ watch(
         tags: [...(task.tags ?? [])],
         skill: task.skill ?? null,
         references: [...(task.references ?? [])],
+        blockedBy: [...(task.blockedBy ?? [])],
         estimatedHours: task.estimatedHours ?? null,
       }
       estimatedHoursStr.value = task.estimatedHours != null ? String(task.estimatedHours) : ''
@@ -314,6 +363,7 @@ function submit() {
     tags: form.value.tags,
     skill: form.value.skill || null,
     schedule,
+    blockedBy: form.value.blockedBy,
     estimatedHours: isNaN(hours as number) ? null : hours,
   })
   visible.value = false
@@ -456,4 +506,18 @@ function submit() {
   cursor: pointer;
 }
 .btn-run:hover { background: rgba(52,211,153,0.2); }
+
+.blockers-list { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 0.4rem; }
+.blocker-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-family: var(--mc-font-mono);
+  background: rgba(248,113,113,0.1);
+  color: #f87171;
+  border: 1px solid rgba(248,113,113,0.3);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
 </style>

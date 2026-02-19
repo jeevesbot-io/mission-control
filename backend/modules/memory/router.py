@@ -2,6 +2,9 @@
 
 from fastapi import APIRouter, HTTPException, Query
 
+from modules.activity.models import ActivityLogRequest
+from modules.activity.service import activity_service
+
 from .models import (
     DailyMemoryResponse,
     LongTermMemoryResponse,
@@ -50,6 +53,11 @@ async def get_long_term():
 async def search(q: str = Query(..., min_length=2)):
     """Case-insensitive full-text search across all memory files."""
     hits = memory_service.search(q)
+    await activity_service.log_event(ActivityLogRequest(
+        actor="user", action="memory.searched", resource_type="memory",
+        resource_name=q, module="memory",
+        details={"hits": len(hits)},
+    ))
     return SearchResponse(query=q, hits=hits, total=len(hits))
 
 

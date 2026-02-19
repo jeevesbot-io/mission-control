@@ -152,8 +152,33 @@
         </div>
       </Panel>
 
-      <!-- Cron Jobs List -->
-      <Panel header="Cron Jobs" class="cron-panel">
+      <!-- Weekly Grid View -->
+      <Panel v-if="viewMode === 'week'" header="Weekly View" class="week-panel mb-4">
+        <ProgressSpinner v-if="loading" class="loading-spinner" />
+        <div v-else class="week-grid">
+          <div v-for="day in weekDays" :key="day.label" class="week-day-col">
+            <div class="week-day-header" :class="{ 'is-today': day.isToday }">
+              <span class="week-day-name">{{ day.dayName }}</span>
+              <span class="week-day-date">{{ day.label }}</span>
+            </div>
+            <div class="week-day-events">
+              <div v-if="day.events.length === 0" class="week-no-events">-</div>
+              <Card v-for="event in day.events" :key="event.id" class="week-event-card">
+                <template #content>
+                  <div class="week-event-title">
+                    <i :class="getEventIcon(event)" class="mr-1"></i>
+                    {{ event.title }}
+                  </div>
+                  <div class="week-event-time">{{ formatDateTime(event.start) }}</div>
+                </template>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </Panel>
+
+      <!-- Cron Jobs List (gateway) -->
+      <Panel v-if="cronJobs.length > 0" header="Gateway Cron Jobs" class="cron-panel mb-4">
         <DataTable
           :value="cronJobs"
           :loading="loading"
@@ -199,6 +224,39 @@
           </Column>
         </DataTable>
       </Panel>
+
+      <!-- Agent Cron Jobs -->
+      <Panel header="Agent Cron Jobs" class="cron-panel">
+        <DataTable
+          :value="agentCronJobs"
+          :loading="loading"
+          stripedRows
+          size="small"
+          :paginator="agentCronJobs.length > 10"
+          :rows="10"
+        >
+          <Column field="agent_id" header="Agent" sortable />
+          <Column field="schedule" header="Schedule" sortable />
+          <Column field="enabled" header="Status" sortable>
+            <template #body="slotProps">
+              <Tag
+                :value="slotProps.data.enabled ? 'Enabled' : 'Disabled'"
+                :severity="slotProps.data.enabled ? 'success' : 'danger'"
+              />
+            </template>
+          </Column>
+          <Column field="last_run" header="Last Run" sortable>
+            <template #body="slotProps">
+              {{ slotProps.data.last_run ? formatDateTime(slotProps.data.last_run) : 'Never' }}
+            </template>
+          </Column>
+          <Column field="next_run" header="Next Run" sortable>
+            <template #body="slotProps">
+              {{ slotProps.data.next_run ? formatDateTime(slotProps.data.next_run) : 'N/A' }}
+            </template>
+          </Column>
+        </DataTable>
+      </Panel>
     </div>
   </div>
 </template>
@@ -225,6 +283,7 @@ const store = useCalendarStore()
 
 const events = computed(() => store.events)
 const cronJobs = computed(() => store.cronJobs)
+const agentCronJobs = computed(() => store.agentCronJobs)
 const loading = computed(() => store.loading)
 const error = computed(() => store.error)
 
@@ -232,6 +291,7 @@ const viewMode = ref('timeline')
 const viewModes = [
   { label: 'Timeline', value: 'timeline' },
   { label: 'Grid', value: 'grid' },
+  { label: 'Week', value: 'week' },
 ]
 
 const daysAhead = ref(14)
@@ -244,6 +304,32 @@ const daysOptions = [
 
 onMounted(() => {
   store.fetchCalendar(daysAhead.value)
+  store.fetchAgentsCron()
+})
+
+const weekDays = computed(() => {
+  const now = new Date()
+  const startOfWeek = new Date(now)
+  startOfWeek.setDate(now.getDate() - now.getDay()) // Start on Sunday
+  const days = []
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(startOfWeek)
+    d.setDate(startOfWeek.getDate() + i)
+    const dateStr = d.toISOString().slice(0, 10)
+    const isToday = dateStr === now.toISOString().slice(0, 10)
+    const dayEvents = events.value.filter((e) => {
+      const eventDate = new Date(e.start).toISOString().slice(0, 10)
+      return eventDate === dateStr
+    })
+    days.push({
+      label: d.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' }),
+      dayName: dayNames[i],
+      isToday,
+      events: dayEvents,
+    })
+  }
+  return days
 })
 
 function refresh() {
@@ -503,5 +589,76 @@ function formatSchedule(schedule: CronSchedule): string {
   border-radius: 6px;
   font-size: 0.85rem;
   margin-top: 1rem;
+}
+
+/* Weekly Grid View */
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+  min-height: 300px;
+}
+
+.week-day-col {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-50);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.week-day-header {
+  padding: 0.75rem 0.5rem;
+  text-align: center;
+  border-bottom: 2px solid var(--surface-200);
+  font-weight: 600;
+}
+
+.week-day-header.is-today {
+  background: rgba(59, 130, 246, 0.1);
+  border-bottom-color: var(--blue-500);
+}
+
+.week-day-name {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-color-secondary);
+  text-transform: uppercase;
+}
+
+.week-day-date {
+  display: block;
+  font-size: 0.9rem;
+}
+
+.week-day-events {
+  padding: 0.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.week-no-events {
+  text-align: center;
+  color: var(--text-color-secondary);
+  padding: 1rem 0;
+}
+
+.week-event-card {
+  font-size: 0.8rem;
+}
+
+.week-event-title {
+  font-weight: 600;
+  font-size: 0.78rem;
+  display: flex;
+  align-items: center;
+}
+
+.week-event-time {
+  font-size: 0.72rem;
+  color: var(--text-color-secondary);
+  margin-top: 0.25rem;
 }
 </style>

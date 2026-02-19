@@ -26,6 +26,8 @@ export interface Task {
   schedule: string | null
   scheduledAt: string | null
   references: Reference[]
+  blockedBy: string[]
+  blocks: string[]
   startedAt: string | null
   completedAt: string | null
   result: string | null
@@ -233,6 +235,15 @@ export const useWarRoomStore = defineStore('warroom', () => {
     } catch { /* noop */ }
   }
 
+  function isTaskBlocked(task: Task): boolean {
+    const blockedBy = task.blockedBy || []
+    if (blockedBy.length === 0) return false
+    return blockedBy.some((id) => {
+      const blocker = tasks.value.find((t) => t.id === id)
+      return !blocker || blocker.status !== 'done'
+    })
+  }
+
   // ---------------------------------------------------------------------------
   // Projects
   // ---------------------------------------------------------------------------
@@ -242,6 +253,40 @@ export const useWarRoomStore = defineStore('warroom', () => {
       projects.value = await api.get<Project[]>('/api/warroom/projects')
     } catch {
       projects.value = []
+    }
+  }
+
+  async function createProject(payload: Omit<Project, 'task_count'>): Promise<Project | null> {
+    try {
+      const proj = await api.post<Project>('/api/warroom/projects', payload)
+      projects.value.push(proj)
+      return proj
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to create project'
+      return null
+    }
+  }
+
+  async function updateProject(id: string, payload: Partial<Project>): Promise<Project | null> {
+    try {
+      const proj = await api.put<Project>(`/api/warroom/projects/${id}`, payload)
+      const idx = projects.value.findIndex((p) => p.id === id)
+      if (idx !== -1) projects.value[idx] = proj
+      return proj
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to update project'
+      return null
+    }
+  }
+
+  async function deleteProject(id: string): Promise<boolean> {
+    try {
+      await api.delete(`/api/warroom/projects/${id}`)
+      projects.value = projects.value.filter((p) => p.id !== id)
+      return true
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to delete project'
+      return false
     }
   }
 
@@ -409,8 +454,12 @@ export const useWarRoomStore = defineStore('warroom', () => {
     runTask,
     addReference,
     deleteReference,
+    isTaskBlocked,
     // Project actions
     fetchProjects,
+    createProject,
+    updateProject,
+    deleteProject,
     // Tag actions
     fetchTags,
     // Filter actions

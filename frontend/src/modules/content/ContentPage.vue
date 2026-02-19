@@ -26,22 +26,10 @@
           <div class="stat-label">Total Items</div>
         </template>
       </Card>
-      <Card class="stat-card">
+      <Card v-for="stage in stages" :key="stage.id" class="stat-card">
         <template #content>
-          <div class="stat-value">{{ stats.by_stage?.ideas || 0 }}</div>
-          <div class="stat-label">In Ideas</div>
-        </template>
-      </Card>
-      <Card class="stat-card">
-        <template #content>
-          <div class="stat-value">{{ stats.by_stage?.filming || 0 }}</div>
-          <div class="stat-label">Ready to Film</div>
-        </template>
-      </Card>
-      <Card class="stat-card">
-        <template #content>
-          <div class="stat-value">{{ stats.by_stage?.published || 0 }}</div>
-          <div class="stat-label">Published</div>
+          <div class="stat-value" :style="{ color: stage.color }">{{ stats.by_stage?.[stage.id] || 0 }}</div>
+          <div class="stat-label">{{ stage.name }}</div>
         </template>
       </Card>
     </div>
@@ -56,15 +44,23 @@
           </div>
           <Badge :value="getStageItems(stage.id).length" />
         </div>
-        <div class="column-content">
-          <div v-if="getStageItems(stage.id).length === 0" class="empty-column">
+        <VueDraggable
+          v-model="stageRefs[stage.id]"
+          group="content"
+          class="column-content"
+          :data-stage="stage.id"
+          ghost-class="drag-ghost"
+          @end="onDragEnd"
+        >
+          <div v-if="stageRefs[stage.id]?.length === 0" class="empty-column">
             <i class="pi pi-inbox" style="font-size: 2rem; opacity: 0.3"></i>
             <p>No items</p>
           </div>
           <Card
-            v-for="item in getStageItems(stage.id)"
+            v-for="item in stageRefs[stage.id]"
             :key="item.id"
             class="content-card"
+            :data-item-id="item.id"
             @click="editItem(item)"
           >
             <template #title>
@@ -120,7 +116,7 @@
               </div>
             </template>
           </Card>
-        </div>
+        </VueDraggable>
       </div>
     </div>
 
@@ -266,7 +262,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, computed, ref } from 'vue'
+import { onMounted, computed, ref, watch, reactive } from 'vue'
+import { VueDraggable } from 'vue-draggable-plus'
 import { useContentStore } from './store'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
@@ -333,12 +330,41 @@ const priorities = [
   { label: 'High', value: 'high' },
 ]
 
+// Local refs per column for drag-and-drop
+const stageRefs = reactive<Record<string, ContentItem[]>>({
+  ideas: [],
+  scripting: [],
+  thumbnail: [],
+  filming: [],
+  editing: [],
+  published: [],
+})
+
+// Keep stageRefs in sync with store
+watch(
+  () => store.items,
+  (items) => {
+    for (const stage of stages) {
+      stageRefs[stage.id] = items.filter((item) => item.stage === stage.id)
+    }
+  },
+  { immediate: true, deep: true },
+)
+
 onMounted(() => {
   store.fetchPipeline()
 })
 
 function getStageItems(stageId: string): ContentItem[] {
   return store.items.filter((item) => item.stage === stageId)
+}
+
+function onDragEnd(evt: { item: HTMLElement; to: HTMLElement; from: HTMLElement }) {
+  const itemId = evt.item?.dataset?.itemId
+  const targetStage = evt.to?.dataset?.stage
+  const sourceStage = evt.from?.dataset?.stage
+  if (!itemId || !targetStage || targetStage === sourceStage) return
+  store.moveItem(itemId, targetStage)
 }
 
 function editItem(item: ContentItem) {
@@ -587,5 +613,11 @@ async function moveToNext(item: ContentItem, currentStage: string) {
   margin-bottom: 0.5rem;
   font-weight: 500;
   font-size: 0.9rem;
+}
+
+/* Drag and drop */
+:deep(.drag-ghost) {
+  opacity: 0.3;
+  border: 2px dashed var(--primary-color);
 }
 </style>

@@ -20,6 +20,13 @@
         <!-- Kanban -->
         <TaskBoard v-if="activeTab === 'kanban'" />
 
+        <!-- Projects -->
+        <div v-else-if="activeTab === 'projects'" class="tab-panel">
+          <h2 class="section-title">Projects</h2>
+          <ProjectManager v-if="visitedTabs.has('projects')" />
+          <div v-else class="loading-placeholder">Loading...</div>
+        </div>
+
         <!-- Usage & Model -->
         <div v-else-if="activeTab === 'usage'" class="tab-panel">
           <h2 class="section-title">Usage & Model</h2>
@@ -63,11 +70,13 @@ import UsagePanel from './components/UsagePanel.vue'
 const SkillsList = defineAsyncComponent(() => import('./components/SkillsList.vue'))
 const SoulEditor = defineAsyncComponent(() => import('./components/SoulEditor.vue'))
 const ActivityCalendar = defineAsyncComponent(() => import('./components/ActivityCalendar.vue'))
+const ProjectManager = defineAsyncComponent(() => import('./components/ProjectManager.vue'))
 
 const store = useWarRoomStore()
 
 const tabs = [
   { id: 'kanban',   label: 'Kanban',          icon: 'kanban'    },
+  { id: 'projects', label: 'Projects',        icon: 'folder'    },
   { id: 'usage',    label: 'Usage & Model',   icon: 'cpu'       },
   { id: 'skills',   label: 'Skills',          icon: 'sparkles'  },
   { id: 'soul',     label: 'Soul & Identity', icon: 'file-text' },

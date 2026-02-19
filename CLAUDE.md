@@ -40,7 +40,7 @@ uv run alembic upgrade head
 npm run generate-types
 
 # Testing
-cd backend && uv run pytest                        # 86 tests
+cd backend && uv run pytest                        # 107 tests
 cd backend && uv run pytest tests/test_memory.py  # single file
 cd frontend && npm test                            # 77 vitest tests
 cd frontend && npm test -- src/modules/warroom/store.test.ts  # single file
@@ -98,7 +98,7 @@ mission-control/
 │   │       ├── router.py    # API endpoints
 │   │       ├── models.py    # Pydantic schemas
 │   │       └── service.py   # Business logic
-│   └── tests/               # 79 pytest tests (one file per module)
+│   └── tests/               # 107 pytest tests (one file per module)
 ├── frontend/src/
 │   ├── router/              # Auto-imports module routes
 │   ├── stores/              # Pinia stores (app-level + per-module)

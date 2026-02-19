@@ -6,10 +6,19 @@ import type { components } from '@/types/api'
 type CalendarEvent = components['schemas']['CalendarEvent']
 type CronJob = components['schemas']['CronJob']
 
+export interface AgentCronJob {
+  agent_id: string
+  schedule: string
+  enabled: boolean
+  last_run: string | null
+  next_run: string | null
+}
+
 export const useCalendarStore = defineStore('calendar', () => {
   const api = useApi()
   const events = ref<CalendarEvent[]>([])
   const cronJobs = ref<CronJob[]>([])
+  const agentCronJobs = ref<AgentCronJob[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
 
@@ -44,12 +53,23 @@ export const useCalendarStore = defineStore('calendar', () => {
     }
   }
 
+  async function fetchAgentsCron() {
+    try {
+      const data = await api.get<{ jobs: AgentCronJob[] }>('/api/agents/cron')
+      agentCronJobs.value = data.jobs || []
+    } catch {
+      agentCronJobs.value = []
+    }
+  }
+
   return {
     events,
     cronJobs,
+    agentCronJobs,
     loading,
     error,
     fetchCalendar,
     fetchCronJobs,
+    fetchAgentsCron,
   }
 })

@@ -154,6 +154,47 @@ def _detect_ref_type(url: str) -> str:
     return "link"
 
 
+def _has_cycle(tasks: list[dict], task_id: str, proposed_blocked_by: list[str]) -> bool:
+    """BFS cycle detection: would setting task_id.blockedBy = proposed_blocked_by create a cycle?"""
+    # Build adjacency: blockedBy means task_id depends on each id in proposed_blocked_by
+    # A cycle exists if any of proposed_blocked_by can reach task_id via blockedBy chains
+    adj: dict[str, list[str]] = {}
+    for t in tasks:
+        tid = t.get("id", "")
+        blocked = t.get("blockedBy", [])
+        if tid == task_id:
+            blocked = proposed_blocked_by
+        adj[tid] = blocked
+
+    # BFS from task_id following "blocks" direction (reverse of blockedBy)
+    # We want to check: can we reach any of proposed_blocked_by starting from task_id via blocks?
+    # Equivalently: starting from proposed_blocked_by, can we reach task_id via blockedBy?
+    from collections import deque
+    visited: set[str] = set()
+    queue: deque[str] = deque(proposed_blocked_by)
+    while queue:
+        current = queue.popleft()
+        if current == task_id:
+            return True
+        if current in visited:
+            continue
+        visited.add(current)
+        for dep in adj.get(current, []):
+            if dep not in visited:
+                queue.append(dep)
+    return False
+
+
+def _validate_dependency_ids(tasks: list[dict], dep_ids: list[str], task_id: str) -> None:
+    """Validate dependency IDs exist and don't self-reference. Raises ValueError."""
+    if task_id in dep_ids:
+        raise ValueError("A task cannot block itself")
+    existing_ids = {t.get("id") for t in tasks}
+    missing = [d for d in dep_ids if d not in existing_ids]
+    if missing:
+        raise ValueError(f"Unknown task IDs in dependencies: {', '.join(missing)}")
+
+
 class WarRoomService:
     """All War Room business logic — tasks, projects, skills, soul, usage, heartbeat, calendar."""
 
@@ -275,9 +316,13 @@ class WarRoomService:
     async def create_task(self, payload: TaskCreate) -> Task:
         def _create():
             tasks = self._read_tasks_sync()
+            blocked_by = payload.blockedBy or []
             now = _now_iso()
+            task_id = _gen_id()
+            if blocked_by:
+                _validate_dependency_ids(tasks, blocked_by, task_id)
             task = {
-                "id": _gen_id(),
+                "id": task_id,
                 "title": payload.title or "Untitled",
                 "description": payload.description or "",
                 "priority": payload.priority,
@@ -288,6 +333,8 @@ class WarRoomService:
                 "schedule": payload.schedule,
                 "scheduledAt": payload.scheduledAt,
                 "references": [],
+                "blockedBy": blocked_by,
+                "blocks": [],
                 "createdAt": now,
                 "updatedAt": now,
                 "completedAt": None,
@@ -298,6 +345,14 @@ class WarRoomService:
                 "estimatedHours": payload.estimatedHours,
                 "actualHours": None,
             }
+            # Set reverse refs on blocking tasks
+            for bid in blocked_by:
+                for t in tasks:
+                    if t.get("id") == bid:
+                        blocks = t.get("blocks", [])
+                        if task_id not in blocks:
+                            blocks.append(task_id)
+                            t["blocks"] = blocks
             tasks.append(task)
             self._write_tasks_sync(tasks)
             return task
@@ -311,6 +366,52 @@ class WarRoomService:
             idx = next((i for i, t in enumerate(tasks) if t.get("id") == task_id), -1)
             if idx == -1:
                 return None
+
+            # Handle dependency updates
+            new_blocked_by = payload.blockedBy
+            new_blocks = payload.blocks
+            if new_blocked_by is not None:
+                _validate_dependency_ids(tasks, new_blocked_by, task_id)
+                if _has_cycle(tasks, task_id, new_blocked_by):
+                    raise ValueError("Dependency cycle detected")
+                # Remove old reverse refs
+                old_blocked_by = tasks[idx].get("blockedBy", [])
+                for old_id in old_blocked_by:
+                    for t in tasks:
+                        if t.get("id") == old_id:
+                            blocks = t.get("blocks", [])
+                            if task_id in blocks:
+                                blocks.remove(task_id)
+                                t["blocks"] = blocks
+                # Set new reverse refs
+                for bid in new_blocked_by:
+                    for t in tasks:
+                        if t.get("id") == bid:
+                            blocks = t.get("blocks", [])
+                            if task_id not in blocks:
+                                blocks.append(task_id)
+                                t["blocks"] = blocks
+
+            if new_blocks is not None:
+                _validate_dependency_ids(tasks, new_blocks, task_id)
+                # Remove old reverse refs
+                old_blocks = tasks[idx].get("blocks", [])
+                for old_id in old_blocks:
+                    for t in tasks:
+                        if t.get("id") == old_id:
+                            blocked_by = t.get("blockedBy", [])
+                            if task_id in blocked_by:
+                                blocked_by.remove(task_id)
+                                t["blockedBy"] = blocked_by
+                # Set new reverse refs
+                for bid in new_blocks:
+                    for t in tasks:
+                        if t.get("id") == bid:
+                            blocked_by = t.get("blockedBy", [])
+                            if task_id not in blocked_by:
+                                blocked_by.append(task_id)
+                                t["blockedBy"] = blocked_by
+
             was_not_done = tasks[idx].get("status") != "done"
             updates = payload.model_dump(exclude_none=True)
             tasks[idx].update(updates)
@@ -336,6 +437,16 @@ class WarRoomService:
             new_tasks = [t for t in tasks if t.get("id") != task_id]
             if len(new_tasks) == len(tasks):
                 return False
+            # Clean up dependency references on remaining tasks
+            for t in new_tasks:
+                blocked_by = t.get("blockedBy", [])
+                if task_id in blocked_by:
+                    blocked_by.remove(task_id)
+                    t["blockedBy"] = blocked_by
+                blocks = t.get("blocks", [])
+                if task_id in blocks:
+                    blocks.remove(task_id)
+                    t["blocks"] = blocks
             self._write_tasks_sync(new_tasks)
             return True
 
@@ -363,10 +474,22 @@ class WarRoomService:
         """Return tasks eligible for agent pickup, sorted by priority."""
         raw = await asyncio.to_thread(self._read_tasks_sync)
         now = datetime.now(timezone.utc)
+
+        # Build status lookup for blocker resolution
+        status_map = {t.get("id"): t.get("status") for t in raw}
+
         queue: list[dict] = []
 
         for t in raw:
             status = t.get("status", "")
+
+            # Filter out tasks with unresolved blockers
+            blocked_by = t.get("blockedBy", [])
+            if blocked_by:
+                has_unresolved = any(status_map.get(bid) != "done" for bid in blocked_by)
+                if has_unresolved:
+                    continue
+
             # In-progress tasks triggered by Run Now but not yet picked up
             if status == "in-progress" and not t.get("pickedUp"):
                 queue.append(t)
