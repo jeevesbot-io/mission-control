@@ -69,6 +69,56 @@ import { useApi } from '@/composables/useApi'
 const store = useWarRoomStore()
 const api = useApi()
 
+// SkillCard sub-component — must be in <script setup> to be in template scope
+const SkillCard = defineComponent({
+  props: {
+    skill: { type: Object as () => Skill, required: true },
+    deletable: { type: Boolean, default: false },
+  },
+  emits: ['toggle', 'delete'],
+  setup(props, { emit }) {
+    const expanded = ref(false)
+    const content = ref('')
+    const innerApi = useApi()
+
+    async function loadContent() {
+      if (!expanded.value) { expanded.value = true; return }
+      if (content.value) { expanded.value = false; return }
+      try {
+        const data = await innerApi.get<{ content: string }>(`/api/warroom/skills/${props.skill.id}/content`)
+        content.value = data.content
+      } catch {
+        content.value = '# Error loading content'
+      }
+    }
+
+    return () =>
+      h('div', { class: 'skill-card' }, [
+        h('div', { class: 'skill-card-main' }, [
+          h('button', {
+            class: ['toggle-btn', props.skill.enabled ? 'enabled' : 'disabled'],
+            onClick: () => emit('toggle', props.skill.id, !props.skill.enabled),
+            title: props.skill.enabled ? 'Disable' : 'Enable',
+          }, props.skill.enabled ? '●' : '○'),
+          h('div', { class: 'skill-info', onClick: loadContent, style: 'cursor:pointer' }, [
+            h('span', { class: 'skill-name' }, props.skill.name),
+            props.skill.description ? h('span', { class: 'skill-desc' }, props.skill.description) : null,
+          ]),
+          h('span', { class: ['source-badge', `source-${props.skill.source}`] }, props.skill.source),
+          props.deletable
+            ? h('button', {
+                class: 'delete-btn',
+                onClick: () => emit('delete', props.skill.id),
+              }, '✕')
+            : null,
+        ]),
+        expanded.value && content.value
+          ? h('pre', { class: 'skill-content' }, content.value)
+          : null,
+      ])
+  },
+})
+
 const search = ref('')
 const showCreate = ref(false)
 const createForm = ref({ name: '', description: '', instructions: '' })
@@ -109,57 +159,6 @@ async function submitCreate() {
 }
 </script>
 
-<!-- Inline SkillCard as a sub-component rendered directly -->
-<script lang="ts">
-export const SkillCard = defineComponent({
-  props: {
-    skill: { type: Object as () => Skill, required: true },
-    deletable: { type: Boolean, default: false },
-  },
-  emits: ['toggle', 'delete'],
-  setup(props, { emit }) {
-    const expanded = ref(false)
-    const content = ref('')
-    const api = useApi()
-
-    async function loadContent() {
-      if (!expanded.value) { expanded.value = true; return }
-      if (content.value) { expanded.value = false; return }
-      try {
-        const data = await api.get<{ content: string }>(`/api/warroom/skills/${props.skill.id}/content`)
-        content.value = data.content
-      } catch {
-        content.value = '# Error loading content'
-      }
-    }
-
-    return () =>
-      h('div', { class: 'skill-card' }, [
-        h('div', { class: 'skill-card-main' }, [
-          h('button', {
-            class: ['toggle-btn', props.skill.enabled ? 'enabled' : 'disabled'],
-            onClick: () => emit('toggle', props.skill.id, !props.skill.enabled),
-            title: props.skill.enabled ? 'Disable' : 'Enable',
-          }, props.skill.enabled ? '●' : '○'),
-          h('div', { class: 'skill-info', onClick: loadContent, style: 'cursor:pointer' }, [
-            h('span', { class: 'skill-name' }, props.skill.name),
-            props.skill.description ? h('span', { class: 'skill-desc' }, props.skill.description) : null,
-          ]),
-          h('span', { class: ['source-badge', `source-${props.skill.source}`] }, props.skill.source),
-          props.deletable
-            ? h('button', {
-                class: 'delete-btn',
-                onClick: () => emit('delete', props.skill.id),
-              }, '✕')
-            : null,
-        ]),
-        expanded.value && content.value
-          ? h('pre', { class: 'skill-content' }, content.value)
-          : null,
-      ])
-  },
-})
-</script>
 
 <style scoped>
 .skills-list { display: flex; flex-direction: column; gap: 1rem; }

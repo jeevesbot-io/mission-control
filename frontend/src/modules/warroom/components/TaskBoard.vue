@@ -102,6 +102,7 @@
       @delete="onDelete"
       @add-reference="onAddRef"
       @delete-reference="onDeleteRef"
+      @run="onRun"
     />
   </div>
 </template>
@@ -186,6 +187,11 @@ async function onDeleteRef(refId: string) {
   if (editingTask.value?.id) {
     await store.deleteReference(editingTask.value.id, refId)
   }
+}
+
+async function onRun(id: string) {
+  await store.runTask(id)
+  dialogOpen.value = false
 }
 </script>
 

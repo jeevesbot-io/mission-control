@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { useApi } from '@/composables/useApi'
 import type { components } from '@/types/api'
 
 type ContentItem = components['schemas']['ContentItem']
@@ -7,6 +8,7 @@ type ContentCreate = components['schemas']['ContentCreate']
 type ContentUpdate = components['schemas']['ContentUpdate']
 
 export const useContentStore = defineStore('content', () => {
+  const api = useApi()
   const items = ref<ContentItem[]>([])
   const stats = ref<Record<string, any>>({})
   const loading = ref(false)
@@ -16,11 +18,7 @@ export const useContentStore = defineStore('content', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await fetch('/api/content/')
-      if (!response.ok) {
-        throw new Error(`Failed to fetch content: ${response.statusText}`)
-      }
-      const data = await response.json()
+      const data = await api.get<{ items: ContentItem[]; stats: Record<string, any> }>('/api/content/')
       items.value = data.items || []
       stats.value = data.stats || {}
     } catch (e) {
@@ -35,14 +33,7 @@ export const useContentStore = defineStore('content', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await fetch('/api/content/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(create),
-      })
-      if (!response.ok) {
-        throw new Error(`Failed to create content: ${response.statusText}`)
-      }
+      await api.post('/api/content/', create)
       await fetchPipeline()
       return true
     } catch (e) {
@@ -58,14 +49,7 @@ export const useContentStore = defineStore('content', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await fetch(`/api/content/${itemId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(update),
-      })
-      if (!response.ok) {
-        throw new Error(`Failed to update content: ${response.statusText}`)
-      }
+      await api.patch(`/api/content/${itemId}`, update)
       await fetchPipeline()
       return true
     } catch (e) {
@@ -81,12 +65,7 @@ export const useContentStore = defineStore('content', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await fetch(`/api/content/${itemId}`, {
-        method: 'DELETE',
-      })
-      if (!response.ok) {
-        throw new Error(`Failed to delete content: ${response.statusText}`)
-      }
+      await api.delete(`/api/content/${itemId}`)
       await fetchPipeline()
       return true
     } catch (e) {
@@ -102,12 +81,7 @@ export const useContentStore = defineStore('content', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await fetch(`/api/content/${itemId}/move/${targetStage}`, {
-        method: 'POST',
-      })
-      if (!response.ok) {
-        throw new Error(`Failed to move content: ${response.statusText}`)
-      }
+      await api.post(`/api/content/${itemId}/move/${targetStage}`)
       await fetchPipeline()
       return true
     } catch (e) {

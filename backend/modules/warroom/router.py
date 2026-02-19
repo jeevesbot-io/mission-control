@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel as _BaseModel
 
 from .models import (
     CalendarDay,
@@ -178,13 +179,6 @@ async def get_models() -> list[str]:
     return await warroom_service.get_models()
 
 
-class ModelSwitchRequest(ModelResponse):
-    model: str
-
-
-from pydantic import BaseModel as _BaseModel
-
-
 class _ModelSwitchBody(_BaseModel):
     model: str
 
@@ -259,7 +253,7 @@ async def delete_skill(skill_id: str) -> dict:
 @router.get("/workspace-file", response_model=WorkspaceFileResponse)
 async def get_workspace_file(name: str = Query(...)) -> WorkspaceFileResponse:
     if not warroom_service._validate_workspace_filename(name):
-        raise HTTPException(status_code=400, detail=f"Invalid filename. Allowed: SOUL.md, IDENTITY.md, USER.md, AGENTS.md")
+        raise HTTPException(status_code=400, detail="Invalid filename. Allowed: SOUL.md, IDENTITY.md, USER.md, AGENTS.md")
     return await warroom_service.get_workspace_file(name)
 
 

@@ -1,10 +1,14 @@
 """Office module business logic."""
 
-from datetime import datetime
-from sqlalchemy import select, text
+import logging
+
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.constants import KNOWN_AGENTS
 from .models import AgentWorkstation, OfficeResponse
+
+logger = logging.getLogger(__name__)
 
 
 class OfficeService:
@@ -21,16 +25,7 @@ class OfficeService:
         "foundry-builder": "#84cc16",
     }
 
-    AGENT_NAMES = {
-        "main": "Jeeves",
-        "matron": "Matron",
-        "archivist": "The Archivist",
-        "curator": "The Curator",
-        "foundry-blacksmith": "The Blacksmith",
-        "foundry-scout": "Scout",
-        "foundry-spec": "Spec Writer",
-        "foundry-builder": "Builder",
-    }
+    AGENT_NAMES = KNOWN_AGENTS
 
     POSITIONS = [
         {"x": 100, "y": 100},
@@ -49,11 +44,10 @@ class OfficeService:
             # Get recent agent activity from agent_log
             query = text(
                 """
-                SELECT agent, MAX(timestamp) as last_seen, message
+                SELECT DISTINCT ON (agent) agent, created_at as last_seen, message
                 FROM agent_log
-                WHERE timestamp > NOW() - INTERVAL '1 hour'
-                GROUP BY agent
-                ORDER BY last_seen DESC
+                WHERE created_at > NOW() - INTERVAL '1 hour'
+                ORDER BY agent, created_at DESC
                 """
             )
             result = await db.execute(query)
@@ -105,7 +99,7 @@ class OfficeService:
             return OfficeResponse(workstations=workstations, office_stats=office_stats)
 
         except Exception as e:
-            print(f"Error getting office view: {e}")
+            logger.warning("Error getting office view: %s", e)
             return OfficeResponse(workstations=[], office_stats={})
 
 

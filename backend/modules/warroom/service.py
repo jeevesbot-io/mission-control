@@ -202,6 +202,38 @@ class WarRoomService:
         with _tasks_lock:
             return self._read_json_sync(self._tasks_file, [])
 
+    @staticmethod
+    def _sanitize_task(t: dict) -> dict:
+        """Filter to Task model fields and normalize legacy reference formats."""
+        data = {k: v for k, v in t.items() if k in Task.model_fields}
+        refs = data.get("references")
+        if refs and isinstance(refs, list):
+            clean = []
+            for r in refs:
+                if not isinstance(r, dict):
+                    continue
+                # Skip refs missing required fields for the current schema
+                if "id" not in r or "title" not in r or "url" not in r:
+                    # Try to migrate legacy format (path -> url, missing id/createdAt)
+                    migrated = {
+                        "id": r.get("id", r.get("path", "")),
+                        "title": r.get("title", r.get("path", "").split("/")[-1] if r.get("path") else ""),
+                        "url": r.get("url", r.get("path", "")),
+                        "type": r.get("type", "link"),
+                        "createdAt": r.get("createdAt", ""),
+                    }
+                    # Normalize legacy type values
+                    if migrated["type"] not in ("link", "obsidian", "doc"):
+                        migrated["type"] = "link"
+                    clean.append(migrated)
+                else:
+                    # Ensure type is valid
+                    if r.get("type") not in ("link", "obsidian", "doc"):
+                        r = {**r, "type": "link"}
+                    clean.append(r)
+            data["references"] = clean
+        return data
+
     def _write_tasks_sync(self, tasks: list[dict]) -> None:
         with _tasks_lock:
             self._write_json_sync(self._tasks_file, tasks)
@@ -230,14 +262,14 @@ class WarRoomService:
                 task_tags = t.get("tags", [])
                 if not any(tag in task_tags for tag in tag_filter):
                     continue
-            result.append(Task(**{k: v for k, v in t.items() if k in Task.model_fields}))
+            result.append(Task(**self._sanitize_task(t)))
         return result
 
     async def get_task(self, task_id: str) -> Task | None:
         raw = await asyncio.to_thread(self._read_tasks_sync)
         for t in raw:
             if t.get("id") == task_id:
-                return Task(**{k: v for k, v in t.items() if k in Task.model_fields})
+                return Task(**self._sanitize_task(t))
         return None
 
     async def create_task(self, payload: TaskCreate) -> Task:
@@ -271,7 +303,7 @@ class WarRoomService:
             return task
 
         raw = await asyncio.to_thread(_create)
-        return Task(**{k: v for k, v in raw.items() if k in Task.model_fields})
+        return Task(**self._sanitize_task(raw))
 
     async def update_task(self, task_id: str, payload: TaskUpdate) -> Task | None:
         def _update():
@@ -296,7 +328,7 @@ class WarRoomService:
         raw = await asyncio.to_thread(_update)
         if raw is None:
             return None
-        return Task(**{k: v for k, v in raw.items() if k in Task.model_fields})
+        return Task(**self._sanitize_task(raw))
 
     async def delete_task(self, task_id: str) -> bool:
         def _delete():
@@ -325,7 +357,7 @@ class WarRoomService:
         raw = await asyncio.to_thread(_run)
         if raw is None:
             return None
-        return Task(**{k: v for k, v in raw.items() if k in Task.model_fields})
+        return Task(**self._sanitize_task(raw))
 
     async def get_queue(self) -> list[Task]:
         """Return tasks eligible for agent pickup, sorted by priority."""
@@ -359,7 +391,7 @@ class WarRoomService:
             PRIORITY_ORDER.get(t.get("priority", "medium"), 2),
             t.get("scheduledAt") or "",
         ))
-        return [Task(**{k: v for k, v in t.items() if k in Task.model_fields}) for t in queue]
+        return [Task(**self._sanitize_task(t)) for t in queue]
 
     async def pickup_task(self, task_id: str) -> Task | None:
         def _pickup():
@@ -378,7 +410,7 @@ class WarRoomService:
         raw = await asyncio.to_thread(_pickup)
         if raw is None:
             return None
-        return Task(**{k: v for k, v in raw.items() if k in Task.model_fields})
+        return Task(**self._sanitize_task(raw))
 
     async def complete_task(self, task_id: str, payload: TaskComplete) -> Task | None:
         def _complete():
@@ -399,7 +431,7 @@ class WarRoomService:
         raw = await asyncio.to_thread(_complete)
         if raw is None:
             return None
-        return Task(**{k: v for k, v in raw.items() if k in Task.model_fields})
+        return Task(**self._sanitize_task(raw))
 
     # -------------------------------------------------------------------------
     # References

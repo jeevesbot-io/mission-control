@@ -7,7 +7,10 @@ import PageShell from '@/components/layout/PageShell.vue'
 import StatCard from '@/components/data/StatCard.vue'
 import McIcon from '@/components/ui/McIcon.vue'
 import { getAgentIconName } from '@/composables/useIcons'
-import TabView from 'primevue/tabview'
+import Tabs from 'primevue/tabs'
+import TabList from 'primevue/tablist'
+import Tab from 'primevue/tab'
+import TabPanels from 'primevue/tabpanels'
 import TabPanel from 'primevue/tabpanel'
 import TeamView from './TeamView.vue'
 
@@ -66,8 +69,13 @@ async function handleTrigger(agentId: string) {
         <p class="agents__subtitle">Fleet status, logs, and dispatch</p>
       </div>
 
-      <TabView v-model:activeIndex="activeTab">
-        <TabPanel header="Fleet Status">
+      <Tabs :value="activeTab" @update:value="(v: number) => activeTab = v">
+        <TabList>
+          <Tab :value="0">Fleet Status</Tab>
+          <Tab :value="1">Team Structure</Tab>
+        </TabList>
+        <TabPanels>
+        <TabPanel :value="0">
           <!-- Stats -->
       <section class="agents__section" v-if="store.stats">
         <h3 class="agents__section-title">Telemetry</h3>
@@ -177,10 +185,11 @@ async function handleTrigger(agentId: string) {
       </div>
         </TabPanel>
 
-        <TabPanel header="Team Structure">
+        <TabPanel :value="1">
           <TeamView />
         </TabPanel>
-      </TabView>
+        </TabPanels>
+      </Tabs>
     </div>
   </PageShell>
 </template>

@@ -21,6 +21,8 @@ import {
   Hospital,
   PartyPopper,
   Square,
+  Building,
+  Video,
   // War Room icons
   Swords,
   Kanban,
@@ -60,6 +62,8 @@ export const iconMap: Record<string, Component> = {
   hospital: Hospital,
   'party-popper': PartyPopper,
   square: Square,
+  building: Building,
+  video: Video,
   // War Room icons
   swords: Swords,
   kanban: Kanban,

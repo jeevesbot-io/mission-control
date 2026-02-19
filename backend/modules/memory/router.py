@@ -41,9 +41,9 @@ async def get_long_term():
     """Get MEMORY.md content and sections."""
     result = memory_service.get_long_term()
     if result is None:
-        raise HTTPException(status_code=404, detail="MEMORY.md not found")
+        return LongTermMemoryResponse(content="", sections=[], exists=False)
     content, sections = result
-    return LongTermMemoryResponse(content=content, sections=sections)
+    return LongTermMemoryResponse(content=content, sections=sections, exists=True)
 
 
 @router.get("/search", response_model=SearchResponse)

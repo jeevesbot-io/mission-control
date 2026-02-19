@@ -1,6 +1,5 @@
 """Agents module service — queries agent_log table, triggers via OpenClaw gateway."""
 
-import datetime
 import logging
 
 import httpx
@@ -8,6 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
+from core.constants import KNOWN_AGENTS
 
 from .models import AgentInfo, AgentLogEntry, AgentStatsResponse, CronJob
 
@@ -18,7 +18,8 @@ class AgentService:
     """Query agent_log table and interact with OpenClaw gateway."""
 
     async def list_agents(self, db: AsyncSession) -> list[AgentInfo]:
-        """List known agents with summary stats from agent_log."""
+        """List all known agents, enriched with stats from agent_log where available."""
+        logged_agents: dict[str, AgentInfo] = {}
         try:
             result = await db.execute(
                 text("""
@@ -32,9 +33,7 @@ class AgentService:
                     ORDER BY last_activity DESC
                 """)
             )
-            agents = []
             for row in result.fetchall():
-                # Get last message for status context
                 last_msg_result = await db.execute(
                     text("""
                         SELECT message, level FROM agent_log
@@ -45,20 +44,41 @@ class AgentService:
                 )
                 last = last_msg_result.fetchone()
 
-                agents.append(
-                    AgentInfo(
-                        agent_id=row.agent,
-                        last_activity=row.last_activity,
-                        last_message=last.message if last else None,
-                        last_level=last.level.lower() if last else None,
-                        total_entries=row.total_entries,
-                        warning_count=row.warning_count,
-                    )
+                logged_agents[row.agent] = AgentInfo(
+                    agent_id=row.agent,
+                    last_activity=row.last_activity,
+                    last_message=last.message if last else None,
+                    last_level=last.level.lower() if last else None,
+                    total_entries=row.total_entries,
+                    warning_count=row.warning_count,
                 )
-            return agents
         except Exception as exc:
-            logger.warning("Failed to list agents: %s", exc)
-            return []
+            logger.warning("Failed to query agent_log: %s", exc)
+
+        # Merge: all known agents + any extra agents found in logs
+        agents: list[AgentInfo] = []
+        seen: set[str] = set()
+
+        for agent_id in KNOWN_AGENTS:
+            seen.add(agent_id)
+            if agent_id in logged_agents:
+                agents.append(logged_agents[agent_id])
+            else:
+                agents.append(AgentInfo(
+                    agent_id=agent_id,
+                    last_activity=None,
+                    last_message=None,
+                    last_level=None,
+                    total_entries=0,
+                    warning_count=0,
+                ))
+
+        # Include any agents found in logs but not in KNOWN_AGENTS
+        for agent_id, info in logged_agents.items():
+            if agent_id not in seen:
+                agents.append(info)
+
+        return agents
 
     async def get_log(
         self,

@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { useApi } from '@/composables/useApi'
 import type { components } from '@/types/api'
 
 type CalendarEvent = components['schemas']['CalendarEvent']
 type CronJob = components['schemas']['CronJob']
 
 export const useCalendarStore = defineStore('calendar', () => {
+  const api = useApi()
   const events = ref<CalendarEvent[]>([])
   const cronJobs = ref<CronJob[]>([])
   const loading = ref(false)
@@ -15,14 +17,9 @@ export const useCalendarStore = defineStore('calendar', () => {
     loading.value = true
     error.value = null
     try {
-      const params = new URLSearchParams({
-        days_ahead: daysAhead.toString(),
-      })
-      const response = await fetch(`/api/calendar?${params}`)
-      if (!response.ok) {
-        throw new Error(`Failed to fetch calendar: ${response.statusText}`)
-      }
-      const data = await response.json()
+      const data = await api.get<{ events: CalendarEvent[]; cronJobs: CronJob[] }>(
+        `/api/calendar?days_ahead=${daysAhead}`,
+      )
       events.value = data.events || []
       cronJobs.value = data.cronJobs || []
     } catch (e) {
@@ -37,11 +34,7 @@ export const useCalendarStore = defineStore('calendar', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await fetch('/api/calendar/jobs')
-      if (!response.ok) {
-        throw new Error(`Failed to fetch cron jobs: ${response.statusText}`)
-      }
-      const data = await response.json()
+      const data = await api.get<{ jobs: CronJob[] }>('/api/calendar/jobs')
       cronJobs.value = data.jobs || []
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Unknown error'

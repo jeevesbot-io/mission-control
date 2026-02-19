@@ -30,6 +30,10 @@ dev = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 
+[tool.setuptools]
+packages = ["core", "modules", "alembic"]
+py-modules = ["main"]
+
 [tool.ruff]
 target-version = "py313"
 line-length = 100

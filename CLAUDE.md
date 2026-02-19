@@ -4,32 +4,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Mission Control is a unified dashboard and life operating system. It replaces Matron's standalone Flask dashboard with a plugin-based platform where each life domain (agents, memory, school, health, finance, etc.) is a self-contained module. **Status: All build phases (1–9) complete. Core system, all modules (Memory, Agents, School, Overview, War Room), WebSocket live feed, Docker production build, and full test suite are live. VidClaw dashboard fully migrated into War Room module.**
-
-All architecture documentation lives in `docs/`:
-- `Mission Control - Architecture.md` — full technical blueprint (stack, structure, API, wireframes, implementation plan)
-- `Mission Control - Modules.md` — module registry and contracts
-- `Mission Control - Backlog.md` — build phases and future features
-- `Mission Control - Architecture.md` also covers the implementation plan and phase estimates
+Mission Control is a unified dashboard and life operating system — a plugin-based platform where each life domain (agents, memory, school, health, finance, etc.) is a self-contained module. All build phases (1–9) are complete. Active modules: Memory, Agents, School, Overview, War Room, Calendar, Chat, Content Pipeline, Office View.
 
 ## Tech Stack
 
-- **Backend:** FastAPI (Python), async, Pydantic validation, Alembic migrations
-- **Frontend:** Vue 3 + Vite (TypeScript), Pinia state management, PrimeVue components, Apache ECharts
-- **Database:** Postgres (`jeeves` DB) — shared with existing Matron tables
-- **Real-time:** WebSocket at `/ws/live` for agent activity feeds
+- **Backend:** FastAPI (Python 3.13+), async, Pydantic v2, Alembic migrations, `uv` package manager
+- **Frontend:** Vue 3 + Vite (TypeScript), Pinia, PrimeVue, Apache ECharts
+- **Database:** Postgres (`jeeves` DB) — shared with existing Matron tables, raw SQL via SQLAlchemy async
+- **Real-time:** WebSocket at `/ws/live` (topic-based pub/sub)
 - **Auth:** Signed httpOnly session cookies (itsdangerous), no JWT
-- **Type sync:** `openapi-typescript` generates frontend types from FastAPI's `/openapi.json`
-- **Deployment:** Docker via Colima, multi-stage build (Vite build → FastAPI StaticFiles mount)
+- **Type sync:** `openapi-typescript` generates `frontend/src/types/api.ts` from FastAPI's `/openapi.json`
+- **Deployment:** Docker via Colima, multi-stage build (Vite → FastAPI StaticFiles)
 
 ## Development Commands
 
 ```bash
+# Initial setup
+cd backend && uv sync
+cd frontend && npm install
+
 # Backend (from backend/)
 uv run uvicorn main:app --reload --port 5055
 
-# Frontend (from frontend/)
-npm run dev                 # proxied to backend at :5055
+# Frontend (from frontend/) — dev server at :5173, proxied to :5055
+npm run dev
+
+# Linting (from backend/)
+uv run ruff check .
 
 # Migrations (from backend/)
 uv run alembic revision --autogenerate -m "description"
@@ -39,24 +40,24 @@ uv run alembic upgrade head
 npm run generate-types
 
 # Testing
-cd backend && uv run pytest       # backend (42 tests)
-cd frontend && npm test            # frontend vitest (41 tests)
-cd frontend && npx playwright test # e2e tests (requires backend + frontend running)
+cd backend && uv run pytest                        # 79 tests
+cd backend && uv run pytest tests/test_memory.py  # single file
+cd frontend && npm test                            # 68 vitest tests
+cd frontend && npm test -- src/modules/warroom/store.test.ts  # single file
+cd frontend && npx playwright test                 # e2e (requires both servers running)
 
-# Docker (development)
-docker-compose -f docker-compose.dev.yml up
-
-# Docker (production — single container, serves frontend via FastAPI)
-docker-compose up
+# Docker
+docker-compose -f docker-compose.dev.yml up       # development
+docker-compose up                                  # production (port 5050)
 ```
+
+API docs available at `http://localhost:5055/docs` (Swagger) and `/redoc`.
 
 ## Architecture
 
 Plugin-based monolith with auto-discovery. The core system provides auth, routing, WebSocket hub, and module registry. Each module is fully self-contained — adding one requires no changes to core code.
 
 ### Module Contract
-
-Every module provides two registration points that are auto-discovered:
 
 **Backend** (`backend/modules/<name>/__init__.py`):
 ```python
@@ -78,9 +79,11 @@ export default {
 }
 ```
 
+Both are auto-discovered at startup — no registration needed in core code.
+
 ### Module Isolation
 
-Each module's router is wrapped in error-handling middleware. If one module throws, others keep running — the failing module returns 503 and its Overview widget shows "unavailable." Modules must degrade gracefully when their data sources are down.
+Each module router is wrapped in error-handling middleware. A failing module returns 503 and its Overview widget shows "unavailable." Other modules keep running.
 
 ### Project Structure
 
@@ -88,122 +91,129 @@ Each module's router is wrapped in error-handling middleware. If one module thro
 mission-control/
 ├── backend/
 │   ├── main.py              # App factory, module auto-discovery
-│   ├── pyproject.toml       # Python deps (managed by uv)
-│   ├── alembic.ini          # Migration config
-│   ├── alembic/             # Migration scripts
-│   ├── core/                # Auth, registry, config, DB, WebSocket hub
-│   ├── modules/             # overview/, memory/, agents/, school/
+│   ├── core/                # auth, config, database, websocket hub, registry, rate_limit
+│   ├── modules/             # agents/, calendar/, chat/, content/, memory/, office/, overview/, school/, warroom/
 │   │   └── <name>/
 │   │       ├── __init__.py  # MODULE_INFO
 │   │       ├── router.py    # API endpoints
 │   │       ├── models.py    # Pydantic schemas
 │   │       └── service.py   # Business logic
-│   └── tests/               # pytest tests (42 tests)
-├── frontend/
-│   ├── src/
-│   │   ├── router/          # Auto-imports module routes
-│   │   ├── stores/          # Pinia stores (app, per-module)
-│   │   ├── components/      # Shared: layout/, data/, ui/
-│   │   ├── modules/         # overview/, memory/, school/, agents/
-│   │   ├── composables/     # useApi, useWebSocket, useModule
-│   │   └── styles/          # base.css
-│   ├── vite.config.ts
-│   └── package.json
+│   └── tests/               # 79 pytest tests (one file per module)
+├── frontend/src/
+│   ├── router/              # Auto-imports module routes
+│   ├── stores/              # Pinia stores (app-level + per-module)
+│   ├── components/          # Shared: layout/, data/, ui/
+│   ├── modules/             # agents/, calendar/, chat/, content/, memory/, office/, overview/, school/, warroom/
+│   ├── composables/         # useApi, useWebSocket, useModule
+│   └── types/api.ts         # Generated from FastAPI OpenAPI spec
 ├── Dockerfile               # Multi-stage production build
 ├── docker-compose.yml       # Production (port 5050)
-├── docker-compose.dev.yml   # Development (separate services)
-└── scripts/
-    └── generate-types.sh
+├── docker-compose.dev.yml   # Development
+└── docs/                    # Architecture docs, module registry, backlog
 ```
 
 ## Data Sources
 
 | Data | Source | Access Method |
 |------|--------|---------------|
-| Memory files | `~/.openclaw/workspace/memory/*.md` | File read (Docker volume mount), cached in-memory with file watcher |
+| Memory files | `~/.openclaw/workspace/memory/*.md` | File read + in-memory cache with file watcher |
 | MEMORY.md | `~/.openclaw/workspace/MEMORY.md` | File read |
 | Family calendar | Google Calendar (`sollyfamily3@gmail.com`) | `gog` CLI subprocess |
-| School data | Postgres (`school_emails`, `school_events`, `todoist_tasks`) | Async DB query (raw SQL) |
-| Agent activity | Postgres (`agent_log`) | Async DB query (raw SQL) |
-| Cron status | OpenClaw gateway API (`:18789`) | HTTP |
-| Tasks / Projects | `~/.openclaw/workspace/dashboard/data/tasks.json`, `projects.json` | File read/write (WarRoomService, thread-locked) |
+| School data | Postgres (`school_emails`, `school_events`, `todoist_tasks`) | Async raw SQL |
+| Agent activity | Postgres (`agent_log`) | Async raw SQL |
+| Cron jobs | OpenClaw gateway API (`:18789`) | HTTP |
+| Tasks / Projects | `~/.openclaw/workspace/dashboard/data/tasks.json`, `projects.json` | File read/write (thread-locked) |
 | Skills | `~/.openclaw/skills/`, `~/.openclaw/workspace/skills/` | Filesystem scan |
-| Soul files | `~/.openclaw/workspace/SOUL.md`, `IDENTITY.md`, `USER.md`, `AGENTS.md` | File read/write with history |
+| Soul files | `~/.openclaw/workspace/SOUL.md`, `IDENTITY.md`, `USER.md`, `AGENTS.md` | File read/write with 20-entry history |
 | OpenClaw config | `~/.openclaw/openclaw.json` | File read/write (model, skill enabled state) |
 | Usage sessions | `~/.openclaw/agents/main/sessions/*.jsonl` | Parsed async, 60s TTL cache |
+| Content pipeline | `~/.openclaw/workspace/dashboard/data/content.json` | File read/write |
 
 No `memory_entries` table — memory files are the source of truth. No Redis or message queue.
 
 ## Key Design Decisions
 
-- **Port:** `:5055` during development, takes over `:5050` at Matron cutover
-- **Memory editing:** Read-only in v1; edited via filesystem directly
-- **Search:** Full-text on markdown files first; semantic/embedding search only if needed later
-- **CORS:** Dev uses FastAPI middleware; production serves static via single-origin FastAPI mount
+- **Port:** `:5055` dev, `:5050` production (Matron cutover)
 - **Agent triggers:** `POST /api/agents/{id}/trigger` sends HTTP to OpenClaw gateway — Mission Control is the control plane, not the execution engine
-- **WebSocket protocol:** Topic-based JSON messages; clients subscribe on connect; `useWebSocket` composable handles reconnection with exponential backoff
-
-## Build Phases (all complete)
-
-1. ~~Scaffolding~~ — FastAPI + Alembic + Vue 3 + Vite + PrimeVue + openapi-typescript
-2. ~~Shell + theme~~ — layout, dark/light theme, shared composables, Ground Control design system
-3. ~~Memory module~~ — file browser, full-text search, MEMORY.md viewer, TOC navigation
-4. ~~Agents module + WebSocket~~ — agent list, log history, cron, triggers, live activity feed
-5. ~~School module~~ — Google Calendar + emails, tasks (tabbed view), child inference, stats
-6. ~~Overview page~~ — unified dashboard with `/api/overview` aggregating all system data, health checks, upcoming events, agent activity feed, stat cards
-7. ~~Docker + deploy~~ — multi-stage production Dockerfile, production docker-compose on port 5050
-8. ~~Polish + testing~~ — 79 backend tests, 68 frontend tests, Playwright e2e test suites
-9. ~~War Room module~~ — full VidClaw migration: Kanban board (drag-and-drop), task queue protocol for agents (heartbeat/pickup/complete), projects, tags, skills, soul/identity editor, activity calendar, usage & model switcher, WarRoomSummary overview widget
+- **WebSocket protocol:** Topic-based JSON messages; `useWebSocket` composable handles reconnection with exponential backoff
+- **Memory editing:** Read-only in v1; edited via filesystem directly
+- **CORS:** Dev uses FastAPI middleware; production serves static via single-origin FastAPI mount
+- **Rate limiting:** `slowapi` on sensitive endpoints (e.g. chat: 30/minute)
 
 ## API Endpoints
 
 ```
-GET  /api/health                     → health + version
-GET  /api/modules                    → registered modules
-GET  /api/overview                   → aggregated dashboard data (health, stats, events, activity)
-GET  /api/memory/files               → daily memory file list
-GET  /api/memory/files/{date}        → daily memory content + sections
-GET  /api/memory/long-term           → MEMORY.md content + sections
-GET  /api/memory/search?q=...        → full-text search
-GET  /api/memory/stats               → memory stats
-GET  /api/agents/                    → agent list with activity summary
-GET  /api/agents/stats               → aggregate stats (entries, health rate, 24h, unique agents)
-GET  /api/agents/{id}/log            → paginated log history (filterable by level)
-GET  /api/agents/cron                → cron schedule from OpenClaw gateway
-POST /api/agents/{id}/trigger        → trigger agent via gateway + WebSocket broadcast
-GET  /api/school/calendar            → Google Calendar events (next N days, via gog CLI)
-GET  /api/school/events              → upcoming school events from DB
-GET  /api/school/emails              → recent school emails
-GET  /api/school/tasks               → todoist tasks
-GET  /api/school/stats               → school summary stats
-WS   /ws/live                        → real-time activity (topic-based pub/sub)
+GET  /api/health
+GET  /api/modules
+GET  /api/overview
+
+# Memory
+GET  /api/memory/files
+GET  /api/memory/files/{date}
+GET  /api/memory/long-term
+GET  /api/memory/search?q=...
+GET  /api/memory/stats
+
+# Agents
+GET  /api/agents/
+GET  /api/agents/stats
+GET  /api/agents/{id}/log
+GET  /api/agents/cron
+POST /api/agents/{id}/trigger
+
+# School
+GET  /api/school/calendar
+GET  /api/school/events
+GET  /api/school/emails
+GET  /api/school/tasks
+GET  /api/school/stats
+
+# Calendar
+GET  /api/calendar/?start_date=&days_ahead=14
+GET  /api/calendar/jobs
+
+# Chat
+POST /api/chat/send
+GET  /api/chat/health
+
+# Content Pipeline
+GET    /api/content/
+POST   /api/content/
+PATCH  /api/content/{item_id}
+DELETE /api/content/{item_id}
+POST   /api/content/{item_id}/move/{target_stage}
+
+# Office View
+GET  /api/office/
 
 # War Room
-GET    /api/warroom/tasks             → list tasks (filterable by project/priority/tags/status)
-POST   /api/warroom/tasks             → create task
-PUT    /api/warroom/tasks/{id}        → update task
-DELETE /api/warroom/tasks/{id}        → delete task
-GET    /api/warroom/tasks/queue       → agent queue (todo/backlog, unpicked, sorted by priority)
-POST   /api/warroom/tasks/{id}/pickup → mark picked up (agent heartbeat protocol)
-POST   /api/warroom/tasks/{id}/complete → mark complete with result/error
-GET    /api/warroom/projects          → list projects with task_count
-POST   /api/warroom/projects          → create project
-PUT    /api/warroom/projects/{id}     → update project
-DELETE /api/warroom/projects/{id}     → delete project (422 if tasks exist)
-GET    /api/warroom/tags              → sorted unique tag list
-GET    /api/warroom/usage             → usage tiers + active model
-GET    /api/warroom/models            → available model list
-POST   /api/warroom/model             → set active model
-GET    /api/warroom/heartbeat         → last heartbeat timestamp
-POST   /api/warroom/heartbeat         → record heartbeat
-GET    /api/warroom/skills            → list skills (managed + workspace)
-POST   /api/warroom/skills            → create workspace skill
-POST   /api/warroom/skills/{id}/toggle → enable/disable skill
-DELETE /api/warroom/skills/{id}       → delete workspace skill
-GET    /api/warroom/workspace-file    → get SOUL.md / IDENTITY.md / USER.md / AGENTS.md
-PUT    /api/warroom/workspace-file    → update + save history (max 20 entries)
-GET    /api/warroom/workspace-file/history → file edit history
-GET    /api/warroom/soul/templates    → 6 static soul templates
-GET    /api/warroom/calendar          → activity heatmap {date: {memory, tasks}}
-GET    /api/warroom/stats             → overview widget stats (in_progress, todo, heartbeat, model)
+GET    /api/warroom/tasks
+POST   /api/warroom/tasks
+PUT    /api/warroom/tasks/{id}
+DELETE /api/warroom/tasks/{id}
+GET    /api/warroom/tasks/queue
+POST   /api/warroom/tasks/{id}/pickup
+POST   /api/warroom/tasks/{id}/complete
+GET    /api/warroom/projects
+POST   /api/warroom/projects
+PUT    /api/warroom/projects/{id}
+DELETE /api/warroom/projects/{id}
+GET    /api/warroom/tags
+GET    /api/warroom/usage
+GET    /api/warroom/models
+POST   /api/warroom/model
+GET    /api/warroom/heartbeat
+POST   /api/warroom/heartbeat
+GET    /api/warroom/skills
+POST   /api/warroom/skills
+POST   /api/warroom/skills/{id}/toggle
+DELETE /api/warroom/skills/{id}
+GET    /api/warroom/workspace-file
+PUT    /api/warroom/workspace-file
+GET    /api/warroom/workspace-file/history
+GET    /api/warroom/soul/templates
+GET    /api/warroom/calendar
+GET    /api/warroom/stats
+
+WS   /ws/live
 ```

@@ -1,19 +1,20 @@
 """Calendar module business logic."""
 
 import json
-import os
-from datetime import datetime, timedelta
+import logging
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-import httpx
-from sqlalchemy.ext.asyncio import AsyncSession
+from core.config import settings
 
 from .models import (
     CalendarEvent,
     CalendarResponse,
     CronJob,
-    CronJobsResponse,
+    CronPayload,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class CalendarService:
@@ -21,8 +22,8 @@ class CalendarService:
 
     def __init__(self):
         """Initialize calendar service with OpenClaw gateway config."""
-        self.gateway_url = os.getenv("OPENCLAW_GATEWAY_URL", "http://localhost:4445")
-        self.gateway_token = os.getenv("OPENCLAW_GATEWAY_TOKEN", "")
+        self.gateway_url = settings.openclaw_gateway_url
+        self.gateway_token = settings.openclaw_gateway_token
 
     async def get_cron_jobs(self) -> list[CronJob]:
         """Fetch all cron jobs from OpenClaw gateway.
@@ -49,7 +50,7 @@ class CalendarService:
                 data = json.load(f)
 
             tasks = data.get("tasks", [])
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             cutoff = now + timedelta(days=days_ahead)
 
             events = []
@@ -86,13 +87,13 @@ class CalendarService:
 
             return events
         except Exception as e:
-            print(f"Error fetching upcoming tasks: {e}")
+            logger.warning("Error fetching upcoming tasks: %s", e)
             return []
 
     def _cron_to_calendar_events(self, jobs: list[CronJob]) -> list[CalendarEvent]:
         """Convert cron jobs to calendar events."""
         events = []
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         for job in jobs:
             if not job.enabled:

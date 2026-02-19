@@ -205,6 +205,15 @@ export const useWarRoomStore = defineStore('warroom', () => {
     await updateTask(id, { status: newStatus })
   }
 
+  async function runTask(id: string): Promise<boolean> {
+    try {
+      await api.post(`/api/warroom/tasks/${id}/run`)
+      return true
+    } catch {
+      return false
+    }
+  }
+
   async function addReference(taskId: string, payload: Omit<Reference, 'id' | 'createdAt'>): Promise<Reference | null> {
     try {
       const ref = await api.post<Reference>(`/api/warroom/tasks/${taskId}/references`, payload)
@@ -397,6 +406,7 @@ export const useWarRoomStore = defineStore('warroom', () => {
     updateTask,
     deleteTask,
     moveTask,
+    runTask,
     addReference,
     deleteReference,
     // Project actions

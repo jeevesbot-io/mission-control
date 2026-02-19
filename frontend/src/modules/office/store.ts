@@ -1,10 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { useApi } from '@/composables/useApi'
 import type { components } from '@/types/api'
 
 type AgentWorkstation = components['schemas']['AgentWorkstation']
 
 export const useOfficeStore = defineStore('office', () => {
+  const api = useApi()
   const workstations = ref<AgentWorkstation[]>([])
   const stats = ref<Record<string, any>>({})
   const loading = ref(false)
@@ -14,11 +16,7 @@ export const useOfficeStore = defineStore('office', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await fetch('/api/office/')
-      if (!response.ok) {
-        throw new Error(`Failed to fetch office: ${response.statusText}`)
-      }
-      const data = await response.json()
+      const data = await api.get<{ workstations: AgentWorkstation[]; office_stats: Record<string, any> }>('/api/office/')
       workstations.value = data.workstations || []
       stats.value = data.office_stats || {}
     } catch (e) {

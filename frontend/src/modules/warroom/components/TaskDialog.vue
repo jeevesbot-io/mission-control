@@ -131,7 +131,10 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <button v-if="isEdit" class="btn-danger" @click="$emit('delete', task?.id)">Delete</button>
+        <div class="footer-left">
+          <button v-if="isEdit" class="btn-danger" @click="$emit('delete', task?.id)">Delete</button>
+          <button v-if="isEdit && task?.status !== 'done'" class="btn-run" @click="$emit('run', task!.id)">Run Now</button>
+        </div>
         <div class="footer-right">
           <button class="btn-secondary" @click="visible = false">Cancel</button>
           <button class="btn-primary" :disabled="!form.title.trim()" @click="submit">
@@ -163,6 +166,7 @@ const emit = defineEmits<{
   (e: 'delete', id: string | undefined): void
   (e: 'delete-reference', refId: string): void
   (e: 'add-reference', ref: Omit<Reference, 'id' | 'createdAt'>): void
+  (e: 'run', id: string): void
 }>()
 
 const store = useWarRoomStore()
@@ -401,6 +405,7 @@ function submit() {
 .add-ref-form :deep(input) { flex: 1; min-width: 120px; }
 
 .dialog-footer { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+.footer-left { display: flex; gap: 0.5rem; }
 .footer-right { display: flex; gap: 0.5rem; }
 
 .btn-primary {
@@ -439,4 +444,16 @@ function submit() {
   cursor: pointer;
 }
 .btn-danger:hover { background: rgba(248,113,113,0.2); }
+
+.btn-run {
+  padding: 6px 14px;
+  border-radius: var(--mc-radius-sm);
+  background: rgba(52,211,153,0.12);
+  color: #34d399;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid rgba(52,211,153,0.3);
+  cursor: pointer;
+}
+.btn-run:hover { background: rgba(52,211,153,0.2); }
 </style>

@@ -33,6 +33,7 @@ class DailyMemoryResponse(BaseModel):
 class LongTermMemoryResponse(BaseModel):
     content: str
     sections: list[MemorySection]
+    exists: bool = True
 
 
 class SearchHit(BaseModel):
