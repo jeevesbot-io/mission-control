@@ -9,6 +9,8 @@ import Badge from '@/components/ui/Badge.vue'
 import McIcon from '@/components/ui/McIcon.vue'
 import { getAgentIconName, getLevelIconName } from '@/composables/useIcons'
 import WarRoomSummary from '@/modules/warroom/widgets/WarRoomSummary.vue'
+import ContentSummary from '@/modules/content/widgets/ContentSummary.vue'
+import RecentActivity from '@/modules/activity/widgets/RecentActivity.vue'
 
 const store = useOverviewStore()
 const { subscribe } = useWebSocket()
@@ -253,6 +255,8 @@ function formatRelativeTime(iso: string): string {
         <h3 class="overview__section-title">Activity</h3>
         <div class="overview__widgets">
           <WarRoomSummary />
+          <ContentSummary />
+          <RecentActivity />
         </div>
       </section>
 

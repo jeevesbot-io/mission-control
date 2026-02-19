@@ -26,6 +26,9 @@ from .models import (
     WarRoomStats,
     WorkspaceFileResponse,
 )
+from modules.activity.models import ActivityLogRequest
+from modules.activity.service import activity_service
+
 from .service import warroom_service
 
 router = APIRouter()
@@ -46,7 +49,12 @@ async def list_tasks(
 
 @router.post("/tasks", response_model=Task)
 async def create_task(payload: TaskCreate) -> Task:
-    return await warroom_service.create_task(payload)
+    task = await warroom_service.create_task(payload)
+    await activity_service.log_event(ActivityLogRequest(
+        actor="user", action="task.created", resource_type="task",
+        resource_id=task.id, resource_name=task.title, module="warroom",
+    ))
+    return task
 
 
 @router.put("/tasks/{task_id}", response_model=Task)
@@ -54,6 +62,10 @@ async def update_task(task_id: str, payload: TaskUpdate) -> Task:
     task = await warroom_service.update_task(task_id, payload)
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
+    await activity_service.log_event(ActivityLogRequest(
+        actor="user", action="task.updated", resource_type="task",
+        resource_id=task.id, resource_name=task.title, module="warroom",
+    ))
     return task
 
 
@@ -62,6 +74,10 @@ async def delete_task(task_id: str) -> dict:
     ok = await warroom_service.delete_task(task_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Task not found")
+    await activity_service.log_event(ActivityLogRequest(
+        actor="user", action="task.deleted", resource_type="task",
+        resource_id=task_id, module="warroom",
+    ))
     return {"ok": True}
 
 
@@ -91,6 +107,10 @@ async def complete_task(task_id: str, payload: TaskComplete = TaskComplete()) ->
     task = await warroom_service.complete_task(task_id, payload)
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
+    await activity_service.log_event(ActivityLogRequest(
+        actor="system", action="task.completed", resource_type="task",
+        resource_id=task.id, resource_name=task.title, module="warroom",
+    ))
     return task
 
 
@@ -185,7 +205,12 @@ class _ModelSwitchBody(_BaseModel):
 
 @router.post("/model", response_model=ModelResponse)
 async def set_model(payload: _ModelSwitchBody) -> ModelResponse:
-    return await warroom_service.set_model(payload.model)
+    result = await warroom_service.set_model(payload.model)
+    await activity_service.log_event(ActivityLogRequest(
+        actor="user", action="model.switched", resource_type="model",
+        resource_name=payload.model, module="warroom",
+    ))
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -266,6 +291,10 @@ async def update_workspace_file(name: str = Query(...), payload: _WorkspaceFileB
     if not warroom_service._validate_workspace_filename(name):
         raise HTTPException(status_code=400, detail="Invalid filename")
     await warroom_service.update_workspace_file(name, payload.content)
+    await activity_service.log_event(ActivityLogRequest(
+        actor="user", action="soul.updated", resource_type="soul",
+        resource_name=name, module="warroom",
+    ))
     return {"ok": True}
 
 

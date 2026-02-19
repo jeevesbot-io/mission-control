@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Mission Control is a unified dashboard and life operating system — a plugin-based platform where each life domain (agents, memory, school, health, finance, etc.) is a self-contained module. All build phases (1–9) are complete. Active modules: Memory, Agents, School, Overview, War Room, Calendar, Chat, Content Pipeline, Office View.
+Mission Control is a unified dashboard and life operating system — a plugin-based platform where each life domain (agents, memory, school, health, finance, etc.) is a self-contained module. All build phases (1–9) are complete. Active modules: Memory, Agents, School, Overview, War Room, Calendar, Chat, Content Pipeline, Office View, Activity Timeline.
 
 ## Tech Stack
 
@@ -40,9 +40,9 @@ uv run alembic upgrade head
 npm run generate-types
 
 # Testing
-cd backend && uv run pytest                        # 79 tests
+cd backend && uv run pytest                        # 86 tests
 cd backend && uv run pytest tests/test_memory.py  # single file
-cd frontend && npm test                            # 68 vitest tests
+cd frontend && npm test                            # 77 vitest tests
 cd frontend && npm test -- src/modules/warroom/store.test.ts  # single file
 cd frontend && npx playwright test                 # e2e (requires both servers running)
 
@@ -92,7 +92,7 @@ mission-control/
 ├── backend/
 │   ├── main.py              # App factory, module auto-discovery
 │   ├── core/                # auth, config, database, websocket hub, registry, rate_limit
-│   ├── modules/             # agents/, calendar/, chat/, content/, memory/, office/, overview/, school/, warroom/
+│   ├── modules/             # activity/, agents/, calendar/, chat/, content/, memory/, office/, overview/, school/, warroom/
 │   │   └── <name>/
 │   │       ├── __init__.py  # MODULE_INFO
 │   │       ├── router.py    # API endpoints
@@ -103,7 +103,7 @@ mission-control/
 │   ├── router/              # Auto-imports module routes
 │   ├── stores/              # Pinia stores (app-level + per-module)
 │   ├── components/          # Shared: layout/, data/, ui/
-│   ├── modules/             # agents/, calendar/, chat/, content/, memory/, office/, overview/, school/, warroom/
+│   ├── modules/             # activity/, agents/, calendar/, chat/, content/, memory/, office/, overview/, school/, warroom/
 │   ├── composables/         # useApi, useWebSocket, useModule
 │   └── types/api.ts         # Generated from FastAPI OpenAPI spec
 ├── Dockerfile               # Multi-stage production build
@@ -128,6 +128,7 @@ mission-control/
 | OpenClaw config | `~/.openclaw/openclaw.json` | File read/write (model, skill enabled state) |
 | Usage sessions | `~/.openclaw/agents/main/sessions/*.jsonl` | Parsed async, 60s TTL cache |
 | Content pipeline | `~/.openclaw/workspace/dashboard/data/content.json` | File read/write |
+| Activity events | `~/.openclaw/workspace/dashboard/data/activity.json` | File read/write (capped 1000 entries) |
 
 No `memory_entries` table — memory files are the source of truth. No Redis or message queue.
 
@@ -214,6 +215,10 @@ GET    /api/warroom/workspace-file/history
 GET    /api/warroom/soul/templates
 GET    /api/warroom/calendar
 GET    /api/warroom/stats
+
+# Activity Timeline
+GET  /api/activity/feed?limit=50&cursor=&module=&actor=&action=
+GET  /api/activity/stats
 
 WS   /ws/live
 ```

@@ -14,6 +14,9 @@ from .models import (
     CronResponse,
     TriggerResponse,
 )
+from modules.activity.models import ActivityLogRequest
+from modules.activity.service import activity_service
+
 from .service import agent_service
 
 router = APIRouter()
@@ -65,5 +68,10 @@ async def trigger_agent(request: Request, agent_id: str):
         "agents:activity",
         {"event": "trigger", "agent_id": agent_id, "message": message},
     )
+
+    await activity_service.log_event(ActivityLogRequest(
+        actor="user", action="agent.triggered", resource_type="agent",
+        resource_id=agent_id, resource_name=agent_id, module="agents",
+    ))
 
     return TriggerResponse(success=True, message=message, agent_id=agent_id)

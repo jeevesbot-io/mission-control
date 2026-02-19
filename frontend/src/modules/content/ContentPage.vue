@@ -184,6 +184,55 @@
             class="w-full"
           />
         </div>
+        <div class="field">
+          <label for="assigned_to">Assigned To</label>
+          <Dropdown
+            id="assigned_to"
+            v-model="formData.assigned_to"
+            :options="assigneeOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Select assignee"
+            class="w-full"
+          />
+        </div>
+        <div class="field" v-if="editingItem && editingItem.stage !== 'ideas'">
+          <label for="script">Script</label>
+          <Textarea
+            id="script"
+            v-model="formData.script"
+            placeholder="Script content..."
+            rows="4"
+            class="w-full"
+          />
+        </div>
+        <div class="field" v-if="editingItem && ['thumbnail', 'filming', 'editing', 'published'].includes(editingItem.stage)">
+          <label for="thumbnail_url">Thumbnail URL</label>
+          <InputText
+            id="thumbnail_url"
+            v-model="formData.thumbnail_url"
+            placeholder="https://..."
+            class="w-full"
+          />
+        </div>
+        <div class="field" v-if="editingItem && ['editing', 'published'].includes(editingItem.stage)">
+          <label for="video_url">Video URL</label>
+          <InputText
+            id="video_url"
+            v-model="formData.video_url"
+            placeholder="https://..."
+            class="w-full"
+          />
+        </div>
+        <div class="field" v-if="editingItem && editingItem.stage === 'published'">
+          <label for="published_url">Published URL</label>
+          <InputText
+            id="published_url"
+            v-model="formData.published_url"
+            placeholder="https://..."
+            class="w-full"
+          />
+        </div>
       </div>
       <template #footer>
         <Button label="Cancel" text @click="showCreateDialog = false" />
@@ -242,12 +291,23 @@ const showDeleteDialog = ref(false)
 const editingItem = ref<ContentItem | null>(null)
 const itemToDelete = ref<ContentItem | null>(null)
 
+const assigneeOptions = [
+  { label: 'Unassigned', value: '' },
+  { label: 'Human', value: 'human' },
+  { label: 'Agent', value: 'agent' },
+]
+
 const formData = ref({
   title: '',
   description: '',
   type: 'video',
   priority: 'medium',
   tagsStr: '',
+  assigned_to: '',
+  script: '',
+  thumbnail_url: '',
+  video_url: '',
+  published_url: '',
 })
 
 const stages = [
@@ -289,6 +349,11 @@ function editItem(item: ContentItem) {
     type: item.type,
     priority: item.priority,
     tagsStr: (item.tags || []).join(', '),
+    assigned_to: item.assigned_to || '',
+    script: item.script || '',
+    thumbnail_url: item.thumbnail_url || '',
+    video_url: item.video_url || '',
+    published_url: item.published_url || '',
   }
   showCreateDialog.value = true
 }
@@ -306,6 +371,11 @@ async function saveItem() {
       type: formData.value.type as any,
       priority: formData.value.priority as any,
       tags,
+      assigned_to: (formData.value.assigned_to || null) as any,
+      script: formData.value.script || null,
+      thumbnail_url: formData.value.thumbnail_url || null,
+      video_url: formData.value.video_url || null,
+      published_url: formData.value.published_url || null,
     })
   } else {
     await store.createItem({
@@ -330,6 +400,11 @@ function resetForm() {
     type: 'video',
     priority: 'medium',
     tagsStr: '',
+    assigned_to: '',
+    script: '',
+    thumbnail_url: '',
+    video_url: '',
+    published_url: '',
   }
 }
 

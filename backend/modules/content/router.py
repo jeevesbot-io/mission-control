@@ -8,6 +8,9 @@ from .models import (
     ContentPipelineResponse,
     ContentUpdate,
 )
+from modules.activity.models import ActivityLogRequest
+from modules.activity.service import activity_service
+
 from .service import content_service
 
 router = APIRouter()
@@ -22,7 +25,12 @@ async def get_pipeline():
 @router.post("/", response_model=ContentItem, status_code=201)
 async def create_content(create: ContentCreate):
     """Create a new content item."""
-    return await content_service.create_item(create)
+    item = await content_service.create_item(create)
+    await activity_service.log_event(ActivityLogRequest(
+        actor="user", action="content.created", resource_type="content",
+        resource_id=item.id, resource_name=item.title, module="content",
+    ))
+    return item
 
 
 @router.patch("/{item_id}", response_model=ContentItem)
@@ -31,6 +39,10 @@ async def update_content(item_id: str, update: ContentUpdate):
     item = await content_service.update_item(item_id, update)
     if not item:
         raise HTTPException(status_code=404, detail="Content item not found")
+    await activity_service.log_event(ActivityLogRequest(
+        actor="user", action="content.updated", resource_type="content",
+        resource_id=item.id, resource_name=item.title, module="content",
+    ))
     return item
 
 
@@ -40,6 +52,10 @@ async def delete_content(item_id: str):
     success = await content_service.delete_item(item_id)
     if not success:
         raise HTTPException(status_code=404, detail="Content item not found")
+    await activity_service.log_event(ActivityLogRequest(
+        actor="user", action="content.deleted", resource_type="content",
+        resource_id=item_id, module="content",
+    ))
 
 
 @router.post("/{item_id}/move/{target_stage}", response_model=ContentItem)
@@ -48,4 +64,9 @@ async def move_content(item_id: str, target_stage: str):
     item = await content_service.move_item(item_id, target_stage)
     if not item:
         raise HTTPException(status_code=404, detail="Content item not found")
+    await activity_service.log_event(ActivityLogRequest(
+        actor="user", action="content.moved", resource_type="content",
+        resource_id=item.id, resource_name=item.title, module="content",
+        details={"target_stage": target_stage},
+    ))
     return item

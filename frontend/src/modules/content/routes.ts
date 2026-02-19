@@ -18,4 +18,10 @@ export default {
     navOrder: 7,
   },
   routes,
+  overviewWidgets: [
+    {
+      id: 'content-summary',
+      component: () => import('./widgets/ContentSummary.vue'),
+    },
+  ],
 }

@@ -86,11 +86,13 @@ export const useAgentsStore = defineStore('agents', () => {
     }
   }
 
-  async function fetchLog(agentId: string, page = 1) {
+  async function fetchLog(agentId: string, page = 1, level?: string) {
     loading.value = true
     try {
+      const params = new URLSearchParams({ page: String(page) })
+      if (level) params.set('level', level)
       const data = await api.get<{ entries: AgentLogEntry[]; total: number }>(
-        `/api/agents/${agentId}/log?page=${page}`
+        `/api/agents/${agentId}/log?${params}`
       )
       logEntries.value = data.entries
       logTotal.value = data.total

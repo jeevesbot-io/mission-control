@@ -14,6 +14,10 @@ const currentPage = ref(1)
 const agentId = ref(route.params.agentId as string)
 
 onMounted(() => {
+  const queryLevel = route.query.level as string | undefined
+  if (queryLevel) {
+    levelFilter.value = queryLevel
+  }
   loadLog()
 })
 
@@ -27,7 +31,7 @@ watch(() => route.params.agentId, (newId) => {
 })
 
 function loadLog() {
-  store.fetchLog(agentId.value, currentPage.value)
+  store.fetchLog(agentId.value, currentPage.value, levelFilter.value || undefined)
 }
 
 function setLevelFilter(level: string) {

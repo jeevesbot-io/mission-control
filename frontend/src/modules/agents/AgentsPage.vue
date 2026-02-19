@@ -129,9 +129,14 @@ async function handleTrigger(agentId: string) {
             </div>
             <div class="agents__card-meta">
               <span>{{ agent.total_entries }} entries</span>
-              <span v-if="agent.warning_count > 0" class="agents__card-warnings">
+              <RouterLink
+                v-if="agent.warning_count > 0"
+                :to="{ path: `/agents/${agent.agent_id}`, query: { level: 'warning' } }"
+                class="agents__card-warnings"
+                @click.stop
+              >
                 <McIcon name="alert-triangle" :size="14" /> {{ agent.warning_count }} warnings
-              </span>
+              </RouterLink>
               <span>Last: {{ formatRelative(agent.last_activity) }}</span>
             </div>
             <button class="agents__trigger-btn" @click="handleTrigger(agent.agent_id)">
@@ -341,6 +346,12 @@ async function handleTrigger(agentId: string) {
 
 .agents__card-warnings {
   color: var(--mc-warning);
+  text-decoration: none;
+  transition: opacity var(--mc-transition-speed);
+}
+
+.agents__card-warnings:hover {
+  opacity: 0.8;
 }
 
 .agents__trigger-btn {

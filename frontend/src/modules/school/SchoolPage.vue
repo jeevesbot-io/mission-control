@@ -1,12 +1,42 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useSchoolStore } from './store'
+import type { CalendarEvent, SchoolEmail, TodoistTask } from './store'
 import PageShell from '@/components/layout/PageShell.vue'
 import StatCard from '@/components/data/StatCard.vue'
 import McIcon from '@/components/ui/McIcon.vue'
+import SchoolDetailDialog from './SchoolDetailDialog.vue'
 
 const store = useSchoolStore()
 const activeTab = ref<'events' | 'emails' | 'tasks'>('events')
+
+// Detail dialog state
+const dialogVisible = ref(false)
+const selectedType = ref<'event' | 'email' | 'task' | null>(null)
+const selectedItem = ref<CalendarEvent | SchoolEmail | TodoistTask | null>(null)
+
+function openDetail(type: 'event' | 'email' | 'task', item: CalendarEvent | SchoolEmail | TodoistTask) {
+  selectedType.value = type
+  selectedItem.value = item
+  dialogVisible.value = true
+}
+
+// Child filter
+const childFilter = ref<string>('')
+const children = ['Natty', 'Elodie', 'Florence']
+
+function matchesChild(child: string | null): boolean {
+  if (!childFilter.value) return true
+  if (!child) return false
+  return child.toLowerCase().includes(childFilter.value.toLowerCase())
+}
+
+const filteredEvents = computed(() =>
+  store.calendarEvents.filter(e => matchesChild(e.child))
+)
+const filteredEmails = computed(() =>
+  store.emails.filter(e => matchesChild(e.child))
+)
 
 onMounted(() => {
   store.fetchStats()
@@ -126,18 +156,35 @@ function windowLabel(): string {
         </button>
       </div>
 
+      <!-- Child Filter -->
+      <div class="school__filters">
+        <button
+          class="school__filter-btn"
+          :class="{ 'school__filter-btn--active': childFilter === '' }"
+          @click="childFilter = ''"
+        >All</button>
+        <button
+          v-for="child in children"
+          :key="child"
+          class="school__filter-btn"
+          :class="{ 'school__filter-btn--active': childFilter === child }"
+          @click="childFilter = child"
+        >{{ child }}</button>
+      </div>
+
       <!-- Calendar Events Panel -->
       <div v-if="activeTab === 'events'" class="school__panel">
         <div class="school__window-label mc-mono">{{ windowLabel() }}</div>
 
-        <div v-if="store.calendarEvents.length === 0 && !store.loading" class="school__empty">
-          Week looks clear
+        <div v-if="filteredEvents.length === 0 && !store.loading" class="school__empty">
+          {{ childFilter ? `No events for ${childFilter}` : 'Week looks clear' }}
         </div>
         <div class="school__list mc-stagger">
           <div
-            v-for="event in store.calendarEvents"
+            v-for="event in filteredEvents"
             :key="event.id"
-            class="school__event"
+            class="school__event school__clickable"
+            @click="openDetail('event', event)"
           >
             <div
               class="school__event-bar"
@@ -163,14 +210,15 @@ function windowLabel(): string {
 
       <!-- Emails Panel -->
       <div v-if="activeTab === 'emails'" class="school__panel">
-        <div v-if="store.emails.length === 0 && !store.loading" class="school__empty">
-          Inbox zero
+        <div v-if="filteredEmails.length === 0 && !store.loading" class="school__empty">
+          {{ childFilter ? `No emails for ${childFilter}` : 'Inbox zero' }}
         </div>
         <div class="school__list mc-stagger">
           <div
-            v-for="email in store.emails"
+            v-for="email in filteredEmails"
             :key="email.id"
-            class="school__email"
+            class="school__email school__clickable"
+            @click="openDetail('email', email)"
           >
             <div
               class="school__email-bar"
@@ -205,7 +253,8 @@ function windowLabel(): string {
           <div
             v-for="task in store.tasks"
             :key="task.id"
-            class="school__task"
+            class="school__task school__clickable"
+            @click="openDetail('task', task)"
           >
             <div class="school__task-check"><McIcon name="square" :size="18" /></div>
             <div class="school__task-body">
@@ -230,6 +279,12 @@ function windowLabel(): string {
         {{ store.error }}
       </div>
     </div>
+
+    <SchoolDetailDialog
+      v-model:visible="dialogVisible"
+      :type="selectedType"
+      :item="selectedItem"
+    />
   </PageShell>
 </template>
 
@@ -304,6 +359,39 @@ function windowLabel(): string {
 .school__tab--active {
   color: var(--mc-accent);
   border-bottom-color: var(--mc-accent);
+}
+
+.school__filters {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.school__filter-btn {
+  padding: 0.35rem 0.75rem;
+  background: var(--mc-bg-surface);
+  border: 1px solid var(--mc-border);
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-text-muted);
+  font-family: var(--mc-font-body);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all var(--mc-transition-speed);
+}
+
+.school__filter-btn:hover {
+  border-color: var(--mc-border-strong);
+  color: var(--mc-text);
+}
+
+.school__filter-btn--active {
+  background: var(--mc-accent-subtle);
+  border-color: var(--mc-accent);
+  color: var(--mc-accent);
+}
+
+.school__clickable {
+  cursor: pointer;
 }
 
 .school__panel {
