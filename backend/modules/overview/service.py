@@ -16,7 +16,7 @@ from .models import (
     StandupResponse,
     SystemHealth,
     TaskQueueItem,
-    UpcomingEvent,
+    UpcomingEvent,  # kept for standup response type
 )
 
 logger = logging.getLogger(__name__)
@@ -91,43 +91,8 @@ class OverviewService:
             )
 
     async def _get_upcoming_events(self, db: AsyncSession) -> list[UpcomingEvent]:
-        """Get upcoming events from Google Calendar via school service."""
-        try:
-            from modules.school.service import school_service
-
-            cal = await school_service.get_calendar_events(days=7)
-            today = datetime.date.today()
-
-            events = []
-            for ce in cal.events[:20]:
-                # Parse date for days_away
-                event_date_str = ce.start_date or (
-                    ce.start_datetime[:10] if ce.start_datetime else None
-                )
-                if event_date_str:
-                    event_date = datetime.date.fromisoformat(event_date_str)
-                    days_away = (event_date - today).days
-                else:
-                    days_away = 0
-
-                events.append(
-                    UpcomingEvent(
-                        id=hash(ce.id) % 100000,
-                        child=ce.child or "Family",
-                        summary=ce.summary,
-                        event_date=ce.start_date
-                        or (ce.start_datetime[:10] if ce.start_datetime else ""),
-                        event_end_date=ce.end_date,
-                        event_time=ce.start_datetime[11:16]
-                        if ce.start_datetime and not ce.all_day
-                        else None,
-                        days_away=days_away,
-                    )
-                )
-            return events
-        except Exception as exc:
-            logger.warning("Failed to get upcoming events: %s", exc)
-            return []
+        """Upcoming events — school module extracted to FamilyDashboard."""
+        return []
 
     async def _get_recent_activity(self, db: AsyncSession) -> list[RecentActivity]:
         """Get the last 10 agent log entries."""
@@ -180,25 +145,11 @@ class OverviewService:
         upcoming_events: list[UpcomingEvent],
     ) -> OverviewStats:
         """Build the top-level stat cards."""
-        emails_processed = 0
-        try:
-            result = await db.execute(text("SELECT COUNT(*) FROM school_emails"))
-            emails_processed = result.scalar_one()
-        except Exception:
-            pass
-
-        tasks_total = 0
-        try:
-            result = await db.execute(text("SELECT COUNT(*) FROM todoist_tasks"))
-            tasks_total = result.scalar_one()
-        except Exception:
-            pass
-
         return OverviewStats(
             agents_active=agent_summary.unique_agents,
             events_this_week=len(upcoming_events),
-            emails_processed=emails_processed,
-            tasks_pending=tasks_total,
+            emails_processed=0,
+            tasks_pending=0,
         )
 
     async def get_standup(self, db: AsyncSession) -> StandupResponse:
