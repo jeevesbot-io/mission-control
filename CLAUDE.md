@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Mission Control** is a unified dashboard and life operating system -- a plugin-based platform where each life domain (agents, memory, school, health, finance, etc.) is a self-contained module. It replaces a previous Flask dashboard (Matron) with a proper full-stack platform.
+**Mission Control** is an agent orchestration dashboard -- a plugin-based platform for managing autonomous agents, tasks, and workflows. It replaces a previous Flask dashboard (Matron) with a proper full-stack platform.
 
-All build phases (1-9) are complete. Active modules: Memory, Agents, School, Overview, War Room, Calendar, Chat, Content Pipeline, Office View, Activity Timeline.
+All build phases (1-9) are complete. Refactoring in progress (Phase 1 done). Active modules: Memory, Agents, Overview, War Room, Calendar, Chat, Content Pipeline, Office View, Activity Timeline. School module extracted to `~/projects/FamilyDashboard/` (Phase 1, 2026-03-05).
 
 ## Tech Stack
 
@@ -18,7 +18,7 @@ All build phases (1-9) are complete. Active modules: Memory, Agents, School, Ove
 - **Type sync:** `openapi-typescript` generates `frontend/src/types/api.ts` from FastAPI's `/openapi.json`
 - **Package management:** `uv` (backend), `npm` (frontend)
 - **Linting:** ruff (backend), vue-tsc (frontend type checking)
-- **Testing:** pytest + pytest-asyncio (backend, 107 tests), vitest (frontend, 77 tests), Playwright (e2e)
+- **Testing:** pytest + pytest-asyncio (backend, 110 tests), vitest (frontend, 69 tests), Playwright (e2e)
 - **Deployment:** Docker via Colima, multi-stage build (Vite -> FastAPI StaticFiles), port 5050 production
 
 ## Development Commands
@@ -133,10 +133,9 @@ MissionControls/
 |   |   +-- memory/          # Memory file viewer + search
 |   |   +-- office/          # Office View (agent status overview)
 |   |   +-- overview/        # Dashboard Overview (widget aggregation)
-|   |   +-- school/          # School emails, events, tasks
 |   |   +-- warroom/         # War Room (task management, projects, skills, soul files)
 |   +-- alembic/             # Database migration scripts
-|   +-- tests/               # 107 pytest tests (one file per module + test_health.py)
+|   +-- tests/               # 110 pytest tests (one file per module + test_health.py)
 |   +-- pyproject.toml       # Python deps and tool config
 +-- frontend/
 |   +-- src/
@@ -166,7 +165,6 @@ MissionControls/
 | Overview | `/api/overview` | Dashboard home, aggregates widgets from all modules |
 | Memory | `/api/memory` | Browse/search memory markdown files |
 | Agents | `/api/agents` | Agent list, logs, stats, trigger execution |
-| School | `/api/school` | School emails, calendar, events, Todoist tasks |
 | War Room | `/api/warroom` | Task management, projects, skills, soul files, model config |
 | Calendar | `/api/calendar` | Google Calendar via gog CLI |
 | Chat | `/api/chat` | Chat interface (rate-limited) |
@@ -181,7 +179,6 @@ MissionControls/
 | Memory files | `~/.openclaw/workspace/memory/*.md` | File read + in-memory cache with file watcher |
 | MEMORY.md | `~/.openclaw/workspace/MEMORY.md` | File read |
 | Family calendar | Google Calendar (`sollyfamily3@gmail.com`) | `gog` CLI subprocess |
-| School data | Postgres (`school_emails`, `school_events`, `todoist_tasks`) | Async raw SQL |
 | Agent activity | Postgres (`agent_log`) | Async raw SQL |
 | Cron jobs | OpenClaw gateway API (`:18789`) | HTTP |
 | Tasks / Projects | `~/.openclaw/workspace/dashboard/data/tasks.json`, `projects.json` | File read/write (thread-locked) |
@@ -198,9 +195,6 @@ No `memory_entries` table -- memory markdown files are the source of truth. No R
 
 Postgres `jeeves` database (shared with legacy Matron system). Key tables used:
 
-- `school_emails` -- parsed school emails
-- `school_events` -- school calendar events
-- `todoist_tasks` -- synced Todoist tasks
 - `agent_log` -- agent execution history
 
 Migrations managed via Alembic (`backend/alembic/`). War Room tasks and projects are stored in JSON files, not Postgres.
@@ -283,13 +277,6 @@ GET  /api/agents/stats
 GET  /api/agents/{id}/log
 GET  /api/agents/cron
 POST /api/agents/{id}/trigger
-
-# School
-GET  /api/school/calendar
-GET  /api/school/events
-GET  /api/school/emails
-GET  /api/school/tasks
-GET  /api/school/stats
 
 # Calendar
 GET  /api/calendar/?start_date=&days_ahead=14
