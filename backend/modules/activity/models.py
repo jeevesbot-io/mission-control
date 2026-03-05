@@ -36,6 +36,7 @@ class ActivityStats(BaseModel):
     total_events: int
     by_module: dict[str, int] = Field(default_factory=dict)
     by_action: dict[str, int] = Field(default_factory=dict)
+    by_actor: dict[str, int] = Field(default_factory=dict)
     last_24h: int = 0
 
 

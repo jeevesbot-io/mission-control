@@ -21,15 +21,21 @@ async def send_message(request: Request, body: ChatRequest):
     try:
         result = await chat_service.send_message(body)
     except TimeoutException:
-        raise HTTPException(status_code=504, detail="Gateway timeout — LLM took too long to respond")
+        raise HTTPException(
+            status_code=504, detail="Gateway timeout — LLM took too long to respond"
+        )
     except HTTPStatusError as exc:
         raise HTTPException(status_code=502, detail=f"Gateway error: {exc.response.status_code}")
     except RequestError as exc:
         raise HTTPException(status_code=502, detail=f"Cannot reach gateway: {exc}")
-    await activity_service.log_event(ActivityLogRequest(
-        actor="user", action="chat.sent", resource_type="chat",
-        module="chat",
-    ))
+    await activity_service.log_event(
+        ActivityLogRequest(
+            actor="user",
+            action="chat.sent",
+            resource_type="chat",
+            module="chat",
+        )
+    )
     return result
 
 

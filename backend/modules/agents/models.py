@@ -55,3 +55,31 @@ class AgentStatsResponse(BaseModel):
     entries_24h: int
     warning_count: int
     health_rate: float
+
+
+class AgentMetadata(BaseModel):
+    agent_id: str
+    display_name: str
+    role: str
+    model: str
+    tier: str
+    workspace: str
+    can_spawn: bool
+    responsibilities: list[str]
+
+
+class AgentDetailResponse(BaseModel):
+    agent_id: str
+    display_name: str
+    role: str
+    model: str
+    tier: str
+    status: str  # active / idle / offline
+    last_activity: datetime.datetime | None
+    last_message: str | None
+    last_level: str | None
+    total_entries: int
+    warning_count: int
+    tasks_in_progress: int
+    tasks_assigned: int
+    responsibilities: list[str]

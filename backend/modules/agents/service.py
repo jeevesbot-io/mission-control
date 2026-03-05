@@ -7,9 +7,9 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
-from core.constants import KNOWN_AGENTS
+from core.constants import AGENT_METADATA, KNOWN_AGENTS
 
-from .models import AgentInfo, AgentLogEntry, AgentStatsResponse, CronJob
+from .models import AgentDetailResponse, AgentInfo, AgentLogEntry, AgentStatsResponse, CronJob
 
 logger = logging.getLogger(__name__)
 
@@ -64,14 +64,16 @@ class AgentService:
             if agent_id in logged_agents:
                 agents.append(logged_agents[agent_id])
             else:
-                agents.append(AgentInfo(
-                    agent_id=agent_id,
-                    last_activity=None,
-                    last_message=None,
-                    last_level=None,
-                    total_entries=0,
-                    warning_count=0,
-                ))
+                agents.append(
+                    AgentInfo(
+                        agent_id=agent_id,
+                        last_activity=None,
+                        last_message=None,
+                        last_level=None,
+                        total_entries=0,
+                        warning_count=0,
+                    )
+                )
 
         # Include any agents found in logs but not in KNOWN_AGENTS
         for agent_id, info in logged_agents.items():
@@ -79,6 +81,72 @@ class AgentService:
                 agents.append(info)
 
         return agents
+
+    async def list_agents_detailed(self, db: AsyncSession) -> list[AgentDetailResponse]:
+        """List all agents with rich metadata, status, and current task counts."""
+        agents = await self.list_agents(db)
+
+        # Get task counts per agent from mc_tasks
+        task_counts: dict[str, dict] = {}
+        try:
+            result = await db.execute(
+                text("""
+                    SELECT agent_id,
+                        COUNT(*) FILTER (WHERE state = 'in_progress') as in_progress,
+                        COUNT(*) FILTER (WHERE state NOT IN ('done', 'cancelled')) as assigned
+                    FROM mc_tasks
+                    GROUP BY agent_id
+                """)
+            )
+            for row in result.fetchall():
+                task_counts[row.agent_id] = {
+                    "in_progress": row.in_progress,
+                    "assigned": row.assigned,
+                }
+        except Exception as exc:
+            logger.warning("Failed to query mc_tasks for agent detail: %s", exc)
+
+        detailed = []
+        for agent in agents:
+            meta = AGENT_METADATA.get(agent.agent_id, {})
+            display_name = KNOWN_AGENTS.get(agent.agent_id, agent.agent_id)
+
+            # Compute status from last_activity
+            import datetime
+
+            if agent.last_activity:
+                age = datetime.datetime.now(datetime.UTC) - agent.last_activity
+                if age.total_seconds() < 3600:
+                    status = "active"
+                elif age.total_seconds() < 86400:
+                    status = "idle"
+                else:
+                    status = "offline"
+            else:
+                status = "offline"
+
+            counts = task_counts.get(agent.agent_id, {})
+
+            detailed.append(
+                AgentDetailResponse(
+                    agent_id=agent.agent_id,
+                    display_name=display_name,
+                    role=meta.get("role", "Unknown"),
+                    model=meta.get("model", "unknown"),
+                    tier=meta.get("tier", "unknown"),
+                    status=status,
+                    last_activity=agent.last_activity,
+                    last_message=agent.last_message,
+                    last_level=agent.last_level,
+                    total_entries=agent.total_entries,
+                    warning_count=agent.warning_count,
+                    tasks_in_progress=counts.get("in_progress", 0),
+                    tasks_assigned=counts.get("assigned", 0),
+                    responsibilities=meta.get("responsibilities", []),
+                )
+            )
+
+        return detailed
 
     async def get_log(
         self,
@@ -103,9 +171,7 @@ class AgentService:
 
             where = f"WHERE {' AND '.join(filters)}" if filters else ""
 
-            count_result = await db.execute(
-                text(f"SELECT COUNT(*) FROM agent_log {where}"), params
-            )
+            count_result = await db.execute(text(f"SELECT COUNT(*) FROM agent_log {where}"), params)
             total = count_result.scalar_one()
 
             offset = (page - 1) * page_size

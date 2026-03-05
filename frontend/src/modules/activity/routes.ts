@@ -15,7 +15,7 @@ export default {
     id: 'activity',
     name: 'Activity',
     icon: 'activity',
-    navOrder: 8,
+    navOrder: 9,
   },
   routes,
   overviewWidgets: [

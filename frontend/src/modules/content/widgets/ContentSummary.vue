@@ -60,7 +60,7 @@ const activeCount = computed(() => {
         <span class="stat-value">{{ stats.by_stage?.published || 0 }}</span>
       </div>
       <div class="stat-row">
-        <McIcon name="lightbulb" :size="14" class="stat-icon" style="color: #fbbf24" />
+        <McIcon name="lightbulb" :size="14" class="stat-icon" style="color: var(--mc-warning)" />
         <span class="stat-label">Ideas</span>
         <span class="stat-value">{{ stats.by_stage?.ideas || 0 }}</span>
       </div>

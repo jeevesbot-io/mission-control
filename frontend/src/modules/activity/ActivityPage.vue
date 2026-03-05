@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useActivityStore, type ActivityEvent } from './store'
 import { useWebSocket } from '@/composables/useWebSocket'
 import PageShell from '@/components/layout/PageShell.vue'
@@ -52,6 +52,19 @@ function setModuleFilter(value: string) {
   moduleFilter.value = value
   loadFeed()
 }
+
+function setActorFilter(value: string) {
+  actorFilter.value = value
+  loadFeed()
+}
+
+const actors = computed(() => {
+  const byActor = store.stats?.by_actor
+  if (!byActor || Object.keys(byActor).length === 0) return []
+  return Object.entries(byActor)
+    .sort((a, b) => b[1] - a[1])
+    .map(([actor]) => ({ label: actor, value: actor }))
+})
 
 function iconForResource(type: string): string {
   const map: Record<string, string> = {
@@ -132,6 +145,7 @@ function resourceLink(event: ActivityEvent): string | null {
 
       <!-- Filters -->
       <div class="activity__filters">
+        <span class="activity__filter-label">Module</span>
         <button
           v-for="m in modules"
           :key="m.value"
@@ -139,6 +153,22 @@ function resourceLink(event: ActivityEvent): string | null {
           :class="{ 'activity__filter-btn--active': moduleFilter === m.value }"
           @click="setModuleFilter(m.value)"
         >{{ m.label }}</button>
+      </div>
+
+      <div v-if="actors.length > 0" class="activity__filters">
+        <span class="activity__filter-label">Actor</span>
+        <button
+          class="activity__filter-btn"
+          :class="{ 'activity__filter-btn--active': actorFilter === '' }"
+          @click="setActorFilter('')"
+        >All</button>
+        <button
+          v-for="a in actors"
+          :key="a.value"
+          class="activity__filter-btn"
+          :class="{ 'activity__filter-btn--active': actorFilter === a.value }"
+          @click="setActorFilter(a.value)"
+        >{{ a.label }}</button>
       </div>
 
       <!-- Timeline -->
@@ -252,6 +282,15 @@ function resourceLink(event: ActivityEvent): string | null {
   display: flex;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
+}
+
+.activity__filter-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--mc-text-muted);
+  align-self: center;
 }
 
 .activity__filter-btn {

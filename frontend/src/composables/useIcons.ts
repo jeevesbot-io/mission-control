@@ -1,5 +1,6 @@
 import type { Component } from 'vue'
 import {
+  Activity,
   Home,
   Zap,
   ScrollText,
@@ -23,6 +24,8 @@ import {
   Square,
   Building,
   Video,
+  Folder,
+  Lightbulb,
   // War Room icons
   Swords,
   Kanban,
@@ -41,6 +44,7 @@ import {
 } from 'lucide-vue-next'
 
 export const iconMap: Record<string, Component> = {
+  activity: Activity,
   home: Home,
   zap: Zap,
   'scroll-text': ScrollText,
@@ -57,6 +61,7 @@ export const iconMap: Record<string, Component> = {
   clock: Clock,
   'alert-triangle': AlertTriangle,
   'circle-check': CircleCheck,
+  'check-circle': CircleCheck,
   'circle-x': CircleX,
   minus: Minus,
   hospital: Hospital,
@@ -64,6 +69,8 @@ export const iconMap: Record<string, Component> = {
   square: Square,
   building: Building,
   video: Video,
+  folder: Folder,
+  lightbulb: Lightbulb,
   // War Room icons
   swords: Swords,
   kanban: Kanban,

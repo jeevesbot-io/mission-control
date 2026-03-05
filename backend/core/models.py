@@ -12,9 +12,7 @@ from core.database import Base
 class AgentRun(Base):
     __tablename__ = "agent_runs"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     agent_id: Mapped[str] = mapped_column(String(100), nullable=False)
     run_type: Mapped[str] = mapped_column(String(50), nullable=False)
     trigger: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -35,6 +33,7 @@ class AgentRun(Base):
 
 
 # Pydantic response schemas
+
 
 class HealthResponse(BaseModel):
     status: str = "ok"

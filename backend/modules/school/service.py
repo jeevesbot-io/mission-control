@@ -54,7 +54,8 @@ class SchoolService:
         # When gog_path is empty, calendar is disabled (e.g. in Docker)
         if not settings.gog_path:
             return CalendarEventsResponse(
-                events=[], total=0,
+                events=[],
+                total=0,
                 window_start=today.isoformat(),
                 window_end=window_end.isoformat(),
             )
@@ -64,10 +65,16 @@ class SchoolService:
 
         try:
             proc = await asyncio.create_subprocess_exec(
-                settings.gog_path, "calendar", "events", "primary",
-                "--account", CALENDAR_ACCOUNT,
-                "--from", from_iso,
-                "--to", to_iso,
+                settings.gog_path,
+                "calendar",
+                "events",
+                "primary",
+                "--account",
+                CALENDAR_ACCOUNT,
+                "--from",
+                from_iso,
+                "--to",
+                to_iso,
                 "--json",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -77,7 +84,8 @@ class SchoolService:
             if proc.returncode != 0:
                 logger.warning("gog calendar failed (rc=%d): %s", proc.returncode, stderr.decode())
                 return CalendarEventsResponse(
-                    events=[], total=0,
+                    events=[],
+                    total=0,
                     window_start=today.isoformat(),
                     window_end=window_end.isoformat(),
                 )
@@ -88,12 +96,19 @@ class SchoolService:
             # gog paginates — fetch remaining pages
             while data.get("nextPageToken"):
                 proc2 = await asyncio.create_subprocess_exec(
-                    settings.gog_path, "calendar", "events", "primary",
-                    "--account", CALENDAR_ACCOUNT,
-                    "--from", from_iso,
-                    "--to", to_iso,
+                    settings.gog_path,
+                    "calendar",
+                    "events",
+                    "primary",
+                    "--account",
+                    CALENDAR_ACCOUNT,
+                    "--from",
+                    from_iso,
+                    "--to",
+                    to_iso,
                     "--json",
-                    "--page", data["nextPageToken"],
+                    "--page",
+                    data["nextPageToken"],
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                 )
@@ -110,16 +125,18 @@ class SchoolService:
                 end = raw.get("end", {})
                 all_day = "date" in start and "dateTime" not in start
 
-                events.append(CalendarEvent(
-                    id=raw.get("id", ""),
-                    summary=summary,
-                    start_date=start.get("date"),
-                    start_datetime=start.get("dateTime"),
-                    end_date=end.get("date"),
-                    end_datetime=end.get("dateTime"),
-                    all_day=all_day,
-                    child=_infer_child(summary),
-                ))
+                events.append(
+                    CalendarEvent(
+                        id=raw.get("id", ""),
+                        summary=summary,
+                        start_date=start.get("date"),
+                        start_datetime=start.get("dateTime"),
+                        end_date=end.get("date"),
+                        end_datetime=end.get("dateTime"),
+                        all_day=all_day,
+                        child=_infer_child(summary),
+                    )
+                )
 
             # Sort: timed events by datetime, all-day by date
             events.sort(key=lambda e: e.start_datetime or f"{e.start_date}T00:00:00Z")
@@ -134,21 +151,21 @@ class SchoolService:
         except asyncio.TimeoutError:
             logger.warning("gog calendar timed out")
             return CalendarEventsResponse(
-                events=[], total=0,
+                events=[],
+                total=0,
                 window_start=today.isoformat(),
                 window_end=window_end.isoformat(),
             )
         except Exception as exc:
             logger.warning("Failed to fetch calendar: %s", exc)
             return CalendarEventsResponse(
-                events=[], total=0,
+                events=[],
+                total=0,
                 window_start=today.isoformat(),
                 window_end=window_end.isoformat(),
             )
 
-    async def get_events(
-        self, db: AsyncSession, limit: int = 50
-    ) -> list[SchoolEvent]:
+    async def get_events(self, db: AsyncSession, limit: int = 50) -> list[SchoolEvent]:
         """Get upcoming school events from DB."""
         try:
             result = await db.execute(
@@ -179,9 +196,7 @@ class SchoolService:
             logger.warning("Failed to query school_events: %s", exc)
             return []
 
-    async def get_emails(
-        self, db: AsyncSession, limit: int = 50
-    ) -> list[SchoolEmail]:
+    async def get_emails(self, db: AsyncSession, limit: int = 50) -> list[SchoolEmail]:
         """Get recent school emails."""
         try:
             result = await db.execute(
@@ -211,9 +226,7 @@ class SchoolService:
             logger.warning("Failed to query school_emails: %s", exc)
             return []
 
-    async def get_tasks(
-        self, db: AsyncSession, limit: int = 50
-    ) -> list[TodoistTask]:
+    async def get_tasks(self, db: AsyncSession, limit: int = 50) -> list[TodoistTask]:
         """Get todoist tasks/action items."""
         try:
             result = await db.execute(
@@ -250,17 +263,13 @@ class SchoolService:
             upcoming_events = 0
 
         try:
-            emails_result = await db.execute(
-                text("SELECT COUNT(*) FROM school_emails")
-            )
+            emails_result = await db.execute(text("SELECT COUNT(*) FROM school_emails"))
             total_emails = emails_result.scalar_one()
         except Exception:
             total_emails = 0
 
         try:
-            tasks_result = await db.execute(
-                text("SELECT COUNT(*) FROM todoist_tasks")
-            )
+            tasks_result = await db.execute(text("SELECT COUNT(*) FROM todoist_tasks"))
             total_tasks = tasks_result.scalar_one()
         except Exception:
             total_tasks = 0

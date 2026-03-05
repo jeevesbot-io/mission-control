@@ -143,9 +143,7 @@ class CalendarService:
                 return job.lastRunAt + timedelta(milliseconds=schedule.everyMs)
             # Otherwise use anchor or now
             base = (
-                datetime.fromtimestamp(schedule.anchorMs / 1000)
-                if schedule.anchorMs
-                else from_time
+                datetime.fromtimestamp(schedule.anchorMs / 1000) if schedule.anchorMs else from_time
             )
             return base + timedelta(milliseconds=schedule.everyMs)
 
@@ -179,7 +177,7 @@ class CalendarService:
         elif schedule.kind == "every" and schedule.everyMs:
             interval = schedule.everyMs / 1000 / 60  # Convert to minutes
             if interval >= 60:
-                desc_parts.append(f"Every {interval/60:.1f} hours")
+                desc_parts.append(f"Every {interval / 60:.1f} hours")
             else:
                 desc_parts.append(f"Every {interval:.0f} minutes")
         elif schedule.kind == "cron":

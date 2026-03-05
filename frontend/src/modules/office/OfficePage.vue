@@ -1,8 +1,8 @@
 <template>
-  <div class="office-page">
+  <PageShell><div class="office-page">
     <div class="header">
       <div>
-        <h1><i class="pi pi-building mr-2"></i>Office View</h1>
+        <h1><McIcon name="building" :size="24" class="mr-2" />Office View</h1>
         <p class="subtitle">Real-time agent activity and workstations</p>
       </div>
       <Button
@@ -15,7 +15,7 @@
     </div>
 
     <div v-if="error" class="error-banner">
-      <i class="pi pi-exclamation-triangle mr-2"></i>
+      <McIcon name="alert-triangle" :size="16" class="mr-2" />
       {{ error }}
     </div>
 
@@ -23,7 +23,7 @@
     <div class="stats-bar mb-4">
       <Card class="stat-card">
         <template #content>
-          <i class="pi pi-users stat-icon"></i>
+          <McIcon name="bot" :size="32" class="stat-icon" />
           <div class="stat-info">
             <div class="stat-value">{{ stats.total_agents || 0 }}</div>
             <div class="stat-label">Total Agents</div>
@@ -32,7 +32,7 @@
       </Card>
       <Card class="stat-card">
         <template #content>
-          <i class="pi pi-check-circle stat-icon" style="color: var(--green-500)"></i>
+          <McIcon name="circle-check" :size="32" class="stat-icon" style="color: var(--mc-success)" />
           <div class="stat-info">
             <div class="stat-value">{{ stats.active_agents || 0 }}</div>
             <div class="stat-label">Working</div>
@@ -41,7 +41,7 @@
       </Card>
       <Card class="stat-card">
         <template #content>
-          <i class="pi pi-clock stat-icon" style="color: var(--text-color-secondary)"></i>
+          <McIcon name="clock" :size="32" class="stat-icon" style="color: var(--mc-text-muted)" />
           <div class="stat-info">
             <div class="stat-value">{{ stats.idle_agents || 0 }}</div>
             <div class="stat-label">Idle</div>
@@ -70,19 +70,19 @@
           
           <!-- Status Indicator -->
           <div class="status-indicator" :class="`status-${station.status}`">
-            <i :class="getStatusIcon(station.status)"></i>
+            <McIcon :name="getStatusIcon(station.status)" :size="12" />
             {{ station.status }}
           </div>
 
           <!-- Computer Screen (shows current task) -->
           <div v-if="station.status === 'working'" class="computer-screen">
             <div class="screen-content">
-              <i class="pi pi-code screen-icon"></i>
+              <McIcon name="zap" :size="24" class="screen-icon" />
               <div class="task-text">{{ station.current_task || 'Processing...' }}</div>
             </div>
           </div>
           <div v-else class="computer-screen screen-idle">
-            <i class="pi pi-moon screen-icon"></i>
+            <McIcon name="minus" :size="24" class="screen-icon" />
           </div>
 
           <!-- Last Seen -->
@@ -115,7 +115,7 @@
               :value="slotProps.data.status"
               :severity="getStatusSeverity(slotProps.data.status)"
             >
-              <i :class="getStatusIcon(slotProps.data.status)" class="mr-1"></i>
+              <McIcon :name="getStatusIcon(slotProps.data.status)" :size="12" />
               {{ slotProps.data.status }}
             </Tag>
           </template>
@@ -138,12 +138,14 @@
         </Column>
       </DataTable>
     </Panel>
-  </div>
+  </div></PageShell>
 </template>
 
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
+import { onMounted, onUnmounted, computed } from 'vue'
 import { useOfficeStore } from './store'
+import PageShell from '@/components/layout/PageShell.vue'
+import McIcon from '@/components/ui/McIcon.vue'
 import Button from 'primevue/button'
 import Panel from 'primevue/panel'
 import Card from 'primevue/card'
@@ -161,10 +163,16 @@ const stats = computed(() => store.stats)
 const loading = computed(() => store.loading)
 const error = computed(() => store.error)
 
+let refreshInterval: ReturnType<typeof setInterval>
+
 onMounted(() => {
   store.fetchOffice()
   // Auto-refresh every 30 seconds
-  setInterval(() => store.fetchOffice(), 30000)
+  refreshInterval = setInterval(() => store.fetchOffice(), 30000)
+})
+
+onUnmounted(() => {
+  clearInterval(refreshInterval)
 })
 
 function refresh() {
@@ -189,13 +197,13 @@ function getAgentInitials(name: string): string {
 
 function getStatusIcon(status: string): string {
   const iconMap: Record<string, string> = {
-    active: 'pi pi-check-circle',
-    working: 'pi pi-spin pi-spinner',
-    idle: 'pi pi-clock',
-    scheduled: 'pi pi-calendar',
-    offline: 'pi pi-times-circle',
+    active: 'circle-check',
+    working: 'zap',
+    idle: 'clock',
+    scheduled: 'calendar',
+    offline: 'circle-x',
   }
-  return iconMap[status] || 'pi pi-circle'
+  return iconMap[status] || 'minus'
 }
 
 function getStatusSeverity(status: string): string {
@@ -228,7 +236,7 @@ function formatRelative(dateStr: string | Date): string {
 
 <style scoped>
 .office-page {
-  padding: 2rem;
+  padding: 0;
 }
 
 .header {
@@ -241,19 +249,20 @@ function formatRelative(dateStr: string | Date): string {
 .header h1 {
   font-size: 2rem;
   font-weight: 600;
+  font-family: var(--mc-font-display);
   margin: 0 0 0.5rem 0;
   display: flex;
   align-items: center;
 }
 
 .subtitle {
-  color: var(--text-color-secondary);
+  color: var(--mc-text-muted);
   margin: 0;
 }
 
 .error-banner {
-  background: var(--red-100);
-  color: var(--red-900);
+  background: color-mix(in srgb, var(--mc-danger) 15%, transparent);
+  color: var(--mc-danger);
   padding: 1rem;
   border-radius: 6px;
   margin-bottom: 1rem;
@@ -276,8 +285,7 @@ function formatRelative(dateStr: string | Date): string {
 }
 
 .stat-icon {
-  font-size: 2rem;
-  color: var(--primary-color);
+  color: var(--mc-accent);
 }
 
 .stat-info {
@@ -292,7 +300,7 @@ function formatRelative(dateStr: string | Date): string {
 
 .stat-label {
   font-size: 0.85rem;
-  color: var(--text-color-secondary);
+  color: var(--mc-text-muted);
   margin-top: 0.25rem;
 }
 
@@ -311,8 +319,8 @@ function formatRelative(dateStr: string | Date): string {
   position: absolute;
   width: 180px;
   padding: 1rem;
-  background: var(--surface-card);
-  border: 2px solid var(--surface-border);
+  background: var(--mc-bg-surface);
+  border: 2px solid var(--mc-border);
   border-radius: 12px;
   text-align: center;
   transition: all 0.3s;
@@ -321,12 +329,12 @@ function formatRelative(dateStr: string | Date): string {
 .workstation:hover {
   transform: translateY(-4px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  border-color: var(--primary-color);
+  border-color: var(--mc-accent);
 }
 
 .workstation-working {
-  border-color: var(--blue-500);
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+  border-color: var(--mc-info);
+  box-shadow: 0 0 20px var(--mc-accent-glow);
 }
 
 .workstation-idle {
@@ -349,6 +357,7 @@ function formatRelative(dateStr: string | Date): string {
 
 .station-name {
   font-weight: 600;
+  font-family: var(--mc-font-display);
   font-size: 1rem;
   margin-bottom: 0.5rem;
 }
@@ -365,22 +374,22 @@ function formatRelative(dateStr: string | Date): string {
 }
 
 .status-working {
-  background: rgba(59, 130, 246, 0.1);
-  color: var(--blue-500);
+  background: var(--mc-accent-subtle);
+  color: var(--mc-info);
 }
 
 .status-idle {
-  background: rgba(107, 114, 128, 0.1);
-  color: var(--text-color-secondary);
+  background: var(--mc-bg-hover);
+  color: var(--mc-text-muted);
 }
 
 .status-active {
-  background: rgba(34, 197, 94, 0.1);
-  color: var(--green-500);
+  background: color-mix(in srgb, var(--mc-success) 10%, transparent);
+  color: var(--mc-success);
 }
 
 .computer-screen {
-  background: #1a1a1a;
+  background: var(--mc-bg-solid);
   border-radius: 4px;
   padding: 0.75rem;
   min-height: 80px;
@@ -390,14 +399,13 @@ function formatRelative(dateStr: string | Date): string {
 }
 
 .screen-content {
-  color: #00ff00;
+  color: var(--mc-success);
   font-family: monospace;
   font-size: 0.7rem;
   line-height: 1.4;
 }
 
 .screen-icon {
-  font-size: 1.5rem;
   opacity: 0.3;
 }
 
@@ -417,7 +425,7 @@ function formatRelative(dateStr: string | Date): string {
 
 .last-seen {
   font-size: 0.7rem;
-  color: var(--text-color-secondary);
+  color: var(--mc-text-muted);
   font-style: italic;
 }
 
@@ -451,7 +459,7 @@ function formatRelative(dateStr: string | Date): string {
 }
 
 .text-muted {
-  color: var(--text-color-secondary);
+  color: var(--mc-text-muted);
   font-style: italic;
 }
 </style>

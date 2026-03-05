@@ -1,8 +1,8 @@
 <template>
-  <div class="content-pipeline">
+  <PageShell><div class="content-pipeline">
     <div class="header">
       <div>
-        <h1><i class="pi pi-video mr-2"></i>Content Pipeline</h1>
+        <h1><McIcon name="video" :size="24" class="mr-2" />Content Pipeline</h1>
         <p class="subtitle">Idea to published content workflow</p>
       </div>
       <Button
@@ -14,7 +14,7 @@
     </div>
 
     <div v-if="error" class="error-banner">
-      <i class="pi pi-exclamation-triangle mr-2"></i>
+      <McIcon name="alert-triangle" :size="16" class="mr-2" />
       {{ error }}
     </div>
 
@@ -39,7 +39,7 @@
       <div v-for="stage in stages" :key="stage.id" class="kanban-column">
         <div class="column-header" :style="{ borderTopColor: stage.color }">
           <div class="column-title">
-            <i :class="stage.icon" class="mr-2"></i>
+            <McIcon :name="stage.icon" :size="16" class="mr-2" />
             {{ stage.name }}
           </div>
           <Badge :value="getStageItems(stage.id).length" />
@@ -53,7 +53,7 @@
           @end="onDragEnd"
         >
           <div v-if="stageRefs[stage.id]?.length === 0" class="empty-column">
-            <i class="pi pi-inbox" style="font-size: 2rem; opacity: 0.3"></i>
+            <McIcon name="square" :size="32" style="opacity: 0.3" />
             <p>No items</p>
           </div>
           <Card
@@ -92,7 +92,7 @@
                 />
               </div>
               <div v-if="item.assigned_to" class="card-assignee">
-                <i class="pi pi-user mr-1"></i>
+                <McIcon name="bot" :size="14" class="mr-1" />
                 {{ item.assigned_to }}
               </div>
             </template>
@@ -258,13 +258,15 @@
         />
       </template>
     </Dialog>
-  </div>
+  </div></PageShell>
 </template>
 
 <script setup lang="ts">
 import { onMounted, computed, ref, watch, reactive } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import { useContentStore } from './store'
+import PageShell from '@/components/layout/PageShell.vue'
+import McIcon from '@/components/ui/McIcon.vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Badge from 'primevue/badge'
@@ -308,12 +310,12 @@ const formData = ref({
 })
 
 const stages = [
-  { id: 'ideas', name: 'Ideas', icon: 'pi pi-lightbulb', color: '#fbbf24' },
-  { id: 'scripting', name: 'Scripting', icon: 'pi pi-file-edit', color: '#3b82f6' },
-  { id: 'thumbnail', name: 'Thumbnail', icon: 'pi pi-image', color: '#8b5cf6' },
-  { id: 'filming', name: 'Filming', icon: 'pi pi-video', color: '#ec4899' },
-  { id: 'editing', name: 'Editing', icon: 'pi pi-sliders-h', color: '#14b8a6' },
-  { id: 'published', name: 'Published', icon: 'pi pi-check-circle', color: '#10b981' },
+  { id: 'ideas', name: 'Ideas', icon: 'lightbulb', color: 'var(--mc-warning)' },
+  { id: 'scripting', name: 'Scripting', icon: 'file-text', color: 'var(--mc-info)' },
+  { id: 'thumbnail', name: 'Thumbnail', icon: 'sparkles', color: '#8b5cf6' },
+  { id: 'filming', name: 'Filming', icon: 'video', color: '#ec4899' },
+  { id: 'editing', name: 'Editing', icon: 'flame', color: 'var(--mc-success)' },
+  { id: 'published', name: 'Published', icon: 'circle-check', color: 'var(--mc-success)' },
 ]
 
 const contentTypes = [
@@ -458,7 +460,7 @@ async function moveToNext(item: ContentItem, currentStage: string) {
 
 <style scoped>
 .content-pipeline {
-  padding: 2rem;
+  padding: 0;
 }
 
 .header {
@@ -471,19 +473,20 @@ async function moveToNext(item: ContentItem, currentStage: string) {
 .header h1 {
   font-size: 2rem;
   font-weight: 600;
+  font-family: var(--mc-font-display);
   margin: 0 0 0.5rem 0;
   display: flex;
   align-items: center;
 }
 
 .subtitle {
-  color: var(--text-color-secondary);
+  color: var(--mc-text-muted);
   margin: 0;
 }
 
 .error-banner {
-  background: var(--red-100);
-  color: var(--red-900);
+  background: color-mix(in srgb, var(--mc-danger) 15%, transparent);
+  color: var(--mc-danger);
   padding: 1rem;
   border-radius: 6px;
   margin-bottom: 1rem;
@@ -504,12 +507,12 @@ async function moveToNext(item: ContentItem, currentStage: string) {
 .stat-value {
   font-size: 2rem;
   font-weight: 700;
-  color: var(--primary-color);
+  color: var(--mc-accent);
 }
 
 .stat-label {
   font-size: 0.9rem;
-  color: var(--text-color-secondary);
+  color: var(--mc-text-muted);
   margin-top: 0.25rem;
 }
 
@@ -522,7 +525,7 @@ async function moveToNext(item: ContentItem, currentStage: string) {
 }
 
 .kanban-column {
-  background: var(--surface-50);
+  background: var(--mc-bg-surface);
   border-radius: 8px;
   min-height: 600px;
   display: flex;
@@ -537,12 +540,13 @@ async function moveToNext(item: ContentItem, currentStage: string) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--surface-card);
+  background: var(--mc-bg-surface);
 }
 
 .column-title {
   font-weight: 600;
   font-size: 1.1rem;
+  font-family: var(--mc-font-display);
   display: flex;
   align-items: center;
 }
@@ -558,7 +562,7 @@ async function moveToNext(item: ContentItem, currentStage: string) {
 .empty-column {
   text-align: center;
   padding: 3rem 1rem;
-  color: var(--text-color-secondary);
+  color: var(--mc-text-muted);
 }
 
 .content-card {
@@ -581,7 +585,7 @@ async function moveToNext(item: ContentItem, currentStage: string) {
 
 .card-description {
   font-size: 0.85rem;
-  color: var(--text-color-secondary);
+  color: var(--mc-text-muted);
   margin: 0.5rem 0 0 0;
   line-height: 1.4;
 }
@@ -593,7 +597,7 @@ async function moveToNext(item: ContentItem, currentStage: string) {
 .card-assignee {
   margin-top: 0.5rem;
   font-size: 0.85rem;
-  color: var(--text-color-secondary);
+  color: var(--mc-text-muted);
 }
 
 .card-actions {
@@ -618,6 +622,6 @@ async function moveToNext(item: ContentItem, currentStage: string) {
 /* Drag and drop */
 :deep(.drag-ghost) {
   opacity: 0.3;
-  border: 2px dashed var(--primary-color);
+  border: 2px dashed var(--mc-accent);
 }
 </style>

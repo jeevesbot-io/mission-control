@@ -109,6 +109,7 @@ class ActivityService:
 
         by_module: dict[str, int] = {}
         by_action: dict[str, int] = {}
+        by_actor: dict[str, int] = {}
         cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
         last_24h = 0
 
@@ -119,6 +120,9 @@ class ActivityService:
             act = e.get("action", "unknown")
             by_action[act] = by_action.get(act, 0) + 1
 
+            actor = e.get("actor", "unknown")
+            by_actor[actor] = by_actor.get(actor, 0) + 1
+
             if e.get("timestamp", "") >= cutoff:
                 last_24h += 1
 
@@ -126,6 +130,7 @@ class ActivityService:
             total_events=len(raw),
             by_module=by_module,
             by_action=by_action,
+            by_actor=by_actor,
             last_24h=last_24h,
         )
 

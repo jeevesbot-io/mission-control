@@ -11,7 +11,7 @@
         <template #default="slotProps">
           <div class="org-node" :class="`org-node-${slotProps.node.type}`">
             <div class="org-node-icon">
-              <i :class="slotProps.node.icon"></i>
+              <McIcon :name="slotProps.node.icon" :size="24" style="color: white" />
             </div>
             <div class="org-node-content">
               <div class="org-node-name">{{ slotProps.node.label }}</div>
@@ -103,7 +103,7 @@
           <template #content>
             <ul class="responsibility-list">
               <li v-for="(resp, idx) in agent.responsibilities" :key="idx">
-                <i class="pi pi-check-circle mr-2"></i>
+                <McIcon name="circle-check" :size="14" class="mr-2" />
                 {{ resp }}
               </li>
             </ul>
@@ -135,6 +135,7 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Card from 'primevue/card'
 import Tag from 'primevue/tag'
+import McIcon from '@/components/ui/McIcon.vue'
 import { useAgentsStore } from './store'
 
 interface Agent {
@@ -255,40 +256,40 @@ const orgData = computed(() => {
     label: 'Jeeves',
     type: 'lead',
     role: 'Personal Assistant & System Coordinator',
-    icon: 'pi pi-home',
+    icon: 'home',
     status: getStatus('main'),
     children: [
       {
         label: 'Matron',
         type: 'specialist',
         role: 'School Communications',
-        icon: 'pi pi-graduation-cap',
+        icon: 'graduation-cap',
         status: getStatus('matron'),
       },
       {
         label: 'The Archivist',
         type: 'specialist',
         role: 'Memory Curator',
-        icon: 'pi pi-book',
+        icon: 'book-open',
         status: getStatus('archivist'),
       },
       {
         label: 'The Curator',
         type: 'specialist',
         role: 'Media Library Manager',
-        icon: 'pi pi-video',
+        icon: 'video',
         status: getStatus('curator'),
       },
       {
         label: 'The Foundry',
         type: 'team',
         role: 'Autonomous Builder',
-        icon: 'pi pi-cog',
+        icon: 'cpu',
         status: getStatus('foundry-blacksmith'),
         children: [
-          { label: 'Scout', type: 'worker', role: 'Trend Discovery', icon: 'pi pi-search', status: getStatus('foundry-scout') },
-          { label: 'Spec Writer', type: 'worker', role: 'Specifications', icon: 'pi pi-file-edit', status: getStatus('foundry-spec') },
-          { label: 'Builder', type: 'worker', role: 'Implementation', icon: 'pi pi-wrench', status: getStatus('foundry-builder') },
+          { label: 'Scout', type: 'worker', role: 'Trend Discovery', icon: 'zap', status: getStatus('foundry-scout') },
+          { label: 'Spec Writer', type: 'worker', role: 'Specifications', icon: 'file-text', status: getStatus('foundry-spec') },
+          { label: 'Builder', type: 'worker', role: 'Implementation', icon: 'sparkles', status: getStatus('foundry-builder') },
         ],
       },
     ],
@@ -409,13 +410,14 @@ function getRowClass(data: Agent) {
 }
 
 .team-header h3 {
+  font-family: var(--mc-font-display);
   font-size: 1.5rem;
   font-weight: 600;
   margin: 0 0 0.5rem 0;
 }
 
 .subtitle {
-  color: var(--text-color-secondary);
+  color: var(--mc-text-muted);
   margin: 0;
 }
 
@@ -429,27 +431,27 @@ function getRowClass(data: Agent) {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: var(--surface-card);
-  border: 1px solid var(--surface-border);
+  background: var(--mc-bg-surface);
+  border: 1px solid var(--mc-border);
   border-radius: 8px;
   min-width: 200px;
 }
 
 .org-node-lead {
-  border-color: var(--blue-500);
-  background: linear-gradient(135deg, var(--surface-card) 0%, rgba(59, 130, 246, 0.1) 100%);
+  border-color: var(--mc-info);
+  background: linear-gradient(135deg, var(--mc-bg-surface) 0%, var(--mc-accent-subtle) 100%);
 }
 
 .org-node-specialist {
-  border-color: var(--orange-500);
+  border-color: var(--mc-warning);
 }
 
 .org-node-team {
-  border-color: var(--teal-500);
+  border-color: var(--mc-success);
 }
 
 .org-node-worker {
-  border-color: var(--surface-300);
+  border-color: var(--mc-border-strong);
 }
 
 .org-node-icon {
@@ -459,7 +461,7 @@ function getRowClass(data: Agent) {
   width: 3rem;
   height: 3rem;
   border-radius: 50%;
-  background: var(--primary-color);
+  background: var(--mc-accent);
   color: white;
   font-size: 1.5rem;
 }
@@ -469,13 +471,14 @@ function getRowClass(data: Agent) {
 }
 
 .org-node-name {
+  font-family: var(--mc-font-display);
   font-weight: 600;
   font-size: 1.1rem;
 }
 
 .org-node-role {
   font-size: 0.85rem;
-  color: var(--text-color-secondary);
+  color: var(--mc-text-muted);
   margin-top: 0.25rem;
 }
 
@@ -512,25 +515,25 @@ function getRowClass(data: Agent) {
 }
 
 .model-badge {
-  background: var(--surface-100);
+  background: var(--mc-bg-elevated);
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-size: 0.75rem;
 }
 
 .workspace-path {
-  font-family: monospace;
+  font-family: var(--mc-font-mono);
   font-size: 0.85rem;
-  color: var(--text-color-secondary);
+  color: var(--mc-text-muted);
 }
 
 .text-muted {
-  color: var(--text-color-secondary);
+  color: var(--mc-text-muted);
   font-style: italic;
 }
 
 .row-active {
-  background: rgba(34, 197, 94, 0.05) !important;
+  background: color-mix(in srgb, var(--mc-success) 5%, transparent) !important;
 }
 
 /* Responsibilities */
@@ -560,17 +563,17 @@ function getRowClass(data: Agent) {
   display: flex;
   align-items: flex-start;
   padding: 0.5rem 0;
-  color: var(--text-color);
+  color: var(--mc-text);
 }
 
 .responsibility-list li i {
-  color: var(--green-500);
+  color: var(--mc-success);
   margin-top: 0.1rem;
 }
 
 .skills-section {
   padding-top: 1rem;
-  border-top: 1px solid var(--surface-border);
+  border-top: 1px solid var(--mc-border);
 }
 
 .skills-tags {

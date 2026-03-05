@@ -32,9 +32,7 @@ def test_list_events():
             school_id="qe",
         )
     ]
-    with patch(
-        "modules.school.service.SchoolService.get_events", new_callable=AsyncMock
-    ) as mock:
+    with patch("modules.school.service.SchoolService.get_events", new_callable=AsyncMock) as mock:
         mock.return_value = events
         response = client.get("/api/school/events")
         assert response.status_code == 200
@@ -46,9 +44,7 @@ def test_list_events():
 
 def test_list_events_empty():
     """Should return empty list when no events."""
-    with patch(
-        "modules.school.service.SchoolService.get_events", new_callable=AsyncMock
-    ) as mock:
+    with patch("modules.school.service.SchoolService.get_events", new_callable=AsyncMock) as mock:
         mock.return_value = []
         response = client.get("/api/school/events")
         assert response.status_code == 200
@@ -74,9 +70,7 @@ def test_list_emails():
             processed_at=datetime.datetime(2026, 2, 10, 9, 30, tzinfo=datetime.UTC),
         )
     ]
-    with patch(
-        "modules.school.service.SchoolService.get_emails", new_callable=AsyncMock
-    ) as mock:
+    with patch("modules.school.service.SchoolService.get_emails", new_callable=AsyncMock) as mock:
         mock.return_value = emails
         response = client.get("/api/school/emails")
         assert response.status_code == 200
@@ -88,9 +82,7 @@ def test_list_emails():
 
 def test_list_emails_empty():
     """Should handle no emails."""
-    with patch(
-        "modules.school.service.SchoolService.get_emails", new_callable=AsyncMock
-    ) as mock:
+    with patch("modules.school.service.SchoolService.get_emails", new_callable=AsyncMock) as mock:
         mock.return_value = []
         response = client.get("/api/school/emails")
         assert response.status_code == 200
@@ -112,9 +104,7 @@ def test_list_tasks():
             created_at=datetime.datetime(2026, 2, 10, 9, 0, tzinfo=datetime.UTC),
         )
     ]
-    with patch(
-        "modules.school.service.SchoolService.get_tasks", new_callable=AsyncMock
-    ) as mock:
+    with patch("modules.school.service.SchoolService.get_tasks", new_callable=AsyncMock) as mock:
         mock.return_value = tasks
         response = client.get("/api/school/tasks")
         assert response.status_code == 200
@@ -125,9 +115,7 @@ def test_list_tasks():
 
 def test_list_tasks_empty():
     """Should handle no tasks."""
-    with patch(
-        "modules.school.service.SchoolService.get_tasks", new_callable=AsyncMock
-    ) as mock:
+    with patch("modules.school.service.SchoolService.get_tasks", new_callable=AsyncMock) as mock:
         mock.return_value = []
         response = client.get("/api/school/tasks")
         assert response.status_code == 200
@@ -143,9 +131,7 @@ def test_get_stats():
         total_emails=17,
         total_tasks=3,
     )
-    with patch(
-        "modules.school.service.SchoolService.get_stats", new_callable=AsyncMock
-    ) as mock:
+    with patch("modules.school.service.SchoolService.get_stats", new_callable=AsyncMock) as mock:
         mock.return_value = stats
         response = client.get("/api/school/stats")
         assert response.status_code == 200
@@ -159,12 +145,8 @@ def test_get_stats_zeros():
     """Should handle all-zero stats."""
     from modules.school.models import SchoolStatsResponse
 
-    stats = SchoolStatsResponse(
-        upcoming_events=0, total_emails=0, total_tasks=0
-    )
-    with patch(
-        "modules.school.service.SchoolService.get_stats", new_callable=AsyncMock
-    ) as mock:
+    stats = SchoolStatsResponse(upcoming_events=0, total_emails=0, total_tasks=0)
+    with patch("modules.school.service.SchoolService.get_stats", new_callable=AsyncMock) as mock:
         mock.return_value = stats
         response = client.get("/api/school/stats")
         assert response.status_code == 200

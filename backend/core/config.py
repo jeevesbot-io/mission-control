@@ -38,7 +38,7 @@ class Settings(BaseSettings):
         if not self.debug and "change" in self.session_secret.lower():
             raise ValueError(
                 "SESSION_SECRET must be set to a secure value in production (DEBUG=false). "
-                "Generate one with: python3 -c \"import secrets; print(secrets.token_urlsafe(32))\""
+                'Generate one with: python3 -c "import secrets; print(secrets.token_urlsafe(32))"'
             )
         return self
 

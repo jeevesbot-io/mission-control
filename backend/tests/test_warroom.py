@@ -20,6 +20,7 @@ def test_modules_includes_warroom():
 # Tasks — list / create / update / delete
 # ---------------------------------------------------------------------------
 
+
 def test_list_tasks_empty():
     with patch("modules.warroom.service.WarRoomService.list_tasks", new_callable=AsyncMock) as mock:
         mock.return_value = []
@@ -85,7 +86,9 @@ def test_create_task():
         createdAt="2026-02-18T00:00:00+00:00",
         updatedAt="2026-02-18T00:00:00+00:00",
     )
-    with patch("modules.warroom.service.WarRoomService.create_task", new_callable=AsyncMock) as mock:
+    with patch(
+        "modules.warroom.service.WarRoomService.create_task", new_callable=AsyncMock
+    ) as mock:
         mock.return_value = created
         response = client.post("/api/warroom/tasks", json={"title": "New Task"})
         assert response.status_code == 200
@@ -107,22 +110,30 @@ def test_update_task():
         createdAt="2026-02-01T00:00:00+00:00",
         updatedAt="2026-02-18T00:00:00+00:00",
     )
-    with patch("modules.warroom.service.WarRoomService.update_task", new_callable=AsyncMock) as mock:
+    with patch(
+        "modules.warroom.service.WarRoomService.update_task", new_callable=AsyncMock
+    ) as mock:
         mock.return_value = updated
-        response = client.put("/api/warroom/tasks/abc1", json={"title": "Updated", "priority": "urgent"})
+        response = client.put(
+            "/api/warroom/tasks/abc1", json={"title": "Updated", "priority": "urgent"}
+        )
         assert response.status_code == 200
         assert response.json()["title"] == "Updated"
 
 
 def test_update_task_not_found():
-    with patch("modules.warroom.service.WarRoomService.update_task", new_callable=AsyncMock) as mock:
+    with patch(
+        "modules.warroom.service.WarRoomService.update_task", new_callable=AsyncMock
+    ) as mock:
         mock.return_value = None
         response = client.put("/api/warroom/tasks/nope", json={"title": "x"})
         assert response.status_code == 404
 
 
 def test_delete_task():
-    with patch("modules.warroom.service.WarRoomService.delete_task", new_callable=AsyncMock) as mock:
+    with patch(
+        "modules.warroom.service.WarRoomService.delete_task", new_callable=AsyncMock
+    ) as mock:
         mock.return_value = True
         response = client.delete("/api/warroom/tasks/abc1")
         assert response.status_code == 200
@@ -130,7 +141,9 @@ def test_delete_task():
 
 
 def test_delete_task_not_found():
-    with patch("modules.warroom.service.WarRoomService.delete_task", new_callable=AsyncMock) as mock:
+    with patch(
+        "modules.warroom.service.WarRoomService.delete_task", new_callable=AsyncMock
+    ) as mock:
         mock.return_value = False
         response = client.delete("/api/warroom/tasks/nope")
         assert response.status_code == 404
@@ -140,16 +153,41 @@ def test_delete_task_not_found():
 # Agent queue protocol (critical — must not break)
 # ---------------------------------------------------------------------------
 
+
 def test_get_queue_returns_sorted_tasks():
     from modules.warroom.models import Task
 
     tasks = [
-        Task(id="1", title="Low priority", status="todo", priority="low", project=None, tags=[],
-             createdAt="2026-02-01T00:00:00+00:00", updatedAt="2026-02-01T00:00:00+00:00"),
-        Task(id="2", title="Urgent task", status="todo", priority="urgent", project=None, tags=[],
-             createdAt="2026-02-01T00:00:00+00:00", updatedAt="2026-02-01T00:00:00+00:00"),
-        Task(id="3", title="High priority", status="todo", priority="high", project=None, tags=[],
-             createdAt="2026-02-01T00:00:00+00:00", updatedAt="2026-02-01T00:00:00+00:00"),
+        Task(
+            id="1",
+            title="Low priority",
+            status="todo",
+            priority="low",
+            project=None,
+            tags=[],
+            createdAt="2026-02-01T00:00:00+00:00",
+            updatedAt="2026-02-01T00:00:00+00:00",
+        ),
+        Task(
+            id="2",
+            title="Urgent task",
+            status="todo",
+            priority="urgent",
+            project=None,
+            tags=[],
+            createdAt="2026-02-01T00:00:00+00:00",
+            updatedAt="2026-02-01T00:00:00+00:00",
+        ),
+        Task(
+            id="3",
+            title="High priority",
+            status="todo",
+            priority="high",
+            project=None,
+            tags=[],
+            createdAt="2026-02-01T00:00:00+00:00",
+            updatedAt="2026-02-01T00:00:00+00:00",
+        ),
     ]
     with patch("modules.warroom.service.WarRoomService.get_queue", new_callable=AsyncMock) as mock:
         mock.return_value = [tasks[1], tasks[2], tasks[0]]  # urgent, high, low
@@ -166,11 +204,19 @@ def test_pickup_task():
     from modules.warroom.models import Task
 
     picked = Task(
-        id="abc1", title="Task", status="in-progress", priority="medium",
-        pickedUp=True, project=None, tags=[],
-        createdAt="2026-02-01T00:00:00+00:00", updatedAt="2026-02-18T00:00:00+00:00",
+        id="abc1",
+        title="Task",
+        status="in-progress",
+        priority="medium",
+        pickedUp=True,
+        project=None,
+        tags=[],
+        createdAt="2026-02-01T00:00:00+00:00",
+        updatedAt="2026-02-18T00:00:00+00:00",
     )
-    with patch("modules.warroom.service.WarRoomService.pickup_task", new_callable=AsyncMock) as mock:
+    with patch(
+        "modules.warroom.service.WarRoomService.pickup_task", new_callable=AsyncMock
+    ) as mock:
         mock.return_value = picked
         response = client.post("/api/warroom/tasks/abc1/pickup")
         assert response.status_code == 200
@@ -183,14 +229,24 @@ def test_complete_task_with_result():
     from modules.warroom.models import Task
 
     completed = Task(
-        id="abc1", title="Task", status="done", priority="medium",
-        result="Successfully completed", project=None, tags=[],
+        id="abc1",
+        title="Task",
+        status="done",
+        priority="medium",
+        result="Successfully completed",
+        project=None,
+        tags=[],
         completedAt="2026-02-18T10:00:00+00:00",
-        createdAt="2026-02-01T00:00:00+00:00", updatedAt="2026-02-18T10:00:00+00:00",
+        createdAt="2026-02-01T00:00:00+00:00",
+        updatedAt="2026-02-18T10:00:00+00:00",
     )
-    with patch("modules.warroom.service.WarRoomService.complete_task", new_callable=AsyncMock) as mock:
+    with patch(
+        "modules.warroom.service.WarRoomService.complete_task", new_callable=AsyncMock
+    ) as mock:
         mock.return_value = completed
-        response = client.post("/api/warroom/tasks/abc1/complete", json={"result": "Successfully completed"})
+        response = client.post(
+            "/api/warroom/tasks/abc1/complete", json={"result": "Successfully completed"}
+        )
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "done"
@@ -202,12 +258,20 @@ def test_complete_task_with_error():
     from modules.warroom.models import Task
 
     failed = Task(
-        id="abc1", title="Task", status="done", priority="medium",
-        error="Agent crashed", project=None, tags=[],
+        id="abc1",
+        title="Task",
+        status="done",
+        priority="medium",
+        error="Agent crashed",
+        project=None,
+        tags=[],
         completedAt="2026-02-18T10:00:00+00:00",
-        createdAt="2026-02-01T00:00:00+00:00", updatedAt="2026-02-18T10:00:00+00:00",
+        createdAt="2026-02-01T00:00:00+00:00",
+        updatedAt="2026-02-18T10:00:00+00:00",
     )
-    with patch("modules.warroom.service.WarRoomService.complete_task", new_callable=AsyncMock) as mock:
+    with patch(
+        "modules.warroom.service.WarRoomService.complete_task", new_callable=AsyncMock
+    ) as mock:
         mock.return_value = failed
         response = client.post("/api/warroom/tasks/abc1/complete", json={"error": "Agent crashed"})
         assert response.status_code == 200
@@ -215,7 +279,9 @@ def test_complete_task_with_error():
 
 
 def test_pickup_task_not_found():
-    with patch("modules.warroom.service.WarRoomService.pickup_task", new_callable=AsyncMock) as mock:
+    with patch(
+        "modules.warroom.service.WarRoomService.pickup_task", new_callable=AsyncMock
+    ) as mock:
         mock.return_value = None
         response = client.post("/api/warroom/tasks/nope/pickup")
         assert response.status_code == 404
@@ -225,14 +291,24 @@ def test_pickup_task_not_found():
 # Projects
 # ---------------------------------------------------------------------------
 
+
 def test_list_projects_with_task_counts():
     from modules.warroom.models import ProjectWithCount
 
     projects = [
-        ProjectWithCount(id="openclaw-platform", name="OpenClaw Platform", icon="Gear",
-                         color="red", status="active", order=7, task_count=5),
+        ProjectWithCount(
+            id="openclaw-platform",
+            name="OpenClaw Platform",
+            icon="Gear",
+            color="red",
+            status="active",
+            order=7,
+            task_count=5,
+        ),
     ]
-    with patch("modules.warroom.service.WarRoomService.list_projects", new_callable=AsyncMock) as mock:
+    with patch(
+        "modules.warroom.service.WarRoomService.list_projects", new_callable=AsyncMock
+    ) as mock:
         mock.return_value = projects
         response = client.get("/api/warroom/projects")
         assert response.status_code == 200
@@ -243,8 +319,13 @@ def test_list_projects_with_task_counts():
 
 
 def test_delete_project_with_tasks_fails():
-    with patch("modules.warroom.service.WarRoomService.delete_project", new_callable=AsyncMock) as mock:
-        mock.return_value = (False, "Cannot delete project with existing tasks. Reassign or delete tasks first.")
+    with patch(
+        "modules.warroom.service.WarRoomService.delete_project", new_callable=AsyncMock
+    ) as mock:
+        mock.return_value = (
+            False,
+            "Cannot delete project with existing tasks. Reassign or delete tasks first.",
+        )
         response = client.delete("/api/warroom/projects/openclaw-platform")
         assert response.status_code == 422
         assert "Cannot delete" in response.json()["detail"]
@@ -253,6 +334,7 @@ def test_delete_project_with_tasks_fails():
 # ---------------------------------------------------------------------------
 # Tags
 # ---------------------------------------------------------------------------
+
 
 def test_list_tags_returns_sorted_list():
     with patch("modules.warroom.service.WarRoomService.list_tags", new_callable=AsyncMock) as mock:
@@ -265,6 +347,7 @@ def test_list_tags_returns_sorted_list():
 # ---------------------------------------------------------------------------
 # Usage
 # ---------------------------------------------------------------------------
+
 
 def test_get_usage():
     from modules.warroom.models import UsageResponse, UsageTier
@@ -290,6 +373,7 @@ def test_get_usage():
 # Models
 # ---------------------------------------------------------------------------
 
+
 def test_get_models():
     with patch("modules.warroom.service.WarRoomService.get_models", new_callable=AsyncMock) as mock:
         mock.return_value = ["claude-sonnet-4-6", "claude-opus-4-6"]
@@ -313,10 +397,13 @@ def test_set_model():
 # Heartbeat
 # ---------------------------------------------------------------------------
 
+
 def test_get_heartbeat():
     from modules.warroom.models import HeartbeatResponse
 
-    with patch("modules.warroom.service.WarRoomService.get_heartbeat", new_callable=AsyncMock) as mock:
+    with patch(
+        "modules.warroom.service.WarRoomService.get_heartbeat", new_callable=AsyncMock
+    ) as mock:
         mock.return_value = HeartbeatResponse(lastHeartbeat=1708000000000)
         response = client.get("/api/warroom/heartbeat")
         assert response.status_code == 200
@@ -326,7 +413,9 @@ def test_get_heartbeat():
 def test_get_heartbeat_null():
     from modules.warroom.models import HeartbeatResponse
 
-    with patch("modules.warroom.service.WarRoomService.get_heartbeat", new_callable=AsyncMock) as mock:
+    with patch(
+        "modules.warroom.service.WarRoomService.get_heartbeat", new_callable=AsyncMock
+    ) as mock:
         mock.return_value = HeartbeatResponse(lastHeartbeat=None)
         response = client.get("/api/warroom/heartbeat")
         assert response.status_code == 200
@@ -336,7 +425,9 @@ def test_get_heartbeat_null():
 def test_record_heartbeat():
     from modules.warroom.models import HeartbeatResponse
 
-    with patch("modules.warroom.service.WarRoomService.record_heartbeat", new_callable=AsyncMock) as mock:
+    with patch(
+        "modules.warroom.service.WarRoomService.record_heartbeat", new_callable=AsyncMock
+    ) as mock:
         mock.return_value = HeartbeatResponse(lastHeartbeat=1708000001000)
         response = client.post("/api/warroom/heartbeat")
         assert response.status_code == 200
@@ -347,14 +438,24 @@ def test_record_heartbeat():
 # Skills
 # ---------------------------------------------------------------------------
 
+
 def test_list_skills():
     from modules.warroom.models import Skill
 
     skills = [
-        Skill(id="my-skill", name="My Skill", description="Does things",
-              source="workspace", enabled=True, path="/some/path", hasMetadata=True),
+        Skill(
+            id="my-skill",
+            name="My Skill",
+            description="Does things",
+            source="workspace",
+            enabled=True,
+            path="/some/path",
+            hasMetadata=True,
+        ),
     ]
-    with patch("modules.warroom.service.WarRoomService.list_skills", new_callable=AsyncMock) as mock:
+    with patch(
+        "modules.warroom.service.WarRoomService.list_skills", new_callable=AsyncMock
+    ) as mock:
         mock.return_value = skills
         response = client.get("/api/warroom/skills")
         assert response.status_code == 200
@@ -367,9 +468,17 @@ def test_list_skills():
 def test_toggle_skill():
     from modules.warroom.models import Skill
 
-    toggled = Skill(id="my-skill", name="My Skill", description="",
-                    source="workspace", enabled=False, path="/some/path")
-    with patch("modules.warroom.service.WarRoomService.toggle_skill", new_callable=AsyncMock) as mock:
+    toggled = Skill(
+        id="my-skill",
+        name="My Skill",
+        description="",
+        source="workspace",
+        enabled=False,
+        path="/some/path",
+    )
+    with patch(
+        "modules.warroom.service.WarRoomService.toggle_skill", new_callable=AsyncMock
+    ) as mock:
         mock.return_value = toggled
         response = client.post("/api/warroom/skills/my-skill/toggle", json={"enabled": False})
         assert response.status_code == 200
@@ -380,11 +489,16 @@ def test_toggle_skill():
 # Workspace files
 # ---------------------------------------------------------------------------
 
+
 def test_get_workspace_file():
     from modules.warroom.models import WorkspaceFileResponse
 
-    with patch("modules.warroom.service.WarRoomService.get_workspace_file", new_callable=AsyncMock) as mock:
-        mock.return_value = WorkspaceFileResponse(content="# SOUL.md\nBe helpful.", lastModified="2026-02-18T00:00:00+00:00")
+    with patch(
+        "modules.warroom.service.WarRoomService.get_workspace_file", new_callable=AsyncMock
+    ) as mock:
+        mock.return_value = WorkspaceFileResponse(
+            content="# SOUL.md\nBe helpful.", lastModified="2026-02-18T00:00:00+00:00"
+        )
         response = client.get("/api/warroom/workspace-file?name=SOUL.md")
         assert response.status_code == 200
         assert "SOUL.md" in response.json()["content"]
@@ -396,9 +510,13 @@ def test_get_workspace_file_invalid_name():
 
 
 def test_update_workspace_file_saves_history():
-    with patch("modules.warroom.service.WarRoomService.update_workspace_file", new_callable=AsyncMock) as mock:
+    with patch(
+        "modules.warroom.service.WarRoomService.update_workspace_file", new_callable=AsyncMock
+    ) as mock:
         mock.return_value = None
-        response = client.put("/api/warroom/workspace-file?name=SOUL.md", json={"content": "# New soul"})
+        response = client.put(
+            "/api/warroom/workspace-file?name=SOUL.md", json={"content": "# New soul"}
+        )
         assert response.status_code == 200
         assert response.json() == {"ok": True}
         mock.assert_called_once_with("SOUL.md", "# New soul")
@@ -410,7 +528,9 @@ def test_workspace_file_history():
     history = [
         HistoryEntry(timestamp="2026-02-17T00:00:00+00:00", content="# Old soul"),
     ]
-    with patch("modules.warroom.service.WarRoomService.get_file_history", new_callable=AsyncMock) as mock:
+    with patch(
+        "modules.warroom.service.WarRoomService.get_file_history", new_callable=AsyncMock
+    ) as mock:
         mock.return_value = history
         response = client.get("/api/warroom/workspace-file/history?name=SOUL.md")
         assert response.status_code == 200
@@ -422,6 +542,7 @@ def test_workspace_file_history():
 # ---------------------------------------------------------------------------
 # Soul templates
 # ---------------------------------------------------------------------------
+
 
 def test_soul_templates_returns_six():
     response = client.get("/api/warroom/soul/templates")
@@ -436,6 +557,7 @@ def test_soul_templates_returns_six():
 # ---------------------------------------------------------------------------
 # Stats
 # ---------------------------------------------------------------------------
+
 
 def test_get_stats():
     from modules.warroom.models import WarRoomStats
@@ -460,6 +582,7 @@ def test_get_stats():
 # Task Dependencies
 # ---------------------------------------------------------------------------
 
+
 def test_create_task_with_dependencies():
     from modules.warroom.models import Task
 
@@ -475,24 +598,34 @@ def test_create_task_with_dependencies():
         createdAt="2026-02-18T00:00:00+00:00",
         updatedAt="2026-02-18T00:00:00+00:00",
     )
-    with patch("modules.warroom.service.WarRoomService.create_task", new_callable=AsyncMock) as mock:
+    with patch(
+        "modules.warroom.service.WarRoomService.create_task", new_callable=AsyncMock
+    ) as mock:
         mock.return_value = created
-        response = client.post("/api/warroom/tasks", json={"title": "Dependent Task", "blockedBy": ["abc1"]})
+        response = client.post(
+            "/api/warroom/tasks", json={"title": "Dependent Task", "blockedBy": ["abc1"]}
+        )
         assert response.status_code == 200
         data = response.json()
         assert data["blockedBy"] == ["abc1"]
 
 
 def test_create_task_dependency_validation_returns_422():
-    with patch("modules.warroom.service.WarRoomService.create_task", new_callable=AsyncMock) as mock:
+    with patch(
+        "modules.warroom.service.WarRoomService.create_task", new_callable=AsyncMock
+    ) as mock:
         mock.side_effect = ValueError("Unknown task IDs in dependencies: nonexistent")
-        response = client.post("/api/warroom/tasks", json={"title": "Bad Dep", "blockedBy": ["nonexistent"]})
+        response = client.post(
+            "/api/warroom/tasks", json={"title": "Bad Dep", "blockedBy": ["nonexistent"]}
+        )
         assert response.status_code == 422
         assert "Unknown task IDs" in response.json()["detail"]
 
 
 def test_update_task_cycle_detection_returns_422():
-    with patch("modules.warroom.service.WarRoomService.update_task", new_callable=AsyncMock) as mock:
+    with patch(
+        "modules.warroom.service.WarRoomService.update_task", new_callable=AsyncMock
+    ) as mock:
         mock.side_effect = ValueError("Dependency cycle detected")
         response = client.put("/api/warroom/tasks/abc1", json={"blockedBy": ["abc2"]})
         assert response.status_code == 422
@@ -504,9 +637,18 @@ def test_queue_excludes_blocked_tasks():
 
     # Only the unblocked task should appear in queue
     tasks = [
-        Task(id="1", title="Unblocked", status="todo", priority="high", project=None, tags=[],
-             blockedBy=[], blocks=["2"],
-             createdAt="2026-02-01T00:00:00+00:00", updatedAt="2026-02-01T00:00:00+00:00"),
+        Task(
+            id="1",
+            title="Unblocked",
+            status="todo",
+            priority="high",
+            project=None,
+            tags=[],
+            blockedBy=[],
+            blocks=["2"],
+            createdAt="2026-02-01T00:00:00+00:00",
+            updatedAt="2026-02-01T00:00:00+00:00",
+        ),
     ]
     with patch("modules.warroom.service.WarRoomService.get_queue", new_callable=AsyncMock) as mock:
         mock.return_value = tasks

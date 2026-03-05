@@ -32,9 +32,7 @@ class ContentCreate(BaseModel):
     title: str
     description: Optional[str] = None
     type: Literal["video", "article", "thread", "tweet", "other"] = "video"
-    stage: Literal["ideas", "scripting", "thumbnail", "filming", "editing", "published"] = (
-        "ideas"
-    )
+    stage: Literal["ideas", "scripting", "thumbnail", "filming", "editing", "published"] = "ideas"
     tags: list[str] = Field(default_factory=list)
     priority: Literal["low", "medium", "high"] = "medium"
 
@@ -61,19 +59,3 @@ class ContentPipelineResponse(BaseModel):
 
     items: list[ContentItem]
     stats: dict = Field(default_factory=dict)
-
-
-class GenerateScriptRequest(BaseModel):
-    """Request to generate script for content item."""
-
-    content_id: str
-    instructions: Optional[str] = None
-
-
-class GenerateScriptResponse(BaseModel):
-    """Response from script generation."""
-
-    content_id: str
-    script: str
-    success: bool
-    message: Optional[str] = None

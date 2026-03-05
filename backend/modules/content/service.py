@@ -4,7 +4,7 @@ import asyncio
 import json
 import logging
 import threading
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from uuid import uuid4
 
@@ -80,9 +80,10 @@ class ContentService:
 
     async def create_item(self, create: ContentCreate) -> ContentItem:
         """Create a new content item."""
+
         def _create():
             data = self._read_data_sync()
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             item = ContentItem(
                 id=str(uuid4()),
                 title=create.title,
@@ -102,6 +103,7 @@ class ContentService:
 
     async def update_item(self, item_id: str, update: ContentUpdate) -> Optional[ContentItem]:
         """Update a content item."""
+
         def _update():
             data = self._read_data_sync()
             items = data.get("items", [])
@@ -129,7 +131,7 @@ class ContentService:
                     if update.priority is not None:
                         item["priority"] = update.priority
 
-                    item["updated_at"] = datetime.utcnow().isoformat()
+                    item["updated_at"] = datetime.now(timezone.utc).isoformat()
                     data["items"][i] = item
                     self._write_data_sync(data)
                     return ContentItem(**item)
@@ -140,6 +142,7 @@ class ContentService:
 
     async def delete_item(self, item_id: str) -> bool:
         """Delete a content item."""
+
         def _delete():
             data = self._read_data_sync()
             items = data.get("items", [])

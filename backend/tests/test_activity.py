@@ -20,9 +20,11 @@ def test_modules_includes_activity():
 # Feed
 # ---------------------------------------------------------------------------
 
+
 def test_feed_empty():
     with patch("modules.activity.service.ActivityService.get_feed", new_callable=AsyncMock) as mock:
         from modules.activity.models import ActivityFeedResponse
+
         mock.return_value = ActivityFeedResponse(events=[], total=0, cursor=None)
         response = client.get("/api/activity/feed")
         assert response.status_code == 200
@@ -34,6 +36,7 @@ def test_feed_empty():
 def test_feed_returns_events():
     with patch("modules.activity.service.ActivityService.get_feed", new_callable=AsyncMock) as mock:
         from modules.activity.models import ActivityEvent, ActivityFeedResponse
+
         events = [
             ActivityEvent(
                 id="evt-1",
@@ -56,7 +59,9 @@ def test_feed_returns_events():
                 module="agents",
             ),
         ]
-        mock.return_value = ActivityFeedResponse(events=events, total=2, cursor="2026-02-19T09:00:00+00:00")
+        mock.return_value = ActivityFeedResponse(
+            events=events, total=2, cursor="2026-02-19T09:00:00+00:00"
+        )
         response = client.get("/api/activity/feed")
         assert response.status_code == 200
         data = response.json()
@@ -69,28 +74,38 @@ def test_feed_returns_events():
 def test_feed_accepts_filters():
     with patch("modules.activity.service.ActivityService.get_feed", new_callable=AsyncMock) as mock:
         from modules.activity.models import ActivityFeedResponse
+
         mock.return_value = ActivityFeedResponse(events=[], total=0, cursor=None)
         response = client.get("/api/activity/feed?module=warroom&actor=user&limit=10")
         assert response.status_code == 200
-        mock.assert_called_once_with(limit=10, cursor=None, module="warroom", actor="user", action=None)
+        mock.assert_called_once_with(
+            limit=10, cursor=None, module="warroom", actor="user", action=None
+        )
 
 
 def test_feed_pagination_with_cursor():
     with patch("modules.activity.service.ActivityService.get_feed", new_callable=AsyncMock) as mock:
         from modules.activity.models import ActivityFeedResponse
+
         mock.return_value = ActivityFeedResponse(events=[], total=0, cursor=None)
         response = client.get("/api/activity/feed?cursor=2026-02-19T10:00:00")
         assert response.status_code == 200
-        mock.assert_called_once_with(limit=50, cursor="2026-02-19T10:00:00", module=None, actor=None, action=None)
+        mock.assert_called_once_with(
+            limit=50, cursor="2026-02-19T10:00:00", module=None, actor=None, action=None
+        )
 
 
 # ---------------------------------------------------------------------------
 # Stats
 # ---------------------------------------------------------------------------
 
+
 def test_stats():
-    with patch("modules.activity.service.ActivityService.get_stats", new_callable=AsyncMock) as mock:
+    with patch(
+        "modules.activity.service.ActivityService.get_stats", new_callable=AsyncMock
+    ) as mock:
         from modules.activity.models import ActivityStats
+
         mock.return_value = ActivityStats(
             total_events=42,
             by_module={"warroom": 20, "agents": 15, "content": 7},
@@ -109,6 +124,7 @@ def test_stats():
 # Service unit tests (log_event)
 # ---------------------------------------------------------------------------
 
+
 def test_log_event():
     """Test that log_event creates an event and returns it."""
     from modules.activity.models import ActivityLogRequest
@@ -116,8 +132,10 @@ def test_log_event():
 
     service = ActivityService()
 
-    with patch.object(service, "_append_sync") as mock_append, \
-         patch("modules.activity.service.manager") as mock_manager:
+    with (
+        patch.object(service, "_append_sync") as mock_append,
+        patch("modules.activity.service.manager") as mock_manager,
+    ):
         mock_manager.broadcast = AsyncMock()
 
         req = ActivityLogRequest(
@@ -130,6 +148,7 @@ def test_log_event():
         )
 
         import asyncio
+
         loop = asyncio.new_event_loop()
         try:
             event = loop.run_until_complete(service.log_event(req))

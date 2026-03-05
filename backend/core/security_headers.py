@@ -25,8 +25,6 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Add HSTS when behind Cloudflare (cf-visitor header indicates HTTPS)
         cf_visitor = request.headers.get("cf-visitor")
         if cf_visitor and '"scheme":"https"' in cf_visitor:
-            response.headers["Strict-Transport-Security"] = (
-                "max-age=31536000; includeSubDomains"
-            )
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
 
         return response

@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel as _BaseModel
+
+from core.websocket import manager
 
 from .models import (
     CalendarDay,
@@ -31,11 +35,14 @@ from modules.activity.service import activity_service
 
 from .service import warroom_service
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 # ---------------------------------------------------------------------------
 # Tasks
 # ---------------------------------------------------------------------------
+
 
 @router.get("/tasks", response_model=list[Task])
 async def list_tasks(
@@ -44,7 +51,9 @@ async def list_tasks(
     tags: str | None = Query(None),
     status: str | None = Query(None),
 ) -> list[Task]:
-    return await warroom_service.list_tasks(project=project, priority=priority, tags=tags, status=status)
+    return await warroom_service.list_tasks(
+        project=project, priority=priority, tags=tags, status=status
+    )
 
 
 @router.post("/tasks", response_model=Task)
@@ -53,10 +62,17 @@ async def create_task(payload: TaskCreate) -> Task:
         task = await warroom_service.create_task(payload)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
-    await activity_service.log_event(ActivityLogRequest(
-        actor="user", action="task.created", resource_type="task",
-        resource_id=task.id, resource_name=task.title, module="warroom",
-    ))
+    await activity_service.log_event(
+        ActivityLogRequest(
+            actor="user",
+            action="task.created",
+            resource_type="task",
+            resource_id=task.id,
+            resource_name=task.title,
+            module="warroom",
+        )
+    )
+    await manager.broadcast("warroom:task:created", task.model_dump(mode="json"))
     return task
 
 
@@ -68,10 +84,17 @@ async def update_task(task_id: str, payload: TaskUpdate) -> Task:
         raise HTTPException(status_code=422, detail=str(e))
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
-    await activity_service.log_event(ActivityLogRequest(
-        actor="user", action="task.updated", resource_type="task",
-        resource_id=task.id, resource_name=task.title, module="warroom",
-    ))
+    await activity_service.log_event(
+        ActivityLogRequest(
+            actor="user",
+            action="task.updated",
+            resource_type="task",
+            resource_id=task.id,
+            resource_name=task.title,
+            module="warroom",
+        )
+    )
+    await manager.broadcast("warroom:task:updated", task.model_dump(mode="json"))
     return task
 
 
@@ -80,10 +103,16 @@ async def delete_task(task_id: str) -> dict:
     ok = await warroom_service.delete_task(task_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Task not found")
-    await activity_service.log_event(ActivityLogRequest(
-        actor="user", action="task.deleted", resource_type="task",
-        resource_id=task_id, module="warroom",
-    ))
+    await activity_service.log_event(
+        ActivityLogRequest(
+            actor="user",
+            action="task.deleted",
+            resource_type="task",
+            resource_id=task_id,
+            module="warroom",
+        )
+    )
+    await manager.broadcast("warroom:task:deleted", {"id": task_id})
     return {"ok": True}
 
 
@@ -105,6 +134,7 @@ async def pickup_task(task_id: str) -> Task:
     task = await warroom_service.pickup_task(task_id)
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
+    await manager.broadcast("warroom:task:updated", task.model_dump(mode="json"))
     return task
 
 
@@ -113,16 +143,24 @@ async def complete_task(task_id: str, payload: TaskComplete = TaskComplete()) ->
     task = await warroom_service.complete_task(task_id, payload)
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
-    await activity_service.log_event(ActivityLogRequest(
-        actor="system", action="task.completed", resource_type="task",
-        resource_id=task.id, resource_name=task.title, module="warroom",
-    ))
+    await activity_service.log_event(
+        ActivityLogRequest(
+            actor="system",
+            action="task.completed",
+            resource_type="task",
+            resource_id=task.id,
+            resource_name=task.title,
+            module="warroom",
+        )
+    )
+    await manager.broadcast("warroom:task:updated", task.model_dump(mode="json"))
     return task
 
 
 # ---------------------------------------------------------------------------
 # References
 # ---------------------------------------------------------------------------
+
 
 @router.get("/tasks/{task_id}/references", response_model=list[Reference])
 async def list_references(task_id: str) -> list[Reference]:
@@ -152,6 +190,7 @@ async def delete_reference(task_id: str, ref_id: str) -> dict:
 # Projects
 # ---------------------------------------------------------------------------
 
+
 @router.get("/projects", response_model=list[ProjectWithCount])
 async def list_projects() -> list[ProjectWithCount]:
     return await warroom_service.list_projects()
@@ -161,7 +200,10 @@ async def list_projects() -> list[ProjectWithCount]:
 async def create_project(payload: ProjectCreate) -> ProjectWithCount:
     proj = await warroom_service.create_project(payload)
     from .models import ProjectWithCount
-    return ProjectWithCount(**proj.model_dump(), task_count=0)
+
+    result = ProjectWithCount(**proj.model_dump(), task_count=0)
+    await manager.broadcast("warroom:project:changed", result.model_dump(mode="json"))
+    return result
 
 
 @router.put("/projects/{project_id}", response_model=ProjectWithCount)
@@ -169,7 +211,9 @@ async def update_project(project_id: str, payload: ProjectUpdate) -> ProjectWith
     proj = await warroom_service.update_project(project_id, payload)
     if proj is None:
         raise HTTPException(status_code=404, detail="Project not found")
-    return ProjectWithCount(**proj.model_dump(), task_count=0)
+    result = ProjectWithCount(**proj.model_dump(), task_count=0)
+    await manager.broadcast("warroom:project:changed", result.model_dump(mode="json"))
+    return result
 
 
 @router.delete("/projects/{project_id}")
@@ -179,12 +223,14 @@ async def delete_project(project_id: str) -> dict:
         if error and "Cannot delete" in error:
             raise HTTPException(status_code=422, detail=error)
         raise HTTPException(status_code=404, detail="Project not found")
+    await manager.broadcast("warroom:project:changed", {"id": project_id, "deleted": True})
     return {"ok": True}
 
 
 # ---------------------------------------------------------------------------
 # Tags
 # ---------------------------------------------------------------------------
+
 
 @router.get("/tags", response_model=list[str])
 async def list_tags() -> list[str]:
@@ -194,6 +240,7 @@ async def list_tags() -> list[str]:
 # ---------------------------------------------------------------------------
 # Usage / Models
 # ---------------------------------------------------------------------------
+
 
 @router.get("/usage", response_model=UsageResponse)
 async def get_usage() -> UsageResponse:
@@ -212,16 +259,22 @@ class _ModelSwitchBody(_BaseModel):
 @router.post("/model", response_model=ModelResponse)
 async def set_model(payload: _ModelSwitchBody) -> ModelResponse:
     result = await warroom_service.set_model(payload.model)
-    await activity_service.log_event(ActivityLogRequest(
-        actor="user", action="model.switched", resource_type="model",
-        resource_name=payload.model, module="warroom",
-    ))
+    await activity_service.log_event(
+        ActivityLogRequest(
+            actor="user",
+            action="model.switched",
+            resource_type="model",
+            resource_name=payload.model,
+            module="warroom",
+        )
+    )
     return result
 
 
 # ---------------------------------------------------------------------------
 # Heartbeat
 # ---------------------------------------------------------------------------
+
 
 @router.get("/heartbeat", response_model=HeartbeatResponse)
 async def get_heartbeat() -> HeartbeatResponse:
@@ -230,12 +283,15 @@ async def get_heartbeat() -> HeartbeatResponse:
 
 @router.post("/heartbeat", response_model=HeartbeatResponse)
 async def record_heartbeat() -> HeartbeatResponse:
-    return await warroom_service.record_heartbeat()
+    hb = await warroom_service.record_heartbeat()
+    await manager.broadcast("warroom:heartbeat", hb.model_dump(mode="json"))
+    return hb
 
 
 # ---------------------------------------------------------------------------
 # Skills
 # ---------------------------------------------------------------------------
+
 
 @router.get("/skills", response_model=list[Skill])
 async def list_skills() -> list[Skill]:
@@ -264,6 +320,7 @@ async def toggle_skill(skill_id: str, payload: _ToggleBody = _ToggleBody()) -> S
     skill = await warroom_service.toggle_skill(skill_id, payload.enabled)
     if skill is None:
         raise HTTPException(status_code=404, detail="Skill not found")
+    await manager.broadcast("warroom:skill:toggled", skill.model_dump(mode="json"))
     return skill
 
 
@@ -274,6 +331,7 @@ async def delete_skill(skill_id: str) -> dict:
         if error and "Can only delete" in error:
             raise HTTPException(status_code=422, detail=error)
         raise HTTPException(status_code=404, detail=error or "Skill not found")
+    await manager.broadcast("warroom:skill:deleted", {"id": skill_id})
     return {"ok": True}
 
 
@@ -281,10 +339,14 @@ async def delete_skill(skill_id: str) -> dict:
 # Workspace files (SOUL.md, IDENTITY.md, USER.md, AGENTS.md)
 # ---------------------------------------------------------------------------
 
+
 @router.get("/workspace-file", response_model=WorkspaceFileResponse)
 async def get_workspace_file(name: str = Query(...)) -> WorkspaceFileResponse:
     if not warroom_service._validate_workspace_filename(name):
-        raise HTTPException(status_code=400, detail="Invalid filename. Allowed: SOUL.md, IDENTITY.md, USER.md, AGENTS.md")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid filename. Allowed: SOUL.md, IDENTITY.md, USER.md, AGENTS.md",
+        )
     return await warroom_service.get_workspace_file(name)
 
 
@@ -297,10 +359,15 @@ async def update_workspace_file(name: str = Query(...), payload: _WorkspaceFileB
     if not warroom_service._validate_workspace_filename(name):
         raise HTTPException(status_code=400, detail="Invalid filename")
     await warroom_service.update_workspace_file(name, payload.content)
-    await activity_service.log_event(ActivityLogRequest(
-        actor="user", action="soul.updated", resource_type="soul",
-        resource_name=name, module="warroom",
-    ))
+    await activity_service.log_event(
+        ActivityLogRequest(
+            actor="user",
+            action="soul.updated",
+            resource_type="soul",
+            resource_name=name,
+            module="warroom",
+        )
+    )
     return {"ok": True}
 
 
@@ -316,7 +383,9 @@ class _RevertBody(_BaseModel):
 
 
 @router.post("/workspace-file/revert")
-async def revert_workspace_file(name: str = Query(...), payload: _RevertBody = ...) -> WorkspaceFileResponse:
+async def revert_workspace_file(
+    name: str = Query(...), payload: _RevertBody = ...
+) -> WorkspaceFileResponse:
     if not warroom_service._validate_workspace_filename(name):
         raise HTTPException(status_code=400, detail="Invalid filename")
     result = await warroom_service.revert_workspace_file(name, payload.index)
@@ -334,6 +403,7 @@ async def get_soul_templates() -> list[SoulTemplate]:
 # Calendar
 # ---------------------------------------------------------------------------
 
+
 @router.get("/calendar")
 async def get_calendar() -> dict[str, CalendarDay]:
     return await warroom_service.get_calendar()
@@ -342,6 +412,7 @@ async def get_calendar() -> dict[str, CalendarDay]:
 # ---------------------------------------------------------------------------
 # Stats (overview widget)
 # ---------------------------------------------------------------------------
+
 
 @router.get("/stats", response_model=WarRoomStats)
 async def get_stats() -> WarRoomStats:

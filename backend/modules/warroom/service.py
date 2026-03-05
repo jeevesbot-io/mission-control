@@ -46,11 +46,13 @@ _tasks_lock = threading.Lock()
 _projects_lock = threading.Lock()
 _openclaw_lock = threading.Lock()
 
+
 # Usage cache
 @dataclass
 class _UsageCache:
     computed_at: float
     result: UsageResponse
+
 
 _usage_cache: _UsageCache | None = None
 _USAGE_CACHE_TTL = 60  # seconds
@@ -118,14 +120,15 @@ _SOUL_TEMPLATES: list[SoulTemplate] = [
     ),
 ]
 
-SESSION_LIMIT = 45_000_000   # ~45M tokens per 5h session window
-WEEKLY_LIMIT = 180_000_000   # ~180M tokens per week
+SESSION_LIMIT = 45_000_000  # ~45M tokens per 5h session window
+WEEKLY_LIMIT = 180_000_000  # ~180M tokens per week
 
 
 def _gen_id() -> str:
     """Generate a short random ID (same pattern as VidClaw)."""
     import random
     import string
+
     chars = string.ascii_lowercase + string.digits
     return "".join(random.choices(chars, k=8))
 
@@ -170,6 +173,7 @@ def _has_cycle(tasks: list[dict], task_id: str, proposed_blocked_by: list[str]) 
     # We want to check: can we reach any of proposed_blocked_by starting from task_id via blocks?
     # Equivalently: starting from proposed_blocked_by, can we reach task_id via blockedBy?
     from collections import deque
+
     visited: set[str] = set()
     queue: deque[str] = deque(proposed_blocked_by)
     while queue:
@@ -258,7 +262,9 @@ class WarRoomService:
                     # Try to migrate legacy format (path -> url, missing id/createdAt)
                     migrated = {
                         "id": r.get("id", r.get("path", "")),
-                        "title": r.get("title", r.get("path", "").split("/")[-1] if r.get("path") else ""),
+                        "title": r.get(
+                            "title", r.get("path", "").split("/")[-1] if r.get("path") else ""
+                        ),
                         "url": r.get("url", r.get("path", "")),
                         "type": r.get("type", "link"),
                         "createdAt": r.get("createdAt", ""),
@@ -510,10 +516,12 @@ class WarRoomService:
             except ValueError:
                 queue.append(t)  # malformed schedule — include anyway
 
-        queue.sort(key=lambda t: (
-            PRIORITY_ORDER.get(t.get("priority", "medium"), 2),
-            t.get("scheduledAt") or "",
-        ))
+        queue.sort(
+            key=lambda t: (
+                PRIORITY_ORDER.get(t.get("priority", "medium"), 2),
+                t.get("scheduledAt") or "",
+            )
+        )
         return [Task(**self._sanitize_task(t)) for t in queue]
 
     async def pickup_task(self, task_id: str) -> Task | None:
@@ -633,7 +641,9 @@ class WarRoomService:
         result = []
         for p in raw_projects:
             proj = Project(**{k: v for k, v in p.items() if k in Project.model_fields})
-            result.append(ProjectWithCount(**proj.model_dump(), task_count=task_counts.get(proj.id, 0)))
+            result.append(
+                ProjectWithCount(**proj.model_dump(), task_count=task_counts.get(proj.id, 0))
+            )
         result.sort(key=lambda p: p.order)
         return result
 
@@ -668,7 +678,10 @@ class WarRoomService:
         """Returns (success, error_message). Error if tasks still reference this project."""
         raw_tasks = await asyncio.to_thread(self._read_tasks_sync)
         if any(t.get("project") == project_id for t in raw_tasks):
-            return False, "Cannot delete project with existing tasks. Reassign or delete tasks first."
+            return (
+                False,
+                "Cannot delete project with existing tasks. Reassign or delete tasks first.",
+            )
 
         def _delete():
             projects = self._read_projects_sync()
@@ -728,8 +741,12 @@ class WarRoomService:
     async def get_models(self) -> list[str]:
         def _read():
             config = self._read_openclaw_sync()
-            primary = (config.get("agents", {}).get("defaults", {}).get("model", {}).get("primary") or "")
-            fallbacks = config.get("agents", {}).get("defaults", {}).get("model", {}).get("fallbacks") or []
+            primary = (
+                config.get("agents", {}).get("defaults", {}).get("model", {}).get("primary") or ""
+            )
+            fallbacks = (
+                config.get("agents", {}).get("defaults", {}).get("model", {}).get("fallbacks") or []
+            )
             models_config = config.get("agents", {}).get("defaults", {}).get("models") or {}
             seen: dict[str, None] = {}
             for m in [primary, *fallbacks, *models_config.keys()]:
@@ -751,7 +768,9 @@ class WarRoomService:
 
     def _get_active_model_sync(self) -> str:
         config = self._read_openclaw_sync()
-        raw = config.get("agents", {}).get("defaults", {}).get("model", {}).get("primary", "unknown")
+        raw = (
+            config.get("agents", {}).get("defaults", {}).get("model", {}).get("primary", "unknown")
+        )
         return raw.replace("anthropic/", "")
 
     # -------------------------------------------------------------------------
@@ -903,15 +922,17 @@ class WarRoomService:
                     enabled = entry.get("enabled", True)
                     if enabled is None:
                         enabled = True
-                    skills.append({
-                        "id": skill_id,
-                        "name": fm.get("name") or skill_id,
-                        "description": fm.get("description") or "",
-                        "source": source,
-                        "enabled": bool(enabled),
-                        "path": str(d),
-                        "hasMetadata": has_metadata,
-                    })
+                    skills.append(
+                        {
+                            "id": skill_id,
+                            "name": fm.get("name") or skill_id,
+                            "description": fm.get("description") or "",
+                            "source": source,
+                            "enabled": bool(enabled),
+                            "path": str(d),
+                            "hasMetadata": has_metadata,
+                        }
+                    )
             except OSError:
                 continue
         return skills
@@ -948,7 +969,10 @@ class WarRoomService:
             md = f"---\nname: {payload.name}\ndescription: {desc}\n---\n\n{instructions}"
             (skill_dir / "SKILL.md").write_text(md, encoding="utf-8")
             all_skills = self._scan_skills_sync()
-            return next((s for s in all_skills if s["id"] == payload.name and s["source"] == "workspace"), None)
+            return next(
+                (s for s in all_skills if s["id"] == payload.name and s["source"] == "workspace"),
+                None,
+            )
 
         raw = await asyncio.to_thread(_create)
         if raw is None:
@@ -971,6 +995,7 @@ class WarRoomService:
     async def delete_skill(self, skill_id: str) -> tuple[bool, str | None]:
         def _delete():
             import shutil
+
             all_skills = self._scan_skills_sync()
             skill = next((s for s in all_skills if s["id"] == skill_id), None)
             if not skill:

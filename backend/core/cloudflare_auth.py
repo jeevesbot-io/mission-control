@@ -38,9 +38,7 @@ async def _get_public_keys() -> list[jwt.algorithms.RSAAlgorithm]:
 
         public_keys = []
         for key_data in jwks.get("keys", []):
-            public_keys.append(
-                jwt.algorithms.RSAAlgorithm.from_jwk(key_data)
-            )
+            public_keys.append(jwt.algorithms.RSAAlgorithm.from_jwk(key_data))
 
         _jwks_cache["keys"] = public_keys
         _jwks_cache["fetched_at"] = now

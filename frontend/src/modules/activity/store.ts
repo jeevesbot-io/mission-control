@@ -24,6 +24,7 @@ export interface ActivityStats {
   total_events: number
   by_module: Record<string, number>
   by_action: Record<string, number>
+  by_actor: Record<string, number>
   last_24h: number
 }
 

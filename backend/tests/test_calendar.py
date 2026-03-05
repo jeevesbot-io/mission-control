@@ -19,8 +19,12 @@ def test_modules_includes_calendar():
 
 def test_get_calendar_empty():
     with (
-        patch("modules.calendar.service.CalendarService.get_cron_jobs", new_callable=AsyncMock) as mock_cron,
-        patch("modules.calendar.service.CalendarService.get_upcoming_tasks", new_callable=AsyncMock) as mock_tasks,
+        patch(
+            "modules.calendar.service.CalendarService.get_cron_jobs", new_callable=AsyncMock
+        ) as mock_cron,
+        patch(
+            "modules.calendar.service.CalendarService.get_upcoming_tasks", new_callable=AsyncMock
+        ) as mock_tasks,
     ):
         mock_cron.return_value = []
         mock_tasks.return_value = []
@@ -46,8 +50,12 @@ def test_get_calendar_with_task_events():
         ),
     ]
     with (
-        patch("modules.calendar.service.CalendarService.get_cron_jobs", new_callable=AsyncMock) as mock_cron,
-        patch("modules.calendar.service.CalendarService.get_upcoming_tasks", new_callable=AsyncMock) as mock_tasks,
+        patch(
+            "modules.calendar.service.CalendarService.get_cron_jobs", new_callable=AsyncMock
+        ) as mock_cron,
+        patch(
+            "modules.calendar.service.CalendarService.get_upcoming_tasks", new_callable=AsyncMock
+        ) as mock_tasks,
     ):
         mock_cron.return_value = []
         mock_tasks.return_value = events
@@ -80,9 +88,13 @@ def test_get_calendar_with_cron_events():
         agent="main",
     )
     with (
-        patch("modules.calendar.service.CalendarService.get_cron_jobs", new_callable=AsyncMock) as mock_cron,
+        patch(
+            "modules.calendar.service.CalendarService.get_cron_jobs", new_callable=AsyncMock
+        ) as mock_cron,
         patch("modules.calendar.service.CalendarService._cron_to_calendar_events") as mock_convert,
-        patch("modules.calendar.service.CalendarService.get_upcoming_tasks", new_callable=AsyncMock) as mock_tasks,
+        patch(
+            "modules.calendar.service.CalendarService.get_upcoming_tasks", new_callable=AsyncMock
+        ) as mock_tasks,
     ):
         mock_cron.return_value = [cron_job]
         mock_convert.return_value = [cron_event]
@@ -98,7 +110,9 @@ def test_get_calendar_with_cron_events():
 def test_get_calendar_query_params():
     from modules.calendar.models import CalendarResponse
 
-    with patch("modules.calendar.service.CalendarService.get_calendar", new_callable=AsyncMock) as mock_cal:
+    with patch(
+        "modules.calendar.service.CalendarService.get_calendar", new_callable=AsyncMock
+    ) as mock_cal:
         mock_cal.return_value = CalendarResponse(events=[], cronJobs=[])
         response = client.get("/api/calendar/?days_ahead=7")
         assert response.status_code == 200
@@ -110,7 +124,9 @@ def test_get_calendar_query_params():
 
 
 def test_get_cron_jobs_empty():
-    with patch("modules.calendar.service.CalendarService.get_cron_jobs", new_callable=AsyncMock) as mock:
+    with patch(
+        "modules.calendar.service.CalendarService.get_cron_jobs", new_callable=AsyncMock
+    ) as mock:
         mock.return_value = []
         response = client.get("/api/calendar/jobs")
         assert response.status_code == 200
@@ -133,7 +149,9 @@ def test_get_cron_jobs_with_data():
             runCount=42,
         ),
     ]
-    with patch("modules.calendar.service.CalendarService.get_cron_jobs", new_callable=AsyncMock) as mock:
+    with patch(
+        "modules.calendar.service.CalendarService.get_cron_jobs", new_callable=AsyncMock
+    ) as mock:
         mock.return_value = jobs
         response = client.get("/api/calendar/jobs")
         assert response.status_code == 200

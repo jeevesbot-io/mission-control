@@ -8,6 +8,7 @@ from core.rate_limit import limiter
 from core.websocket import manager
 
 from .models import (
+    AgentDetailResponse,
     AgentInfo,
     AgentLogPage,
     AgentStatsResponse,
@@ -26,6 +27,12 @@ router = APIRouter()
 async def list_agents(db: AsyncSession = Depends(get_db)):
     """List known agents with activity summary."""
     return await agent_service.list_agents(db)
+
+
+@router.get("/detailed", response_model=list[AgentDetailResponse])
+async def list_agents_detailed(db: AsyncSession = Depends(get_db)):
+    """List agents with rich metadata, status, and task counts."""
+    return await agent_service.list_agents_detailed(db)
 
 
 @router.get("/stats", response_model=AgentStatsResponse)
@@ -69,9 +76,15 @@ async def trigger_agent(request: Request, agent_id: str):
         {"event": "trigger", "agent_id": agent_id, "message": message},
     )
 
-    await activity_service.log_event(ActivityLogRequest(
-        actor="user", action="agent.triggered", resource_type="agent",
-        resource_id=agent_id, resource_name=agent_id, module="agents",
-    ))
+    await activity_service.log_event(
+        ActivityLogRequest(
+            actor="user",
+            action="agent.triggered",
+            resource_type="agent",
+            resource_id=agent_id,
+            resource_name=agent_id,
+            module="agents",
+        )
+    )
 
     return TriggerResponse(success=True, message=message, agent_id=agent_id)

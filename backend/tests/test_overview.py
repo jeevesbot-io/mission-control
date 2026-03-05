@@ -7,11 +7,14 @@ from fastapi.testclient import TestClient
 
 from main import app
 from modules.overview.models import (
+    AgentActivityItem,
     AgentStatusSummary,
     OverviewResponse,
     OverviewStats,
     RecentActivity,
+    StandupResponse,
     SystemHealth,
+    TaskQueueItem,
     UpcomingEvent,
 )
 
@@ -224,3 +227,119 @@ def test_overview_agent_summary_fields():
         assert summary["entries_24h"] == 12
         assert summary["unique_agents"] == 1
         assert summary["health_rate"] == 93.4
+
+
+def _mock_standup(**overrides) -> StandupResponse:
+    """Build a mock StandupResponse with sensible defaults."""
+    defaults = dict(
+        date="2026-03-03",
+        task_queue=[
+            TaskQueueItem(
+                id=1,
+                title="Fix auth bug",
+                state="todo",
+                agent_id="builder",
+                priority=2,
+                labels=["bug"],
+            ),
+            TaskQueueItem(
+                id=2,
+                title="Write docs",
+                state="in_progress",
+                agent_id="scribe",
+                priority=3,
+                labels=["docs"],
+            ),
+        ],
+        tasks_done_24h=3,
+        tasks_in_progress=2,
+        tasks_in_review=1,
+        recent_agent_activity=[
+            AgentActivityItem(
+                agent_id="scribe",
+                action="state_changed",
+                detail="in_progress -> peer_review",
+                created_at=datetime.datetime(2026, 3, 3, 10, 0, tzinfo=datetime.UTC),
+            ),
+        ],
+        upcoming_events=[
+            UpcomingEvent(
+                id=1,
+                child="Family",
+                summary="Team meeting",
+                event_date="2026-03-03",
+                event_end_date=None,
+                event_time="09:00",
+                days_away=0,
+            ),
+        ],
+        blockers=[],
+    )
+    defaults.update(overrides)
+    return StandupResponse(**defaults)
+
+
+def test_standup_returns_200():
+    standup = _mock_standup()
+    with patch(
+        "modules.overview.service.OverviewService.get_standup",
+        new_callable=AsyncMock,
+    ) as mock:
+        mock.return_value = standup
+        response = client.get("/api/overview/standup")
+        assert response.status_code == 200
+
+
+def test_standup_has_all_sections():
+    standup = _mock_standup()
+    with patch(
+        "modules.overview.service.OverviewService.get_standup",
+        new_callable=AsyncMock,
+    ) as mock:
+        mock.return_value = standup
+        data = client.get("/api/overview/standup").json()
+        assert "date" in data
+        assert "task_queue" in data
+        assert "tasks_done_24h" in data
+        assert "tasks_in_progress" in data
+        assert "tasks_in_review" in data
+        assert "recent_agent_activity" in data
+        assert "upcoming_events" in data
+        assert "blockers" in data
+
+
+def test_standup_task_queue():
+    standup = _mock_standup()
+    with patch(
+        "modules.overview.service.OverviewService.get_standup",
+        new_callable=AsyncMock,
+    ) as mock:
+        mock.return_value = standup
+        data = client.get("/api/overview/standup").json()
+        assert len(data["task_queue"]) == 2
+        assert data["task_queue"][0]["title"] == "Fix auth bug"
+        assert data["tasks_done_24h"] == 3
+        assert data["tasks_in_progress"] == 2
+        assert data["tasks_in_review"] == 1
+
+
+def test_standup_empty_state():
+    standup = _mock_standup(
+        task_queue=[],
+        tasks_done_24h=0,
+        tasks_in_progress=0,
+        tasks_in_review=0,
+        recent_agent_activity=[],
+        upcoming_events=[],
+        blockers=[],
+    )
+    with patch(
+        "modules.overview.service.OverviewService.get_standup",
+        new_callable=AsyncMock,
+    ) as mock:
+        mock.return_value = standup
+        response = client.get("/api/overview/standup")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["task_queue"] == []
+        assert data["blockers"] == []

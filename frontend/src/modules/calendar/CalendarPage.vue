@@ -1,12 +1,13 @@
 <template>
+  <PageShell>
   <div class="calendar-page">
     <div class="header">
-      <h1><i class="pi pi-calendar mr-2"></i>Calendar</h1>
+      <h1><McIcon name="calendar" :size="24" class="mr-2" />Calendar</h1>
       <p class="subtitle">Scheduled tasks, cron jobs, and upcoming work</p>
     </div>
 
     <div v-if="error" class="error-banner">
-      <i class="pi pi-exclamation-triangle mr-2"></i>
+      <McIcon name="alert-triangle" :size="16" class="mr-2" />
       {{ error }}
     </div>
 
@@ -61,7 +62,7 @@
               class="event-marker"
               :class="`event-marker-${slotProps.item.type}`"
             >
-              <i :class="getEventIcon(slotProps.item)"></i>
+              <McIcon :name="getEventIcon(slotProps.item)" :size="20" style="color: white" />
             </span>
           </template>
           <template #content="slotProps">
@@ -78,10 +79,10 @@
               </template>
               <template #subtitle>
                 <div class="event-time">
-                  <i class="pi pi-clock mr-1"></i>
+                  <McIcon name="clock" :size="14" class="mr-1" />
                   {{ formatDateTime(slotProps.item.start) }}
                   <span v-if="slotProps.item.agent" class="ml-2">
-                    <i class="pi pi-user mr-1"></i>
+                    <McIcon name="bot" :size="14" class="mr-1" />
                     {{ slotProps.item.agent }}
                   </span>
                 </div>
@@ -92,7 +93,7 @@
                 </p>
                 <div v-if="slotProps.item.metadata?.runCount !== undefined" class="metadata">
                   <span class="metadata-item">
-                    <i class="pi pi-replay mr-1"></i>
+                    <McIcon name="refresh-cw" :size="14" class="mr-1" />
                     {{ slotProps.item.metadata.runCount }} runs
                   </span>
                 </div>
@@ -101,7 +102,7 @@
           </template>
         </Timeline>
         <div v-else class="no-events">
-          <i class="pi pi-calendar-times mb-3" style="font-size: 3rem; opacity: 0.5"></i>
+          <McIcon name="calendar" :size="48" style="opacity: 0.5" class="mb-3" />
           <p>No upcoming events scheduled</p>
         </div>
       </Panel>
@@ -117,7 +118,7 @@
                   class="event-icon"
                   :class="`event-icon-${event.type}`"
                 >
-                  <i :class="getEventIcon(event)"></i>
+                  <McIcon :name="getEventIcon(event)" :size="20" style="color: white" />
                 </span>
                 <Tag
                   :value="event.type"
@@ -131,7 +132,7 @@
             </template>
             <template #subtitle>
               <div class="event-grid-time">
-                <i class="pi pi-clock mr-1"></i>
+                <McIcon name="clock" :size="14" class="mr-1" />
                 {{ formatDateTime(event.start) }}
               </div>
             </template>
@@ -140,14 +141,14 @@
                 {{ event.description }}
               </p>
               <div v-if="event.agent" class="agent-badge">
-                <i class="pi pi-user mr-1"></i>
+                <McIcon name="bot" :size="14" class="mr-1" />
                 {{ event.agent }}
               </div>
             </template>
           </Card>
         </div>
         <div v-else class="no-events">
-          <i class="pi pi-calendar-times mb-3" style="font-size: 3rem; opacity: 0.5"></i>
+          <McIcon name="calendar" :size="48" style="opacity: 0.5" class="mb-3" />
           <p>No upcoming events scheduled</p>
         </div>
       </Panel>
@@ -166,7 +167,7 @@
               <Card v-for="event in day.events" :key="event.id" class="week-event-card">
                 <template #content>
                   <div class="week-event-title">
-                    <i :class="getEventIcon(event)" class="mr-1"></i>
+                    <McIcon :name="getEventIcon(event)" :size="14" class="mr-1" />
                     {{ event.title }}
                   </div>
                   <div class="week-event-time">{{ formatDateTime(event.start) }}</div>
@@ -259,11 +260,14 @@
       </Panel>
     </div>
   </div>
+  </PageShell>
 </template>
 
 <script setup lang="ts">
 import { onMounted, computed, ref } from 'vue'
 import { useCalendarStore } from './store'
+import PageShell from '@/components/layout/PageShell.vue'
+import McIcon from '@/components/ui/McIcon.vue'
 import Button from 'primevue/button'
 import Panel from 'primevue/panel'
 import Timeline from 'primevue/timeline'
@@ -343,12 +347,12 @@ function goToToday() {
 }
 
 function getEventIcon(event: CalendarEvent): string {
-  const iconMap = {
-    cron: 'pi pi-clock',
-    task: 'pi pi-check-square',
-    reminder: 'pi pi-bell',
+  const iconMap: Record<string, string> = {
+    cron: 'clock',
+    task: 'check-square',
+    reminder: 'zap',
   }
-  return iconMap[event.type] || 'pi pi-calendar'
+  return iconMap[event.type] || 'calendar'
 }
 
 function getTypeSeverity(type: string): string {
@@ -405,7 +409,7 @@ function formatSchedule(schedule: CronSchedule): string {
 
 <style scoped>
 .calendar-page {
-  padding: 2rem;
+  padding: 0;
 }
 
 .header {
@@ -413,6 +417,7 @@ function formatSchedule(schedule: CronSchedule): string {
 }
 
 .header h1 {
+  font-family: var(--mc-font-display);
   font-size: 2rem;
   font-weight: 600;
   margin: 0 0 0.5rem 0;
@@ -421,13 +426,13 @@ function formatSchedule(schedule: CronSchedule): string {
 }
 
 .subtitle {
-  color: var(--text-color-secondary);
+  color: var(--mc-text-muted);
   margin: 0;
 }
 
 .error-banner {
-  background: var(--red-100);
-  color: var(--red-900);
+  background: color-mix(in srgb, var(--mc-danger) 15%, transparent);
+  color: var(--mc-danger);
   padding: 1rem;
   border-radius: 6px;
   margin-bottom: 1rem;
@@ -463,7 +468,7 @@ function formatSchedule(schedule: CronSchedule): string {
 .no-events {
   text-align: center;
   padding: 3rem;
-  color: var(--text-color-secondary);
+  color: var(--mc-text-muted);
 }
 
 /* Timeline Customization */
@@ -484,15 +489,15 @@ function formatSchedule(schedule: CronSchedule): string {
 }
 
 .event-marker-cron {
-  background: var(--blue-500);
+  background: var(--mc-info);
 }
 
 .event-marker-task {
-  background: var(--orange-500);
+  background: var(--mc-warning);
 }
 
 .event-marker-reminder {
-  background: var(--green-500);
+  background: var(--mc-success);
 }
 
 .event-card {
@@ -507,13 +512,13 @@ function formatSchedule(schedule: CronSchedule): string {
 .event-time {
   display: flex;
   align-items: center;
-  color: var(--text-color-secondary);
+  color: var(--mc-text-muted);
   font-size: 0.9rem;
 }
 
 .event-description {
   margin: 0.5rem 0 0 0;
-  color: var(--text-color-secondary);
+  color: var(--mc-text-muted);
 }
 
 .metadata {
@@ -524,12 +529,12 @@ function formatSchedule(schedule: CronSchedule): string {
 
 .metadata-item {
   font-size: 0.85rem;
-  color: var(--text-color-secondary);
+  color: var(--mc-text-muted);
 }
 
 .schedule-detail {
   font-size: 0.9rem;
-  color: var(--text-color-secondary);
+  color: var(--mc-text-muted);
 }
 
 /* Grid View */
@@ -547,7 +552,7 @@ function formatSchedule(schedule: CronSchedule): string {
   display: flex;
   align-items: center;
   padding: 1rem;
-  background: var(--surface-50);
+  background: var(--mc-bg-surface);
 }
 
 .event-icon {
@@ -562,21 +567,21 @@ function formatSchedule(schedule: CronSchedule): string {
 }
 
 .event-icon-cron {
-  background: var(--blue-500);
+  background: var(--mc-info);
 }
 
 .event-icon-task {
-  background: var(--orange-500);
+  background: var(--mc-warning);
 }
 
 .event-icon-reminder {
-  background: var(--green-500);
+  background: var(--mc-success);
 }
 
 .event-grid-time {
   display: flex;
   align-items: center;
-  color: var(--text-color-secondary);
+  color: var(--mc-text-muted);
   font-size: 0.9rem;
   margin-top: 0.5rem;
 }
@@ -585,7 +590,7 @@ function formatSchedule(schedule: CronSchedule): string {
   display: inline-flex;
   align-items: center;
   padding: 0.5rem 1rem;
-  background: var(--surface-100);
+  background: var(--mc-bg-elevated);
   border-radius: 6px;
   font-size: 0.85rem;
   margin-top: 1rem;
@@ -602,7 +607,7 @@ function formatSchedule(schedule: CronSchedule): string {
 .week-day-col {
   display: flex;
   flex-direction: column;
-  background: var(--surface-50);
+  background: var(--mc-bg-surface);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -610,19 +615,19 @@ function formatSchedule(schedule: CronSchedule): string {
 .week-day-header {
   padding: 0.75rem 0.5rem;
   text-align: center;
-  border-bottom: 2px solid var(--surface-200);
+  border-bottom: 2px solid var(--mc-border-strong);
   font-weight: 600;
 }
 
 .week-day-header.is-today {
-  background: rgba(59, 130, 246, 0.1);
-  border-bottom-color: var(--blue-500);
+  background: var(--mc-accent-subtle);
+  border-bottom-color: var(--mc-info);
 }
 
 .week-day-name {
   display: block;
   font-size: 0.75rem;
-  color: var(--text-color-secondary);
+  color: var(--mc-text-muted);
   text-transform: uppercase;
 }
 
@@ -641,7 +646,7 @@ function formatSchedule(schedule: CronSchedule): string {
 
 .week-no-events {
   text-align: center;
-  color: var(--text-color-secondary);
+  color: var(--mc-text-muted);
   padding: 1rem 0;
 }
 
@@ -658,7 +663,7 @@ function formatSchedule(schedule: CronSchedule): string {
 
 .week-event-time {
   font-size: 0.72rem;
-  color: var(--text-color-secondary);
+  color: var(--mc-text-muted);
   margin-top: 0.25rem;
 }
 </style>

@@ -8,11 +8,14 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .models import (
+    AgentActivityItem,
     AgentStatusSummary,
     OverviewResponse,
     OverviewStats,
     RecentActivity,
+    StandupResponse,
     SystemHealth,
+    TaskQueueItem,
     UpcomingEvent,
 )
 
@@ -98,7 +101,9 @@ class OverviewService:
             events = []
             for ce in cal.events[:20]:
                 # Parse date for days_away
-                event_date_str = ce.start_date or (ce.start_datetime[:10] if ce.start_datetime else None)
+                event_date_str = ce.start_date or (
+                    ce.start_datetime[:10] if ce.start_datetime else None
+                )
                 if event_date_str:
                     event_date = datetime.date.fromisoformat(event_date_str)
                     days_away = (event_date - today).days
@@ -110,9 +115,12 @@ class OverviewService:
                         id=hash(ce.id) % 100000,
                         child=ce.child or "Family",
                         summary=ce.summary,
-                        event_date=ce.start_date or (ce.start_datetime[:10] if ce.start_datetime else ""),
+                        event_date=ce.start_date
+                        or (ce.start_datetime[:10] if ce.start_datetime else ""),
                         event_end_date=ce.end_date,
-                        event_time=ce.start_datetime[11:16] if ce.start_datetime and not ce.all_day else None,
+                        event_time=ce.start_datetime[11:16]
+                        if ce.start_datetime and not ce.all_day
+                        else None,
                         days_away=days_away,
                     )
                 )
@@ -191,6 +199,127 @@ class OverviewService:
             events_this_week=len(upcoming_events),
             emails_processed=emails_processed,
             tasks_pending=tasks_total,
+        )
+
+    async def get_standup(self, db: AsyncSession) -> StandupResponse:
+        """Build the daily standup summary from mc_tasks + mc_activity."""
+        today = datetime.date.today().isoformat()
+
+        # Task queue: non-terminal tasks ordered by priority
+        task_queue = []
+        try:
+            result = await db.execute(
+                text("""
+                    SELECT id, title, state, agent_id, priority, labels
+                    FROM mc_tasks
+                    WHERE state NOT IN ('done', 'cancelled')
+                    ORDER BY priority ASC, updated_at DESC
+                    LIMIT 20
+                """)
+            )
+            task_queue = [
+                TaskQueueItem(
+                    id=row.id,
+                    title=row.title,
+                    state=row.state,
+                    agent_id=row.agent_id,
+                    priority=row.priority,
+                    labels=row.labels,
+                )
+                for row in result.fetchall()
+            ]
+        except Exception as exc:
+            logger.warning("Standup: failed to get task queue: %s", exc)
+
+        # Counts
+        tasks_done_24h = 0
+        tasks_in_progress = 0
+        tasks_in_review = 0
+        try:
+            result = await db.execute(
+                text("""
+                    SELECT
+                        COUNT(*) FILTER (
+                            WHERE state = 'done'
+                            AND updated_at >= NOW() - INTERVAL '24 hours'
+                        ) as done_24h,
+                        COUNT(*) FILTER (
+                            WHERE state = 'in_progress'
+                        ) as in_progress,
+                        COUNT(*) FILTER (
+                            WHERE state IN ('peer_review', 'review')
+                        ) as in_review
+                    FROM mc_tasks
+                """)
+            )
+            row = result.fetchone()
+            if row:
+                tasks_done_24h = row.done_24h
+                tasks_in_progress = row.in_progress
+                tasks_in_review = row.in_review
+        except Exception as exc:
+            logger.warning("Standup: failed to get task counts: %s", exc)
+
+        # Recent agent activity (last 24h from mc_activity)
+        recent_agent_activity = []
+        try:
+            result = await db.execute(
+                text("""
+                    SELECT agent_id, action, detail, created_at
+                    FROM mc_activity
+                    WHERE created_at >= NOW() - INTERVAL '24 hours'
+                    ORDER BY created_at DESC
+                    LIMIT 20
+                """)
+            )
+            recent_agent_activity = [
+                AgentActivityItem(
+                    agent_id=row.agent_id,
+                    action=row.action,
+                    detail=row.detail,
+                    created_at=row.created_at,
+                )
+                for row in result.fetchall()
+            ]
+        except Exception as exc:
+            logger.warning("Standup: failed to get agent activity: %s", exc)
+
+        # Blockers
+        blockers = []
+        try:
+            result = await db.execute(
+                text("""
+                    SELECT id, title, state, agent_id, priority, labels
+                    FROM mc_tasks
+                    WHERE state = 'blocked'
+                    ORDER BY priority ASC
+                """)
+            )
+            blockers = [
+                TaskQueueItem(
+                    id=row.id,
+                    title=row.title,
+                    state=row.state,
+                    agent_id=row.agent_id,
+                    priority=row.priority,
+                    labels=row.labels,
+                )
+                for row in result.fetchall()
+            ]
+        except Exception as exc:
+            logger.warning("Standup: failed to get blockers: %s", exc)
+
+        upcoming_events = await self._get_upcoming_events(db)
+
+        return StandupResponse(
+            date=today,
+            task_queue=task_queue,
+            tasks_done_24h=tasks_done_24h,
+            tasks_in_progress=tasks_in_progress,
+            tasks_in_review=tasks_in_review,
+            recent_agent_activity=recent_agent_activity,
+            upcoming_events=upcoming_events,
+            blockers=blockers,
         )
 
 

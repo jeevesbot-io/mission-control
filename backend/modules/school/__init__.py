@@ -5,7 +5,7 @@ from .router import router
 MODULE_INFO = {
     "id": "school",
     "name": "School",
-    "icon": "\U0001f3e5",  # 🏥
+    "icon": "\U0001f393",  # 🎓
     "router": router,
     "prefix": "/api/school",
 }

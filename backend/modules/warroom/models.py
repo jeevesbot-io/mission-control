@@ -18,6 +18,7 @@ SkillSource = Literal["bundled", "managed", "workspace"]
 
 # --- References ---
 
+
 class Reference(BaseModel):
     id: str
     title: str
@@ -33,6 +34,7 @@ class ReferenceCreate(BaseModel):
 
 
 # --- Tasks ---
+
 
 class Task(BaseModel):
     id: str
@@ -100,6 +102,7 @@ class TaskComplete(BaseModel):
 
 # --- Projects ---
 
+
 class Project(BaseModel):
     id: str
     name: str
@@ -135,6 +138,7 @@ class ProjectWithCount(Project):
 
 # --- Usage / Models ---
 
+
 class UsageTier(BaseModel):
     label: str
     percent: int
@@ -153,11 +157,13 @@ class ModelResponse(BaseModel):
 
 # --- Heartbeat ---
 
+
 class HeartbeatResponse(BaseModel):
     lastHeartbeat: int | None = None
 
 
 # --- Skills ---
+
 
 class Skill(BaseModel):
     id: str
@@ -177,6 +183,7 @@ class SkillCreate(BaseModel):
 
 # --- Workspace Files / Soul ---
 
+
 class WorkspaceFileResponse(BaseModel):
     content: str
     lastModified: str | None = None
@@ -195,12 +202,14 @@ class SoulTemplate(BaseModel):
 
 # --- Calendar ---
 
+
 class CalendarDay(BaseModel):
     memory: bool = False
     tasks: list[str] = []
 
 
 # --- Stats (for overview widget) ---
+
 
 class WarRoomStats(BaseModel):
     in_progress_count: int

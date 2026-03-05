@@ -83,9 +83,7 @@ def create_app() -> FastAPI:
     @app.get("/api/modules", response_model=list[ModuleInfoResponse])
     async def list_modules():
         return [
-            ModuleInfoResponse(
-                id=m["id"], name=m["name"], icon=m["icon"], prefix=m["prefix"]
-            )
+            ModuleInfoResponse(id=m["id"], name=m["name"], icon=m["icon"], prefix=m["prefix"])
             for m in app.state.modules
         ]
 
