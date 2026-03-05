@@ -13,9 +13,11 @@ def test_health_returns_200():
     assert "version" in data
 
 
-def test_modules_includes_memory():
+def test_modules_excludes_extracted():
+    """Memory was extracted to MemoryViewer standalone app."""
     response = client.get("/api/modules")
     assert response.status_code == 200
     modules = response.json()
     ids = [m["id"] for m in modules]
-    assert "memory" in ids
+    assert "memory" not in ids
+    assert "warroom" in ids
