@@ -29,9 +29,8 @@ Thumbs.db
 # Generated types
 frontend/src/types/api.ts
 
-# Alembic
-backend/alembic/versions/*.py
-!backend/alembic/versions/.gitkeep
+# Alembic (keep __pycache__ out, but track migration .py files)
+backend/alembic/versions/__pycache__/
 
 # Docker
 .docker/
