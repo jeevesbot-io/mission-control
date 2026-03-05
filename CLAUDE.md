@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Mission Control** is an agent orchestration dashboard -- a plugin-based platform for managing autonomous agents, tasks, and workflows. It replaces a previous Flask dashboard (Matron) with a proper full-stack platform.
 
-All build phases (1-9) are complete. Refactoring in progress (Phase 1 done). Active modules: Memory, Agents, Overview, War Room, Calendar, Chat, Content Pipeline, Office View, Activity Timeline. School module extracted to `~/projects/FamilyDashboard/` (Phase 1, 2026-03-05).
+All build phases (1-9) are complete. Refactoring Phases 1-2 complete. Active modules: **Overview, War Room, Agents (with Office view tab), Calendar, Activity** (5 modules). Extracted: School -> `~/projects/FamilyDashboard/` (Phase 1), Content -> `~/projects/ContentPipeline/`, Memory -> `~/projects/MemoryViewer/`, Chat deleted, Office merged into Agents. Phase 2 completed 2026-03-05.
 
 ## Tech Stack
 
@@ -18,7 +18,7 @@ All build phases (1-9) are complete. Refactoring in progress (Phase 1 done). Act
 - **Type sync:** `openapi-typescript` generates `frontend/src/types/api.ts` from FastAPI's `/openapi.json`
 - **Package management:** `uv` (backend), `npm` (frontend)
 - **Linting:** ruff (backend), vue-tsc (frontend type checking)
-- **Testing:** pytest + pytest-asyncio (backend, 110 tests), vitest (frontend, 69 tests), Playwright (e2e)
+- **Testing:** pytest + pytest-asyncio (backend, 81 tests), vitest (frontend, 52 tests), Playwright (e2e, 5 specs)
 - **Deployment:** Docker via Colima, multi-stage build (Vite -> FastAPI StaticFiles), port 5050 production
 
 ## Development Commands
@@ -35,12 +35,12 @@ uv run uvicorn main:app --reload --port 5055
 npm run dev
 
 # Run backend tests (from backend/)
-uv run pytest                        # all 107 tests
+uv run pytest                        # all 81 tests
 uv run pytest tests/test_memory.py   # single module
 uv run pytest -k "test_warroom"      # by keyword
 
 # Run frontend tests (from frontend/)
-npm test                             # all 77 vitest tests
+npm test                             # all 52 vitest tests
 npm test -- src/modules/warroom/store.test.ts  # single file
 
 # Run e2e tests (from frontend/, requires both servers running)
@@ -126,16 +126,12 @@ MissionControls/
 |   |   +-- websocket.py     # ConnectionManager (topic pub/sub)
 |   +-- modules/
 |   |   +-- activity/        # Activity Timeline feed
-|   |   +-- agents/          # Agent management + triggers
+|   |   +-- agents/          # Agent management + triggers + Office view tab
 |   |   +-- calendar/        # Google Calendar via gog CLI
-|   |   +-- chat/            # Chat interface (rate-limited 30/min)
-|   |   +-- content/         # Content Pipeline (Kanban stages)
-|   |   +-- memory/          # Memory file viewer + search
-|   |   +-- office/          # Office View (agent status overview)
 |   |   +-- overview/        # Dashboard Overview (widget aggregation)
 |   |   +-- warroom/         # War Room (task management, projects, skills, soul files)
 |   +-- alembic/             # Database migration scripts
-|   +-- tests/               # 110 pytest tests (one file per module + test_health.py)
+|   +-- tests/               # 81 pytest tests (one file per module + test_health.py)
 |   +-- pyproject.toml       # Python deps and tool config
 +-- frontend/
 |   +-- src/
@@ -163,21 +159,15 @@ MissionControls/
 | Module | Backend Prefix | Purpose |
 |--------|---------------|---------|
 | Overview | `/api/overview` | Dashboard home, aggregates widgets from all modules |
-| Memory | `/api/memory` | Browse/search memory markdown files |
-| Agents | `/api/agents` | Agent list, logs, stats, trigger execution |
+| Agents | `/api/agents` | Agent list, logs, stats, trigger execution. Office view available at `/api/agents/office` |
 | War Room | `/api/warroom` | Task management, projects, skills, soul files, model config |
 | Calendar | `/api/calendar` | Google Calendar via gog CLI |
-| Chat | `/api/chat` | Chat interface (rate-limited) |
-| Content | `/api/content` | Content Pipeline (Kanban: idea -> draft -> review -> published) |
-| Office | `/api/office` | Agent status birds-eye view |
 | Activity | `/api/activity` | Activity feed with filtering |
 
 ## Data Sources
 
 | Data | Source | Access Method |
 |------|--------|---------------|
-| Memory files | `~/.openclaw/workspace/memory/*.md` | File read + in-memory cache with file watcher |
-| MEMORY.md | `~/.openclaw/workspace/MEMORY.md` | File read |
 | Family calendar | Google Calendar (`sollyfamily3@gmail.com`) | `gog` CLI subprocess |
 | Agent activity | Postgres (`agent_log`) | Async raw SQL |
 | Cron jobs | OpenClaw gateway API (`:18789`) | HTTP |
@@ -186,10 +176,10 @@ MissionControls/
 | Soul files | `~/.openclaw/workspace/SOUL.md`, `IDENTITY.md`, `USER.md`, `AGENTS.md` | File read/write with 20-entry history |
 | OpenClaw config | `~/.openclaw/openclaw.json` | File read/write (model, skill enabled state) |
 | Usage sessions | `~/.openclaw/agents/main/sessions/*.jsonl` | Parsed async, 60s TTL cache |
-| Content pipeline | `~/.openclaw/workspace/dashboard/data/content.json` | File read/write |
+
 | Activity events | `~/.openclaw/workspace/dashboard/data/activity.json` | File read/write (capped 1000 entries) |
 
-No `memory_entries` table -- memory markdown files are the source of truth. No Redis or message queue.
+No Redis or message queue.
 
 ## Database Schema
 
@@ -210,7 +200,6 @@ From `.env.example`:
 | `PORT` | Backend port | `5055` |
 | `DEBUG` | Enable debug mode | `true` |
 | `CORS_ORIGINS` | Allowed origins (comma-separated) | `localhost:5173,localhost:5055` |
-| `MEMORY_PATH` | Path to memory markdown files | `~/.openclaw/workspace/memory` |
 | `OPENCLAW_URL` | OpenClaw gateway for agent triggers | `http://localhost:18789` |
 | `CF_ACCESS_TEAM` | Cloudflare Access team (empty = disabled) | empty |
 
@@ -251,7 +240,6 @@ From `.env.example`:
 - **Port:** `:5055` dev, `:5050` production (Matron cutover)
 - **Agent triggers:** `POST /api/agents/{id}/trigger` sends HTTP to OpenClaw gateway -- Mission Control is the control plane, not the execution engine
 - **WebSocket:** Topic-based JSON messages; `useWebSocket` composable handles reconnection with exponential backoff
-- **Memory:** Read-only in the UI; edited via filesystem directly
 - **CORS:** Dev uses FastAPI middleware; production serves static files via single-origin FastAPI mount
 - **Rate limiting:** `slowapi` on sensitive endpoints (e.g., chat: 30/minute)
 - **No ORM models:** Raw SQL preferred for query flexibility with existing Postgres schema
@@ -264,37 +252,17 @@ GET  /api/health
 GET  /api/modules
 GET  /api/overview
 
-# Memory
-GET  /api/memory/files
-GET  /api/memory/files/{date}
-GET  /api/memory/long-term
-GET  /api/memory/search?q=...
-GET  /api/memory/stats
-
 # Agents
 GET  /api/agents/
 GET  /api/agents/stats
 GET  /api/agents/{id}/log
 GET  /api/agents/cron
 POST /api/agents/{id}/trigger
+GET  /api/agents/office          # Office view (merged from former Office module)
 
 # Calendar
 GET  /api/calendar/?start_date=&days_ahead=14
 GET  /api/calendar/jobs
-
-# Chat
-POST /api/chat/send
-GET  /api/chat/health
-
-# Content Pipeline
-GET    /api/content/
-POST   /api/content/
-PATCH  /api/content/{item_id}
-DELETE /api/content/{item_id}
-POST   /api/content/{item_id}/move/{target_stage}
-
-# Office View
-GET  /api/office/
 
 # War Room
 GET    /api/warroom/tasks
