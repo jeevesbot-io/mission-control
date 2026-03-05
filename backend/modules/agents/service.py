@@ -9,7 +9,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.config import settings
 from core.constants import AGENT_METADATA, KNOWN_AGENTS
 
-from .models import AgentDetailResponse, AgentInfo, AgentLogEntry, AgentStatsResponse, CronJob
+from .models import (
+    AgentDetailResponse,
+    AgentInfo,
+    AgentLogEntry,
+    AgentStatsResponse,
+    AgentWorkstation,
+    CronJob,
+    OfficeViewResponse,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -277,6 +285,92 @@ class AgentService:
         except httpx.RequestError as exc:
             logger.warning("Failed to fetch cron jobs: %s", exc)
             return []
+
+    # --- Office view (merged from Office module) ---
+
+    AGENT_COLORS = {
+        "main": "#3b82f6",
+        "matron": "#f97316",
+        "archivist": "#8b5cf6",
+        "curator": "#ec4899",
+        "foundry-blacksmith": "#14b8a6",
+        "foundry-scout": "#06b6d4",
+        "foundry-spec": "#10b981",
+        "foundry-builder": "#84cc16",
+    }
+
+    POSITIONS = [
+        {"x": 100, "y": 100},
+        {"x": 300, "y": 100},
+        {"x": 500, "y": 100},
+        {"x": 100, "y": 300},
+        {"x": 300, "y": 300},
+        {"x": 500, "y": 300},
+        {"x": 100, "y": 500},
+        {"x": 300, "y": 500},
+    ]
+
+    async def get_office_view(self, db: AsyncSession) -> OfficeViewResponse:
+        """Get office view with all agent workstations."""
+        try:
+            query = text(
+                """
+                SELECT DISTINCT ON (agent) agent, created_at as last_seen, message
+                FROM agent_log
+                WHERE created_at > NOW() - INTERVAL '1 hour'
+                ORDER BY agent, created_at DESC
+                """
+            )
+            result = await db.execute(query)
+            rows = result.fetchall()
+
+            workstations = []
+            active_agents = {}
+
+            for row in rows:
+                agent_id = row.agent
+                active_agents[agent_id] = {
+                    "last_seen": row.last_seen,
+                    "current_task": row.message[:100] if row.message else None,
+                }
+
+            for idx, (agent_id, display_name) in enumerate(KNOWN_AGENTS.items()):
+                if idx < len(self.POSITIONS):
+                    position = self.POSITIONS[idx]
+                else:
+                    position = {"x": 100 + (idx % 3) * 200, "y": 100 + (idx // 3) * 200}
+
+                status = "idle"
+                current_task = None
+                last_seen = None
+
+                if agent_id in active_agents:
+                    status = "working"
+                    current_task = active_agents[agent_id]["current_task"]
+                    last_seen = active_agents[agent_id]["last_seen"]
+
+                workstation = AgentWorkstation(
+                    agent_id=agent_id,
+                    display_name=display_name,
+                    avatar_color=self.AGENT_COLORS.get(agent_id, "#6b7280"),
+                    status=status,
+                    current_task=current_task,
+                    last_seen=last_seen,
+                    position=position,
+                )
+                workstations.append(workstation)
+
+            office_stats = {
+                "total_agents": len(workstations),
+                "active_agents": len(active_agents),
+                "idle_agents": len(workstations) - len(active_agents),
+            }
+
+            return OfficeViewResponse(workstations=workstations, office_stats=office_stats)
+
+        except Exception as e:
+            logger.warning("Error getting office view: %s", e)
+            return OfficeViewResponse(workstations=[], office_stats={})
 
 
 agent_service = AgentService()

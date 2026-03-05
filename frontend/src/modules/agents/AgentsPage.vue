@@ -13,6 +13,7 @@ import Tab from 'primevue/tab'
 import TabPanels from 'primevue/tabpanels'
 import TabPanel from 'primevue/tabpanel'
 import TeamView from './TeamView.vue'
+import OfficeView from './OfficeView.vue'
 
 const store = useAgentsStore()
 const { subscribe } = useWebSocket()
@@ -73,6 +74,7 @@ async function handleTrigger(agentId: string) {
         <TabList>
           <Tab :value="0">Fleet Status</Tab>
           <Tab :value="1">Team Structure</Tab>
+          <Tab :value="2">Office View</Tab>
         </TabList>
         <TabPanels>
         <TabPanel :value="0">
@@ -192,6 +194,10 @@ async function handleTrigger(agentId: string) {
 
         <TabPanel :value="1">
           <TeamView />
+        </TabPanel>
+
+        <TabPanel :value="2">
+          <OfficeView />
         </TabPanel>
         </TabPanels>
       </Tabs>

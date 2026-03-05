@@ -13,6 +13,7 @@ from .models import (
     AgentLogPage,
     AgentStatsResponse,
     CronResponse,
+    OfficeViewResponse,
     TriggerResponse,
 )
 from modules.activity.models import ActivityLogRequest
@@ -46,6 +47,12 @@ async def get_cron():
     """Fetch cron schedule from OpenClaw gateway."""
     jobs = await agent_service.get_cron_jobs()
     return CronResponse(jobs=jobs)
+
+
+@router.get("/office", response_model=OfficeViewResponse)
+async def get_office_view(db: AsyncSession = Depends(get_db)):
+    """Get the office view with agent workstations."""
+    return await agent_service.get_office_view(db)
 
 
 @router.get("/{agent_id}/log", response_model=AgentLogPage)

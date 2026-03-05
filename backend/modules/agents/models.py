@@ -1,9 +1,9 @@
 """Pydantic schemas for the Agents module."""
 
 import datetime
-from typing import Any
+from typing import Any, Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class AgentInfo(BaseModel):
@@ -83,3 +83,23 @@ class AgentDetailResponse(BaseModel):
     tasks_in_progress: int
     tasks_assigned: int
     responsibilities: list[str]
+
+
+class AgentWorkstation(BaseModel):
+    """Agent workstation representation for office view."""
+
+    agent_id: str
+    display_name: str
+    avatar_color: str
+    status: Literal["active", "idle", "working", "scheduled", "offline"]
+    current_task: Optional[str] = None
+    last_seen: Optional[datetime.datetime] = None
+    position: dict = Field(default_factory=dict)  # x, y coordinates
+    metadata: dict = Field(default_factory=dict)
+
+
+class OfficeViewResponse(BaseModel):
+    """Response containing office view data."""
+
+    workstations: list[AgentWorkstation]
+    office_stats: dict = Field(default_factory=dict)

@@ -1,6 +1,7 @@
 import type { RouteRecordRaw } from 'vue-router'
 import AgentsPage from './AgentsPage.vue'
 import AgentDetailPage from './AgentDetailPage.vue'
+import OfficeView from './OfficeView.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -8,6 +9,12 @@ const routes: RouteRecordRaw[] = [
     name: 'agents',
     component: AgentsPage,
     meta: { title: 'Agents' },
+  },
+  {
+    path: '/agents/office',
+    name: 'agents-office',
+    component: OfficeView,
+    meta: { title: 'Office View' },
   },
   {
     path: '/agents/:agentId',

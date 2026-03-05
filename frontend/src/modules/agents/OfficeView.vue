@@ -1,19 +1,5 @@
 <template>
-  <PageShell><div class="office-page">
-    <div class="header">
-      <div>
-        <h1><McIcon name="building" :size="24" class="mr-2" />Office View</h1>
-        <p class="subtitle">Real-time agent activity and workstations</p>
-      </div>
-      <Button
-        label="Refresh"
-        icon="pi pi-refresh"
-        @click="refresh"
-        :loading="loading"
-        :outlined="true"
-      />
-    </div>
-
+  <div class="office-view">
     <div v-if="error" class="error-banner">
       <McIcon name="alert-triangle" :size="16" class="mr-2" />
       {{ error }}
@@ -25,7 +11,7 @@
         <template #content>
           <McIcon name="bot" :size="32" class="stat-icon" />
           <div class="stat-info">
-            <div class="stat-value">{{ stats.total_agents || 0 }}</div>
+            <div class="stat-value">{{ officeStats.total_agents || 0 }}</div>
             <div class="stat-label">Total Agents</div>
           </div>
         </template>
@@ -34,7 +20,7 @@
         <template #content>
           <McIcon name="circle-check" :size="32" class="stat-icon" style="color: var(--mc-success)" />
           <div class="stat-info">
-            <div class="stat-value">{{ stats.active_agents || 0 }}</div>
+            <div class="stat-value">{{ officeStats.active_agents || 0 }}</div>
             <div class="stat-label">Working</div>
           </div>
         </template>
@@ -43,7 +29,7 @@
         <template #content>
           <McIcon name="clock" :size="32" class="stat-icon" style="color: var(--mc-text-muted)" />
           <div class="stat-info">
-            <div class="stat-value">{{ stats.idle_agents || 0 }}</div>
+            <div class="stat-value">{{ officeStats.idle_agents || 0 }}</div>
             <div class="stat-label">Idle</div>
           </div>
         </template>
@@ -60,21 +46,14 @@
           :class="`workstation-${station.status}`"
           :style="getWorkstationStyle(station)"
         >
-          <!-- Agent Avatar -->
           <div class="agent-avatar-large" :style="{ backgroundColor: station.avatar_color }">
             {{ getAgentInitials(station.display_name) }}
           </div>
-          
-          <!-- Workstation Name -->
           <div class="station-name">{{ station.display_name }}</div>
-          
-          <!-- Status Indicator -->
           <div class="status-indicator" :class="`status-${station.status}`">
             <McIcon :name="getStatusIcon(station.status)" :size="12" />
             {{ station.status }}
           </div>
-
-          <!-- Computer Screen (shows current task) -->
           <div v-if="station.status === 'working'" class="computer-screen">
             <div class="screen-content">
               <McIcon name="zap" :size="24" class="screen-icon" />
@@ -84,8 +63,6 @@
           <div v-else class="computer-screen screen-idle">
             <McIcon name="minus" :size="24" class="screen-icon" />
           </div>
-
-          <!-- Last Seen -->
           <div v-if="station.last_seen" class="last-seen">
             Last active: {{ formatRelative(station.last_seen) }}
           </div>
@@ -125,7 +102,7 @@
             <span v-if="slotProps.data.current_task" class="task-text-truncated">
               {{ slotProps.data.current_task }}
             </span>
-            <span v-else class="text-muted">—</span>
+            <span v-else class="text-muted">&mdash;</span>
           </template>
         </Column>
         <Column field="last_seen" header="Last Seen">
@@ -138,28 +115,23 @@
         </Column>
       </DataTable>
     </Panel>
-  </div></PageShell>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, computed } from 'vue'
-import { useOfficeStore } from './store'
-import PageShell from '@/components/layout/PageShell.vue'
+import { useAgentsStore } from './store'
 import McIcon from '@/components/ui/McIcon.vue'
-import Button from 'primevue/button'
 import Panel from 'primevue/panel'
 import Card from 'primevue/card'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
-import type { components } from '@/types/api'
 
-type AgentWorkstation = components['schemas']['AgentWorkstation']
+const store = useAgentsStore()
 
-const store = useOfficeStore()
-
-const workstations = computed(() => store.workstations)
-const stats = computed(() => store.stats)
+const workstations = computed(() => store.officeWorkstations)
+const officeStats = computed(() => store.officeStats)
 const loading = computed(() => store.loading)
 const error = computed(() => store.error)
 
@@ -167,7 +139,6 @@ let refreshInterval: ReturnType<typeof setInterval>
 
 onMounted(() => {
   store.fetchOffice()
-  // Auto-refresh every 30 seconds
   refreshInterval = setInterval(() => store.fetchOffice(), 30000)
 })
 
@@ -175,11 +146,7 @@ onUnmounted(() => {
   clearInterval(refreshInterval)
 })
 
-function refresh() {
-  store.fetchOffice()
-}
-
-function getWorkstationStyle(station: AgentWorkstation) {
+function getWorkstationStyle(station: Record<string, any>) {
   return {
     left: `${station.position.x}px`,
     top: `${station.position.y}px`,
@@ -225,41 +192,16 @@ function formatRelative(dateStr: string | Date): string {
 
   if (diffMins < 1) return 'Just now'
   if (diffMins < 60) return `${diffMins}m ago`
-  
+
   const diffHours = Math.floor(diffMins / 60)
   if (diffHours < 24) return `${diffHours}h ago`
-  
+
   const diffDays = Math.floor(diffHours / 24)
   return `${diffDays}d ago`
 }
 </script>
 
 <style scoped>
-.office-page {
-  padding: 0;
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 2rem;
-}
-
-.header h1 {
-  font-size: 2rem;
-  font-weight: 600;
-  font-family: var(--mc-font-display);
-  margin: 0 0 0.5rem 0;
-  display: flex;
-  align-items: center;
-}
-
-.subtitle {
-  color: var(--mc-text-muted);
-  margin: 0;
-}
-
 .error-banner {
   background: color-mix(in srgb, var(--mc-danger) 15%, transparent);
   color: var(--mc-danger);
@@ -270,7 +212,6 @@ function formatRelative(dateStr: string | Date): string {
   align-items: center;
 }
 
-/* Stats */
 .stats-bar {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -304,13 +245,12 @@ function formatRelative(dateStr: string | Date): string {
   margin-top: 0.25rem;
 }
 
-/* Office Floor */
 .office-floor {
   position: relative;
   min-height: 700px;
-  background: 
-    linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px),
-    linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px);
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+    linear-gradient(rgba(0, 0, 0, 0.02) 1px, transparent 1px);
   background-size: 50px 50px;
   border-radius: 8px;
 }
@@ -429,7 +369,6 @@ function formatRelative(dateStr: string | Date): string {
   font-style: italic;
 }
 
-/* Directory */
 .agent-cell {
   display: flex;
   align-items: center;

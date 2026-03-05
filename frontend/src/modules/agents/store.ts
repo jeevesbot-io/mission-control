@@ -54,6 +54,8 @@ export const useAgentsStore = defineStore('agents', () => {
   const logEntries = ref<AgentLogEntry[]>([])
   const logTotal = ref(0)
   const activityFeed = ref<ActivityEvent[]>([])
+  const officeWorkstations = ref<Record<string, any>[]>([])
+  const officeStats = ref<Record<string, any>>({})
   const loading = ref(false)
   const error = ref<string | null>(null)
 
@@ -112,6 +114,20 @@ export const useAgentsStore = defineStore('agents', () => {
     }
   }
 
+  async function fetchOffice() {
+    loading.value = true
+    error.value = null
+    try {
+      const data = await api.get<{ workstations: Record<string, any>[]; office_stats: Record<string, any> }>('/api/agents/office')
+      officeWorkstations.value = data.workstations || []
+      officeStats.value = data.office_stats || {}
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to load office view'
+    } finally {
+      loading.value = false
+    }
+  }
+
   function addActivity(event: ActivityEvent) {
     event.timestamp = new Date().toISOString()
     activityFeed.value.unshift(event)
@@ -125,12 +141,15 @@ export const useAgentsStore = defineStore('agents', () => {
     logEntries,
     logTotal,
     activityFeed,
+    officeWorkstations,
+    officeStats,
     loading,
     error,
     fetchAgents,
     fetchStats,
     fetchCron,
     fetchLog,
+    fetchOffice,
     triggerAgent,
     addActivity,
   }
