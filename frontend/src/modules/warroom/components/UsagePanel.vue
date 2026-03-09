@@ -4,7 +4,6 @@
       <div class="model-row">
         <McIcon name="cpu" :size="14" />
         <span class="model-name">{{ store.usage.model.replace('anthropic/', '') }}</span>
-        <ModelSwitcher />
       </div>
       <div v-for="tier in store.usage.tiers" :key="tier.label" class="tier-row">
         <div class="tier-header">
@@ -30,7 +29,6 @@
 import { onMounted } from 'vue'
 import { useWarRoomStore } from '../store'
 import McIcon from '@/components/ui/McIcon.vue'
-import ModelSwitcher from './ModelSwitcher.vue'
 
 const store = useWarRoomStore()
 

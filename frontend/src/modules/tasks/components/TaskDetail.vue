@@ -142,6 +142,24 @@
         <div v-else class="result-ok mc-mono">{{ task.result }}</div>
       </div>
 
+      <!-- Comments -->
+      <div class="detail-field">
+        <label class="detail-label">Comments</label>
+        <div class="placeholder-section">
+          <McIcon name="message-square" :size="16" />
+          <span>Comments coming soon</span>
+        </div>
+      </div>
+
+      <!-- Activity -->
+      <div class="detail-field">
+        <label class="detail-label">Activity</label>
+        <div class="placeholder-section">
+          <McIcon name="activity" :size="16" />
+          <span>Activity log coming soon</span>
+        </div>
+      </div>
+
       <!-- Timestamps -->
       <div class="detail-timestamps">
         <div class="timestamp-row">
@@ -532,6 +550,20 @@ function formatDate(dateStr: string): string {
   padding: 0.4rem 0.6rem;
   border-radius: var(--mc-radius-xs);
   border: 1px solid var(--mc-success-border);
+}
+
+/* Placeholder sections */
+.placeholder-section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--mc-bg-inset);
+  border: 1px dashed var(--mc-border);
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-text-muted);
+  font-size: var(--mc-text-sm);
+  font-style: italic;
 }
 
 /* Timestamps */

@@ -20,31 +20,10 @@
         <!-- Kanban -->
         <TaskBoard v-if="activeTab === 'kanban'" />
 
-        <!-- Projects -->
-        <div v-else-if="activeTab === 'projects'" class="tab-panel">
-          <h2 class="section-title">Projects</h2>
-          <ProjectManager v-if="visitedTabs.has('projects')" />
-          <div v-else class="loading-placeholder">Loading...</div>
-        </div>
-
-        <!-- Usage & Model -->
+        <!-- Usage -->
         <div v-else-if="activeTab === 'usage'" class="tab-panel">
-          <h2 class="section-title">Usage & Model</h2>
+          <h2 class="section-title">Usage</h2>
           <UsagePanel />
-        </div>
-
-        <!-- Skills -->
-        <div v-else-if="activeTab === 'skills'" class="tab-panel">
-          <h2 class="section-title">Skills</h2>
-          <SkillsList v-if="visitedTabs.has('skills')" />
-          <div v-else class="loading-placeholder">Loading…</div>
-        </div>
-
-        <!-- Soul & Identity -->
-        <div v-else-if="activeTab === 'soul'" class="tab-panel">
-          <h2 class="section-title">Soul & Identity</h2>
-          <SoulEditor v-if="visitedTabs.has('soul')" />
-          <div v-else class="loading-placeholder">Loading…</div>
         </div>
 
         <!-- Calendar -->
@@ -67,20 +46,14 @@ import TaskBoard from './components/TaskBoard.vue'
 import UsagePanel from './components/UsagePanel.vue'
 
 // Lazy-load heavy components
-const SkillsList = defineAsyncComponent(() => import('./components/SkillsList.vue'))
-const SoulEditor = defineAsyncComponent(() => import('./components/SoulEditor.vue'))
 const ActivityCalendar = defineAsyncComponent(() => import('./components/ActivityCalendar.vue'))
-const ProjectManager = defineAsyncComponent(() => import('./components/ProjectManager.vue'))
 
 const store = useWarRoomStore()
 
 const tabs = [
-  { id: 'kanban',   label: 'Kanban',          icon: 'kanban'    },
-  { id: 'projects', label: 'Projects',        icon: 'folder'    },
-  { id: 'usage',    label: 'Usage & Model',   icon: 'cpu'       },
-  { id: 'skills',   label: 'Skills',          icon: 'sparkles'  },
-  { id: 'soul',     label: 'Soul & Identity', icon: 'file-text' },
-  { id: 'calendar', label: 'Calendar',        icon: 'calendar'  },
+  { id: 'kanban',   label: 'Kanban',    icon: 'kanban'   },
+  { id: 'usage',    label: 'Usage',     icon: 'cpu'      },
+  { id: 'calendar', label: 'Calendar',  icon: 'calendar' },
 ] as const
 
 type TabId = (typeof tabs)[number]['id']

@@ -7,7 +7,6 @@
     @click="$emit('click', task)"
   >
     <div class="task-card-header">
-      <ProjectBadge v-if="project" :project="project" />
       <span v-if="blocked" class="blocked-badge" title="Blocked by dependencies">
         <i class="pi pi-lock" style="font-size: 0.6rem"></i>
       </span>
@@ -39,8 +38,6 @@
 import { computed } from 'vue'
 import { useWarRoomStore } from '../store'
 import type { Task } from '../store'
-import ProjectBadge from './ProjectBadge.vue'
-
 const COLOR_MAP: Record<string, string> = {
   purple: 'rgba(167,139,250,0.5)',
   pink:   'rgba(244,114,182,0.5)',
