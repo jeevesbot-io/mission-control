@@ -101,6 +101,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
 import PageShell from '@/components/layout/PageShell.vue'
@@ -146,7 +147,7 @@ const filteredSkills = computed(() => {
 
 const renderedMarkdown = computed(() => {
   if (!selectedContent.value) return ''
-  return marked(selectedContent.value) as string
+  return DOMPurify.sanitize(marked(selectedContent.value) as string)
 })
 
 async function openSkill(skill: SkillInfo) {

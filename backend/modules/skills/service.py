@@ -81,7 +81,6 @@ class SkillsBrowserService:
                         "name": skill_name,
                         "description": description,
                         "source": source,
-                        "path": str(d),
                     }
                 )
 
@@ -89,6 +88,9 @@ class SkillsBrowserService:
 
     def get_skill_content(self, name: str) -> str | None:
         """Return SKILL.md content for a specific skill."""
+        # Guard against path traversal
+        if "/" in name or "\\" in name or ".." in name:
+            return None
         for _, directory in SKILL_DIRS:
             if not directory.exists():
                 continue

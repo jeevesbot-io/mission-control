@@ -6,7 +6,6 @@ export interface SkillInfo {
   name: string
   description: string
   source: 'managed' | 'workspace' | 'agent'
-  path: string
 }
 
 export const useSkillsStore = defineStore('skills-browser', () => {
@@ -26,7 +25,7 @@ export const useSkillsStore = defineStore('skills-browser', () => {
   }
 
   async function fetchSkillContent(name: string) {
-    const data = await api.get<{ name: string; content: string }>(`/api/skills/${name}`)
+    const data = await api.get<{ name: string; content: string }>(`/api/skills/${encodeURIComponent(name)}`)
     selectedName.value = name
     selectedContent.value = data.content
   }
