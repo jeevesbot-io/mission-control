@@ -1,32 +1,40 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, computed } from 'vue'
+import { onMounted, onUnmounted, computed, ref } from 'vue'
 import { useOverviewStore } from './store'
-import type { UpcomingEvent } from './store'
 import { useWebSocket } from '@/composables/useWebSocket'
+import { useApi } from '@/composables/useApi'
 import PageShell from '@/components/layout/PageShell.vue'
-import StatCard from '@/components/data/StatCard.vue'
 import Badge from '@/components/ui/Badge.vue'
 import McIcon from '@/components/ui/McIcon.vue'
 import { getAgentIconName, getLevelIconName } from '@/composables/useIcons'
-import WarRoomSummary from '@/modules/warroom/widgets/WarRoomSummary.vue'
-import RecentActivity from '@/modules/activity/widgets/RecentActivity.vue'
+
+interface WarRoomStats {
+  in_progress_count: number
+  todo_count: number
+  last_heartbeat: number | null
+  active_model: string
+}
 
 const store = useOverviewStore()
+const api = useApi()
 const { subscribe } = useWebSocket()
+
+const warroom = ref<WarRoomStats | null>(null)
 
 let refreshInterval: ReturnType<typeof setInterval> | undefined
 let unsubscribe: (() => void) | undefined
 
-onMounted(async () => {
+async function fetchAll() {
   await store.fetchOverview()
+  try {
+    warroom.value = await api.get<WarRoomStats>('/api/warroom/stats')
+  } catch { /* silently degrade */ }
+}
 
-  // Auto-refresh every 30 seconds
-  refreshInterval = setInterval(() => store.fetchOverview(), 30_000)
-
-  // Live updates via WebSocket
-  unsubscribe = subscribe('overview:refresh', () => {
-    store.fetchOverview()
-  })
+onMounted(async () => {
+  await fetchAll()
+  refreshInterval = setInterval(fetchAll, 30_000)
+  unsubscribe = subscribe('overview:refresh', fetchAll)
 })
 
 onUnmounted(() => {
@@ -57,45 +65,25 @@ const uptimeStr = computed(() => {
   return `${hours}h ${mins}m`
 })
 
-// Child colour mapping
-function childColour(child: string): string {
-  const lower = child.toLowerCase()
-  if (lower === 'natty' || lower.includes('natty')) return 'var(--mc-info)'        // blue
-  if (lower === 'elodie' || lower.includes('elodie')) return '#f472b6'             // pink
-  if (lower === 'florence' || lower.includes('florence')) return 'var(--mc-success)' // green
-  return 'var(--mc-text-muted)'
-}
+const heartbeatAge = computed(() => {
+  const last = warroom.value?.last_heartbeat
+  if (!last) return 'never'
+  const ms = Date.now() - last
+  const min = Math.floor(ms / 60_000)
+  if (min < 1) return 'just now'
+  if (min < 60) return `${min}m ago`
+  const h = Math.floor(min / 60)
+  return `${h}h ago`
+})
 
-function childLabel(child: string): string {
-  // Clean up "[QE/Natty]" style prefixes — just return the child name
-  const lower = child.toLowerCase()
-  if (lower.includes('natty')) return 'Natty'
-  if (lower.includes('elodie')) return 'Elodie'
-  if (lower.includes('florence')) return 'Florence'
-  return child
-}
-
-function cleanSummary(event: UpcomingEvent): string {
-  // Remove "[QE/Child]" prefix from summary
-  return event.summary.replace(/^\[[\w/]+\]\s*/, '')
-}
-
-function daysLabel(days: number): string {
-  if (days === 0) return 'Today'
-  if (days === 1) return 'Tomorrow'
-  return `In ${days} days`
-}
-
-function formatEventTime(event: UpcomingEvent): string {
-  if (event.event_time) {
-    const [h, m] = event.event_time.split(':')
-    const hour = parseInt(h!)
-    const suffix = hour >= 12 ? 'PM' : 'AM'
-    const displayHour = hour > 12 ? hour - 12 : hour || 12
-    return `${displayHour}:${m} ${suffix}`
-  }
-  return 'All day'
-}
+const heartbeatColor = computed(() => {
+  const last = warroom.value?.last_heartbeat
+  if (!last) return 'var(--mc-text-muted)'
+  const ms = Date.now() - last
+  if (ms < 10 * 60_000) return 'var(--mc-success)'
+  if (ms < 60 * 60_000) return 'var(--mc-warning)'
+  return 'var(--mc-danger)'
+})
 
 function formatRelativeTime(iso: string): string {
   const now = Date.now()
@@ -110,396 +98,468 @@ function formatRelativeTime(iso: string): string {
   return `${days}d ago`
 }
 
+function levelColor(level: string): string {
+  const l = level.toLowerCase()
+  if (l === 'error') return 'var(--mc-danger)'
+  if (l === 'warning') return 'var(--mc-warning)'
+  return 'var(--mc-text-muted)'
+}
 </script>
 
 <template>
   <PageShell>
-    <div class="overview">
-      <!-- Hero section -->
-      <div class="overview__hero">
-        <div class="overview__hero-left">
-          <h2 class="overview__greeting">{{ greeting }}</h2>
-          <p class="overview__subtitle">
-            <template v-if="store.data">
-              {{ store.data.agent_summary.entries_24h }} agent entries today ·
-              {{ store.data.upcoming_events.length }} events this week
-            </template>
-            <template v-else-if="store.loading">Powering up...</template>
-            <template v-else>Establishing uplink...</template>
+    <div class="ov">
+
+      <!-- ── Header ─────────────────────────────────────────── -->
+      <header class="ov__header">
+        <div>
+          <h2 class="ov__greeting">{{ greeting }}</h2>
+          <p class="ov__sub" v-if="store.data">
+            {{ store.data.agent_summary.entries_24h }} log entries today
+            <span class="ov__dot">·</span>
+            {{ store.data.agent_summary.unique_agents }} agents active
           </p>
+          <p class="ov__sub" v-else-if="store.loading">Establishing uplink…</p>
         </div>
-        <div class="overview__hero-right">
-          <Badge
-            v-if="store.data"
-            :variant="healthBadge.variant"
-            :label="healthBadge.label"
-          />
-          <Badge v-else variant="warning" label="CONNECTING..." />
+        <Badge v-if="store.data" :variant="healthBadge.variant" :label="healthBadge.label" />
+        <Badge v-else variant="warning" label="CONNECTING…" />
+      </header>
+
+      <!-- ── Stat strip ─────────────────────────────────────── -->
+      <section class="ov__stat-strip mc-stagger">
+        <div class="ov__stat-card">
+          <div class="ov__stat-icon" style="--ic: var(--mc-accent)">
+            <McIcon name="bot" :size="16" />
+          </div>
+          <div class="ov__stat-body">
+            <span class="ov__stat-value">{{ store.data?.agent_summary.unique_agents ?? '—' }}</span>
+            <span class="ov__stat-label">Active agents</span>
+          </div>
+        </div>
+
+        <div class="ov__stat-card">
+          <div class="ov__stat-icon" style="--ic: var(--mc-info)">
+            <McIcon name="activity" :size="16" />
+          </div>
+          <div class="ov__stat-body">
+            <span class="ov__stat-value">{{ store.data?.agent_summary.entries_24h ?? '—' }}</span>
+            <span class="ov__stat-label">Log entries today</span>
+          </div>
+        </div>
+
+        <div class="ov__stat-card">
+          <div class="ov__stat-icon" style="--ic: var(--mc-success)">
+            <McIcon name="heart-pulse" :size="16" />
+          </div>
+          <div class="ov__stat-body">
+            <span class="ov__stat-value">{{ store.data ? `${store.data.agent_summary.health_rate}%` : '—' }}</span>
+            <span class="ov__stat-label">Health rate</span>
+          </div>
+        </div>
+
+        <div class="ov__stat-card">
+          <div class="ov__stat-icon" style="--ic: var(--mc-color-cyan)">
+            <McIcon name="timer" :size="16" />
+          </div>
+          <div class="ov__stat-body">
+            <span class="ov__stat-value">{{ uptimeStr }}</span>
+            <span class="ov__stat-label">Uptime</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Two-column: War Room + System Health ───────────── -->
+      <div class="ov__two-col">
+
+        <!-- War Room card -->
+        <div class="ov__card">
+          <div class="ov__card-header">
+            <McIcon name="crosshair" :size="15" class="ov__card-icon" />
+            <h3 class="ov__card-title">War Room</h3>
+            <a href="/warroom" class="ov__card-link">View →</a>
+          </div>
+          <div v-if="warroom" class="ov__warroom-grid">
+            <div class="ov__wr-stat">
+              <span class="ov__wr-value">{{ warroom.in_progress_count }}</span>
+              <span class="ov__wr-label">In progress</span>
+            </div>
+            <div class="ov__wr-stat">
+              <span class="ov__wr-value">{{ warroom.todo_count }}</span>
+              <span class="ov__wr-label">Todo</span>
+            </div>
+            <div class="ov__wr-stat">
+              <span class="ov__wr-value" :style="{ color: heartbeatColor }">{{ heartbeatAge }}</span>
+              <span class="ov__wr-label">Last heartbeat</span>
+            </div>
+            <div class="ov__wr-model">
+              <span class="ov__wr-label">Model</span>
+              <span class="ov__wr-model-val mc-mono">{{ warroom.active_model || 'unknown' }}</span>
+            </div>
+          </div>
+          <div v-else class="ov__empty">
+            <McIcon name="loader" :size="20" />
+            <span>Loading…</span>
+          </div>
+        </div>
+
+        <!-- System health card -->
+        <div class="ov__card">
+          <div class="ov__card-header">
+            <McIcon name="server" :size="15" class="ov__card-icon" />
+            <h3 class="ov__card-title">System</h3>
+          </div>
+          <div v-if="store.data" class="ov__health-list">
+            <div class="ov__health-row">
+              <span class="ov__health-dot" :class="store.data.health.database ? 'ok' : 'err'" />
+              <span class="ov__health-name">Database</span>
+              <span class="ov__health-val mc-mono">{{ store.data.health.database ? 'Connected' : 'Disconnected' }}</span>
+            </div>
+            <div class="ov__health-row">
+              <span class="ov__health-dot ok" />
+              <span class="ov__health-name">API</span>
+              <span class="ov__health-val mc-mono">v{{ store.data.health.version }}</span>
+            </div>
+            <div class="ov__health-row">
+              <span class="ov__health-dot ok" />
+              <span class="ov__health-name">Uptime</span>
+              <span class="ov__health-val mc-mono">{{ uptimeStr }}</span>
+            </div>
+            <div class="ov__health-row">
+              <span class="ov__health-dot" :class="store.data.agent_summary.warning_count === 0 ? 'ok' : 'warn'" />
+              <span class="ov__health-name">Agent warnings</span>
+              <span class="ov__health-val mc-mono">{{ store.data.agent_summary.warning_count }}</span>
+            </div>
+          </div>
+          <div v-else class="ov__empty">
+            <McIcon name="loader" :size="20" />
+            <span>Loading…</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── Recent agent activity ───────────────────────────── -->
+      <div class="ov__card ov__card--full">
+        <div class="ov__card-header">
+          <McIcon name="scroll-text" :size="15" class="ov__card-icon" />
+          <h3 class="ov__card-title">Recent Agent Activity</h3>
+          <span class="ov__card-badge mc-mono">last 10</span>
+        </div>
+
+        <div v-if="!store.data?.recent_activity.length" class="ov__empty">
+          <McIcon name="bot" :size="24" />
+          <span>Agents standing by</span>
+        </div>
+
+        <div v-else class="ov__activity-table">
+          <div
+            v-for="entry in store.data!.recent_activity"
+            :key="entry.id"
+            class="ov__activity-row"
+          >
+            <McIcon
+              :name="getAgentIconName(entry.agent_id)"
+              :size="15"
+              class="ov__act-icon"
+            />
+            <span class="ov__act-agent mc-mono">{{ entry.agent_id }}</span>
+            <McIcon
+              :name="getLevelIconName(entry.level)"
+              :size="12"
+              class="ov__act-level"
+              :style="{ color: levelColor(entry.level) }"
+            />
+            <span class="ov__act-msg">{{ entry.message }}</span>
+            <span class="ov__act-time mc-mono">{{ formatRelativeTime(entry.created_at) }}</span>
+          </div>
         </div>
       </div>
 
-      <!-- Stat cards -->
-      <section class="overview__section">
-        <h3 class="overview__section-title">System Telemetry</h3>
-        <div class="overview__stats mc-stagger">
-          <StatCard
-            icon="bot"
-            accent="#f59e0b"
-            :value="store.data?.stats.agents_active ?? '—'"
-            label="Active Agents"
-          />
-          <StatCard
-            icon="calendar"
-            accent="#f59e0b"
-            :value="store.data?.stats.events_this_week ?? '—'"
-            label="Events This Week"
-          />
-          <StatCard
-            icon="mail"
-            accent="#f87171"
-            :value="store.data?.stats.emails_processed ?? '—'"
-            label="Emails Processed"
-          />
-          <StatCard
-            icon="check-square"
-            accent="#60a5fa"
-            :value="store.data?.stats.tasks_pending ?? '—'"
-            label="Tasks Pending"
-          />
-          <StatCard
-            icon="heart-pulse"
-            accent="#34d399"
-            :value="store.data ? `${store.data.agent_summary.health_rate}%` : '—'"
-            label="Health Rate"
-          />
-          <StatCard
-            icon="timer"
-            accent="#22d3ee"
-            :value="uptimeStr"
-            label="Uptime"
-          />
-        </div>
-      </section>
-
-      <!-- Two-column layout: Events + Activity -->
-      <div class="overview__columns">
-        <!-- Upcoming Events -->
-        <section class="overview__section">
-          <h3 class="overview__section-title">Upcoming Events</h3>
-          <div class="overview__panel">
-            <div v-if="!store.data?.upcoming_events.length" class="overview__empty">
-              <McIcon name="party-popper" :size="32" class="overview__empty-icon" />
-              <span>Clear skies ahead</span>
-            </div>
-            <div v-else class="overview__events-list">
-              <div
-                v-for="event in store.data.upcoming_events"
-                :key="event.id"
-                class="overview__event"
-              >
-                <div
-                  class="overview__event-bar"
-                  :style="{ background: childColour(event.child) }"
-                />
-                <div class="overview__event-content">
-                  <div class="overview__event-top">
-                    <span class="overview__event-title">{{ cleanSummary(event) }}</span>
-                    <span
-                      class="overview__event-child"
-                      :style="{ color: childColour(event.child) }"
-                    >{{ childLabel(event.child) }}</span>
-                  </div>
-                  <div class="overview__event-meta">
-                    <span class="overview__event-date mc-mono">{{ event.event_date }}</span>
-                    <span class="overview__event-time mc-mono">{{ formatEventTime(event) }}</span>
-                    <span class="overview__event-days">{{ daysLabel(event.days_away) }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Recent Activity -->
-        <section class="overview__section">
-          <h3 class="overview__section-title">Recent Agent Activity</h3>
-          <div class="overview__panel">
-            <div v-if="!store.data?.recent_activity.length" class="overview__empty">
-              <McIcon name="bot" :size="32" class="overview__empty-icon" />
-              <span>Agents standing by</span>
-            </div>
-            <div v-else class="overview__activity-list">
-              <div
-                v-for="entry in store.data.recent_activity"
-                :key="entry.id"
-                class="overview__activity"
-              >
-                <McIcon :name="getAgentIconName(entry.agent_id)" :size="18" class="overview__activity-icon" />
-                <div class="overview__activity-content">
-                  <div class="overview__activity-top">
-                    <span class="overview__activity-agent">{{ entry.agent_id }}</span>
-                    <McIcon :name="getLevelIconName(entry.level)" :size="14" class="overview__activity-status" />
-                  </div>
-                  <span class="overview__activity-summary">{{ entry.message }}</span>
-                </div>
-                <span class="overview__activity-time mc-mono">{{ formatRelativeTime(entry.created_at) }}</span>
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <!-- Module Widgets -->
-      <section class="overview__section">
-        <h3 class="overview__section-title">Activity</h3>
-        <div class="overview__widgets">
-          <WarRoomSummary />
-          <RecentActivity />
-        </div>
-      </section>
-
-      <!-- System Health -->
-      <section class="overview__section" v-if="store.data">
-        <h3 class="overview__section-title">System Health</h3>
-        <div class="overview__health mc-stagger">
-          <div class="overview__health-item">
-            <span class="overview__health-dot" :class="store.data.health.database ? 'overview__health-dot--ok' : 'overview__health-dot--err'" />
-            <span>Database</span>
-            <span class="overview__health-status mc-mono">{{ store.data.health.database ? 'Connected' : 'Disconnected' }}</span>
-          </div>
-          <div class="overview__health-item">
-            <span class="overview__health-dot overview__health-dot--ok" />
-            <span>API Server</span>
-            <span class="overview__health-status mc-mono">v{{ store.data.health.version }}</span>
-          </div>
-          <div class="overview__health-item">
-            <span class="overview__health-dot overview__health-dot--ok" />
-            <span>Uptime</span>
-            <span class="overview__health-status mc-mono">{{ uptimeStr }}</span>
-          </div>
-        </div>
-      </section>
     </div>
   </PageShell>
 </template>
 
 <style scoped>
-.overview {
-  max-width: 1100px;
+.ov {
+  max-width: 1024px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
-/* Hero */
-.overview__hero {
+/* ── Header ─────────────────────────────────────────────── */
+.ov__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1.5rem;
-  margin-bottom: 2.5rem;
-  animation: mc-fade-up 0.4s ease-out;
-}
-
-.overview__greeting {
-  font-family: var(--mc-font-display);
-  font-size: 1.75rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.2;
-}
-
-.overview__subtitle {
-  color: var(--mc-text-muted);
-  margin-top: 0.375rem;
-  font-size: 0.9375rem;
-}
-
-@media (max-width: 640px) {
-  .overview__hero {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-}
-
-/* Sections */
-.overview__section {
-  margin-bottom: 2.25rem;
-}
-
-.overview__section-title {
-  font-family: var(--mc-font-mono);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: var(--mc-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--mc-border);
-}
-
-/* Stat grid */
-.overview__stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 1rem;
+  animation: mc-fade-up 0.35s ease-out;
 }
 
-/* Two-column layout */
-.overview__columns {
+.ov__greeting {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.ov__sub {
+  margin-top: 0.25rem;
+  font-size: 0.825rem;
+  color: var(--mc-text-muted);
+}
+
+.ov__dot {
+  margin: 0 0.35em;
+  opacity: 0.4;
+}
+
+/* ── Stat strip ──────────────────────────────────────────── */
+.ov__stat-strip {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
 }
 
-@media (max-width: 800px) {
-  .overview__columns {
-    grid-template-columns: 1fr;
-  }
+@media (max-width: 700px) {
+  .ov__stat-strip { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* Panel */
-.overview__panel {
+.ov__stat-card {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 1rem 1.125rem;
   background: var(--mc-bg-surface);
-  backdrop-filter: var(--mc-glass-blur);
   border: 1px solid var(--mc-border);
   border-radius: var(--mc-radius);
-  padding: 1rem;
-  min-height: 200px;
+  transition: border-color var(--mc-transition-speed), box-shadow var(--mc-transition-speed);
 }
 
-/* Empty state */
-.overview__empty {
+.ov__stat-card:hover {
+  border-color: var(--mc-border-strong);
+  box-shadow: var(--mc-shadow-sm);
+}
+
+.ov__stat-icon {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 2rem;
-  color: var(--mc-text-muted);
-  font-size: 0.875rem;
-}
-
-.overview__empty-icon {
-  opacity: 0.6;
-  color: var(--mc-text-muted);
-}
-
-/* Events */
-.overview__events-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.overview__event {
-  display: flex;
-  gap: 0.75rem;
-  padding: 0.625rem 0.5rem;
+  width: 32px;
+  height: 32px;
   border-radius: var(--mc-radius-sm);
-  transition: background var(--mc-transition-speed);
-}
-
-.overview__event:hover {
-  background: var(--mc-bg-hover);
-}
-
-.overview__event-bar {
-  width: 3px;
-  border-radius: 2px;
-  flex-shrink: 0;
-  align-self: stretch;
-}
-
-.overview__event-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.overview__event-top {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.overview__event-title {
-  font-size: 0.85rem;
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.overview__event-child {
-  font-family: var(--mc-font-mono);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  background: color-mix(in srgb, var(--ic, var(--mc-accent)) 12%, transparent);
+  color: var(--ic, var(--mc-accent));
   flex-shrink: 0;
 }
 
-.overview__event-meta {
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 0.25rem;
-  font-size: 0.7rem;
-  color: var(--mc-text-muted);
-}
-
-.overview__event-days {
-  font-weight: 500;
-  color: var(--mc-accent);
-}
-
-/* Activity */
-.overview__activity-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-}
-
-.overview__activity {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-  padding: 0.5rem;
-  border-radius: var(--mc-radius-sm);
-  transition: background var(--mc-transition-speed);
-}
-
-.overview__activity:hover {
-  background: var(--mc-bg-hover);
-}
-
-.overview__activity-icon {
-  font-size: 1rem;
-  flex-shrink: 0;
-}
-
-.overview__activity-content {
-  flex: 1;
-  min-width: 0;
+.ov__stat-body {
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
 }
 
-.overview__activity-top {
+.ov__stat-value {
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.ov__stat-label {
+  font-size: 0.7rem;
+  color: var(--mc-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Generic card ────────────────────────────────────────── */
+.ov__card {
+  background: var(--mc-bg-surface);
+  border: 1px solid var(--mc-border);
+  border-radius: var(--mc-radius);
+  overflow: hidden;
+}
+
+.ov__card--full {
+  grid-column: 1 / -1;
+}
+
+.ov__card-header {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.5rem;
+  padding: 0.875rem 1.125rem;
+  border-bottom: 1px solid var(--mc-border);
+  background: var(--mc-bg-elevated);
 }
 
-.overview__activity-agent {
-  font-size: 0.8rem;
-  font-weight: 500;
+.ov__card-icon {
+  color: var(--mc-text-muted);
 }
 
-.overview__activity-status {
+.ov__card-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  flex: 1;
+}
+
+.ov__card-link {
   font-size: 0.7rem;
+  color: var(--mc-accent);
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity var(--mc-transition-fast);
 }
 
-.overview__activity-summary {
+.ov__card-link:hover { opacity: 0.7; }
+
+.ov__card-badge {
+  font-size: 0.65rem;
+  color: var(--mc-text-muted);
+  background: var(--mc-bg-inset);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--mc-radius-full);
+  border: 1px solid var(--mc-border);
+}
+
+/* ── Two-column ──────────────────────────────────────────── */
+.ov__two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+@media (max-width: 640px) {
+  .ov__two-col { grid-template-columns: 1fr; }
+}
+
+/* ── War Room ────────────────────────────────────────────── */
+.ov__warroom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+
+.ov__wr-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 1rem 1.125rem;
+  border-right: 1px solid var(--mc-border);
+  border-bottom: 1px solid var(--mc-border);
+}
+
+.ov__wr-stat:nth-child(2) { border-right: none; }
+
+.ov__wr-model {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.875rem 1.125rem;
+  grid-column: 1 / -1;
+}
+
+.ov__wr-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.ov__wr-label {
+  font-size: 0.68rem;
+  color: var(--mc-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.ov__wr-model-val {
+  font-size: 0.75rem;
+  color: var(--mc-text);
+  margin-top: 0.1rem;
+}
+
+/* ── System health ───────────────────────────────────────── */
+.ov__health-list {
+  padding: 0.5rem 0;
+}
+
+.ov__health-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem 1.125rem;
+  transition: background var(--mc-transition-fast);
+}
+
+.ov__health-row:hover {
+  background: var(--mc-bg-hover);
+}
+
+.ov__health-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ov__health-dot.ok {
+  background: var(--mc-success);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--mc-success) 50%, transparent);
+}
+
+.ov__health-dot.warn {
+  background: var(--mc-warning);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--mc-warning) 50%, transparent);
+}
+
+.ov__health-dot.err {
+  background: var(--mc-danger);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--mc-danger) 50%, transparent);
+}
+
+.ov__health-name {
+  flex: 1;
+  font-size: 0.825rem;
+}
+
+.ov__health-val {
+  font-size: 0.75rem;
+  color: var(--mc-text-muted);
+}
+
+/* ── Activity table ──────────────────────────────────────── */
+.ov__activity-table {
+  display: flex;
+  flex-direction: column;
+}
+
+.ov__activity-row {
+  display: grid;
+  grid-template-columns: 20px 140px 16px 1fr auto;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.6rem 1.125rem;
+  border-bottom: 1px solid var(--mc-border);
+  transition: background var(--mc-transition-fast);
+}
+
+.ov__activity-row:last-child {
+  border-bottom: none;
+}
+
+.ov__activity-row:hover {
+  background: var(--mc-bg-hover);
+}
+
+.ov__act-icon {
+  color: var(--mc-text-muted);
+  justify-self: center;
+}
+
+.ov__act-agent {
   font-size: 0.75rem;
   color: var(--mc-text-muted);
   overflow: hidden;
@@ -507,53 +567,31 @@ function formatRelativeTime(iso: string): string {
   white-space: nowrap;
 }
 
-.overview__activity-time {
-  font-size: 0.65rem;
+.ov__act-level {
+  justify-self: center;
+}
+
+.ov__act-msg {
+  font-size: 0.8125rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ov__act-time {
+  font-size: 0.68rem;
   color: var(--mc-text-muted);
   white-space: nowrap;
-  flex-shrink: 0;
 }
 
-/* Module widgets */
-.overview__widgets {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1rem;
-}
-
-/* Health */
-.overview__health {
-  display: flex;
-  gap: 2rem;
-  flex-wrap: wrap;
-}
-
-.overview__health-item {
+/* ── Empty state ─────────────────────────────────────────── */
+.ov__empty {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  font-size: 0.85rem;
-}
-
-.overview__health-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.overview__health-dot--ok {
-  background: var(--mc-success);
-  box-shadow: 0 0 6px color-mix(in srgb, var(--mc-success) 40%, transparent);
-}
-
-.overview__health-dot--err {
-  background: var(--mc-danger);
-  box-shadow: 0 0 6px color-mix(in srgb, var(--mc-danger) 40%, transparent);
-}
-
-.overview__health-status {
-  font-size: 0.75rem;
+  padding: 2rem;
   color: var(--mc-text-muted);
+  font-size: 0.825rem;
 }
 </style>

@@ -259,14 +259,24 @@ class AgentService:
                 health_rate=0.0,
             )
 
-    async def trigger_agent(self, agent_id: str) -> tuple[bool, str]:
-        """Trigger agent via OpenClaw gateway HTTP call."""
-        url = f"{settings.openclaw_url}/api/agents/{agent_id}/trigger"
+    async def trigger_agent(self, agent_id: str, message: str = "") -> tuple[bool, str]:
+        """Trigger agent via OpenClaw /hooks/agent endpoint."""
+        url = f"{settings.openclaw_url}/hooks/agent"
+        prompt = message.strip() or f"You have been manually triggered from Mission Control. Please run your standard checks and report status."
+        payload = {
+            "message": prompt,
+            "agentId": agent_id,
+            "wakeMode": "now",
+            "name": f"Mission Control trigger ({agent_id})",
+        }
+        headers = {"Authorization": f"Bearer {settings.openclaw_hooks_token}"}
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
-                resp = await client.post(url)
+                resp = await client.post(url, json=payload, headers=headers)
                 if resp.status_code < 300:
-                    return True, f"Agent {agent_id} triggered successfully"
+                    data = resp.json()
+                    run_id = data.get("runId", "")
+                    return True, f"Agent {agent_id} triggered (run {run_id})"
                 return False, f"Gateway returned {resp.status_code}: {resp.text}"
         except httpx.RequestError as exc:
             logger.warning("Failed to trigger agent %s: %s", agent_id, exc)

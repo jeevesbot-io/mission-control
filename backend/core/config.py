@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     bundled_skills_dir: str = ""  # empty = disabled (Linux path doesn't exist on macOS)
     openclaw_url: str = "http://localhost:18789"
     openclaw_token: str = ""
+    openclaw_hooks_token: str = "mc-trigger-2026"
     openclaw_gateway_url: str = "http://localhost:18789"
     openclaw_gateway_token: str = ""
 

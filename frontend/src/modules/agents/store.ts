@@ -105,9 +105,9 @@ export const useAgentsStore = defineStore('agents', () => {
     }
   }
 
-  async function triggerAgent(agentId: string): Promise<boolean> {
+  async function triggerAgent(agentId: string, message = ''): Promise<boolean> {
     try {
-      await api.post<{ success: boolean }>(`/api/agents/${agentId}/trigger`)
+      await api.post<{ success: boolean }>(`/api/agents/${agentId}/trigger`, { message })
       return true
     } catch {
       return false

@@ -1,7 +1,7 @@
 /* ============================================================
    MISSION CONTROL — Design System
    Aesthetic: Refined aerospace command center
-   Fonts: Syne (display) · Outfit (body) · Red Hat Mono (data)
+   Fonts: System (display/body) · Red Hat Mono (data)
    ============================================================ */
 
 :root {
@@ -137,8 +137,8 @@
   --mc-text-xl: 1.25rem;
   --mc-text-2xl: 1.5rem;
   --mc-text-3xl: 1.875rem;
-  --mc-font-display: 'Syne', system-ui, sans-serif;
-  --mc-font-body: 'Outfit', system-ui, sans-serif;
+  --mc-font-display: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --mc-font-body: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
   --mc-font-mono: 'Red Hat Mono', 'SF Mono', monospace;
 
   /* --- Z-index scale --- */
@@ -692,4 +692,63 @@ select:focus-visible {
 
 .p-menu .p-menuitem-link:hover {
   background: var(--mc-bg-hover) !important;
+}
+
+/* --- Tabs --- */
+.p-tabs {
+  background: transparent !important;
+  color: var(--mc-text) !important;
+}
+
+.p-tablist {
+  background: transparent !important;
+  border-bottom: 1px solid var(--mc-border) !important;
+  padding: 0 !important;
+  gap: 0 !important;
+}
+
+/* Hide the default animated active-bar (we style with border-bottom) */
+.p-tablist-active-bar {
+  background: var(--mc-accent) !important;
+  height: 2px !important;
+}
+
+.p-tab {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  color: var(--mc-text-muted) !important;
+  font-size: 0.8125rem !important;
+  font-weight: 500 !important;
+  padding: 0.625rem 1rem !important;
+  margin-bottom: -1px !important;
+  transition: color var(--mc-transition-speed), border-color var(--mc-transition-speed) !important;
+}
+
+.p-tab:hover {
+  background: transparent !important;
+  color: var(--mc-text) !important;
+  border-bottom-color: var(--mc-border-strong) !important;
+}
+
+.p-tab[data-p-active="true"],
+.p-tab.p-tab-active,
+.p-tab[aria-selected="true"] {
+  background: transparent !important;
+  color: var(--mc-text) !important;
+  border-bottom-color: var(--mc-accent) !important;
+  font-weight: 600 !important;
+}
+
+.p-tabpanels {
+  background: transparent !important;
+  color: var(--mc-text) !important;
+  padding: 0 !important;
+}
+
+.p-tabpanel {
+  background: transparent !important;
+  color: var(--mc-text) !important;
+  padding: 0 !important;
 }

@@ -70,11 +70,16 @@ async def get_agent_log(
     return AgentLogPage(entries=entries, total=total, page=page, page_size=page_size)
 
 
+from pydantic import BaseModel
+
+class TriggerRequest(BaseModel):
+    message: str = ""
+
 @router.post("/{agent_id}/trigger", response_model=TriggerResponse)
 @limiter.limit("5/minute")
-async def trigger_agent(request: Request, agent_id: str):
-    """Trigger agent via OpenClaw gateway."""
-    success, message = await agent_service.trigger_agent(agent_id)
+async def trigger_agent(request: Request, agent_id: str, body: TriggerRequest = TriggerRequest()):
+    """Trigger agent via OpenClaw gateway with optional prompt message."""
+    success, message = await agent_service.trigger_agent(agent_id, body.message)
     if not success:
         raise HTTPException(status_code=502, detail=message)
 
