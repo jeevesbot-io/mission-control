@@ -189,6 +189,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick } from 'vue'
 import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 import McIcon from '@/components/ui/McIcon.vue'
 import McChip from '@/components/ui/McChip.vue'
 import McButton from '@/components/ui/McButton.vue'
@@ -233,7 +234,7 @@ const editingDescription = ref(false)
 
 const renderedDescription = computed(() => {
   if (!props.task.description) return '<span class="no-desc">No description</span>'
-  return marked.parse(props.task.description) as string
+  return DOMPurify.sanitize(marked.parse(props.task.description) as string)
 })
 
 // Status/Priority

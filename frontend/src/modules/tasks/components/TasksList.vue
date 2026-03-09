@@ -104,7 +104,7 @@ import {
 const emit = defineEmits<{ select: [task: Task] }>()
 const tasksStore = useTasksStore()
 
-const _listRef = ref<HTMLElement>()
+const listRef = ref<HTMLElement>()
 const focusedIndex = ref(-1)
 const statusMenuIndex = ref<number | null>(null)
 const priorityMenuIndex = ref<number | null>(null)
