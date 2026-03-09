@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
@@ -16,9 +17,21 @@ logger = logging.getLogger(__name__)
 
 # All columns in agent_runs (order matters for SELECT *)
 _COLUMNS = (
-    "id", "agent_id", "run_type", "trigger", "status", "summary",
-    "duration_ms", "tokens_used", "metadata", "prompt_preview",
-    "channel", "session_key", "completed_at", "outcome", "created_at",
+    "id",
+    "agent_id",
+    "run_type",
+    "trigger",
+    "status",
+    "summary",
+    "duration_ms",
+    "tokens_used",
+    "metadata",
+    "prompt_preview",
+    "channel",
+    "session_key",
+    "completed_at",
+    "outcome",
+    "created_at",
 )
 
 _SELECT_COLS = ", ".join(_COLUMNS)
@@ -40,7 +53,8 @@ class RunsService:
 
         async with async_session() as session:
             result = await session.execute(
-                text("""
+                text(
+                    """
                     INSERT INTO agent_runs (
                         id, agent_id, run_type, trigger, status, summary,
                         duration_ms, tokens_used, metadata, prompt_preview,
@@ -51,7 +65,8 @@ class RunsService:
                         :channel, :session_key, :completed_at, :outcome, :created_at
                     )
                     RETURNING {cols}
-                """.format(cols=_SELECT_COLS)),
+                """.format(cols=_SELECT_COLS)
+                ),
                 {
                     "id": run_id,
                     "agent_id": payload.agent_id,
@@ -61,8 +76,10 @@ class RunsService:
                     "summary": payload.summary,
                     "duration_ms": payload.duration_ms,
                     "tokens_used": payload.tokens_used,
-                    "metadata": payload.metadata,
-                    "prompt_preview": (payload.prompt_preview or "")[:500] if payload.prompt_preview else None,
+                    "metadata": json.dumps(payload.metadata) if payload.metadata else None,
+                    "prompt_preview": (payload.prompt_preview or "")[:500]
+                    if payload.prompt_preview
+                    else None,
                     "channel": payload.channel,
                     "session_key": payload.session_key,
                     "completed_at": now if payload.outcome else None,
@@ -180,8 +197,11 @@ class RunsService:
 
     async def get_day_runs(self, date: str, agent_id: str | None = None) -> list[AgentRun]:
         """All runs for a specific day, optionally filtered by agent."""
+        from datetime import date as date_type
+
+        parsed_date = date_type.fromisoformat(date)
         conditions = ["created_at::date = :date"]
-        params: dict = {"date": date}
+        params: dict = {"date": parsed_date}
 
         if agent_id:
             conditions.append("agent_id = :agent_id")

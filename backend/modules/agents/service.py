@@ -262,7 +262,10 @@ class AgentService:
     async def trigger_agent(self, agent_id: str, message: str = "") -> tuple[bool, str]:
         """Trigger agent via OpenClaw /hooks/agent endpoint."""
         url = f"{settings.openclaw_url}/hooks/agent"
-        prompt = message.strip() or f"You have been manually triggered from Mission Control. Please run your standard checks and report status."
+        prompt = (
+            message.strip()
+            or "You have been manually triggered from Mission Control. Please run your standard checks and report status."
+        )
         payload = {
             "message": prompt,
             "agentId": agent_id,

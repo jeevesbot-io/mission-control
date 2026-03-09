@@ -1,6 +1,7 @@
 """Agents module API endpoints."""
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
@@ -70,10 +71,9 @@ async def get_agent_log(
     return AgentLogPage(entries=entries, total=total, page=page, page_size=page_size)
 
 
-from pydantic import BaseModel
-
 class TriggerRequest(BaseModel):
     message: str = ""
+
 
 @router.post("/{agent_id}/trigger", response_model=TriggerResponse)
 @limiter.limit("5/minute")
