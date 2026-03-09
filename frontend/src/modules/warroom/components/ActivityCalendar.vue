@@ -233,15 +233,15 @@ onMounted(() => store.fetchCalendar())
 }
 
 /* Activity levels */
-.level-0 { background: var(--mc-bg-hover, rgba(255,255,255,0.06)); }
-.level-1 { background: rgba(99, 102, 241, 0.3); }  /* --mc-accent-subtle */
-.level-2 { background: rgba(99, 102, 241, 0.55); }
-.level-3 { background: var(--mc-accent, #6366f1); }
+.level-0 { background: var(--mc-bg-hover); }
+.level-1 { background: rgba(245, 158, 11, 0.2); }
+.level-2 { background: rgba(245, 158, 11, 0.45); }
+.level-3 { background: var(--mc-accent); }
 
 /* Day detail panel */
 .day-detail {
   background: var(--mc-bg-surface);
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--mc-border-strong);
   border-radius: var(--mc-radius-sm);
   overflow: hidden;
   max-width: 400px;
@@ -252,7 +252,7 @@ onMounted(() => store.fetchCalendar())
   justify-content: space-between;
   align-items: center;
   padding: 0.6rem 0.75rem;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--mc-border);
 }
 
 .day-detail-date {
@@ -312,7 +312,7 @@ onMounted(() => store.fetchCalendar())
   font-size: 0.78rem;
   color: var(--mc-text);
   padding: 0.2rem 0;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid var(--mc-bg-inset);
 }
 .task-item:last-child { border-bottom: none; }
 

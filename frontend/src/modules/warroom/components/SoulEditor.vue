@@ -274,7 +274,7 @@ onMounted(async () => {
 .file-tabs {
   display: flex;
   gap: 0.25rem;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid var(--mc-border-strong);
   padding-bottom: 0;
 }
 
@@ -294,11 +294,11 @@ onMounted(async () => {
   align-items: center;
   gap: 0.35rem;
 }
-.file-tab:hover { color: var(--mc-text); background: rgba(255,255,255,0.04); }
+.file-tab:hover { color: var(--mc-text); background: var(--mc-bg-inset); }
 .file-tab.active {
   color: var(--mc-text);
   background: var(--mc-bg-surface);
-  border-color: rgba(255,255,255,0.08);
+  border-color: var(--mc-border-strong);
   border-bottom-color: var(--mc-bg-surface);
   margin-bottom: -1px;
 }
@@ -362,7 +362,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--mc-border-strong);
   border-radius: var(--mc-radius-sm);
   background: var(--mc-bg-surface);
   overflow: hidden;
@@ -370,7 +370,7 @@ onMounted(async () => {
 
 .side-tabs {
   display: flex;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid var(--mc-border-strong);
 }
 
 .side-tab {
@@ -386,7 +386,7 @@ onMounted(async () => {
   color: var(--mc-text-muted);
   transition: color var(--mc-transition-speed), background var(--mc-transition-speed);
 }
-.side-tab:hover { color: var(--mc-text); background: rgba(255,255,255,0.04); }
+.side-tab:hover { color: var(--mc-text); background: var(--mc-bg-inset); }
 .side-tab.active { color: var(--mc-accent); background: var(--mc-accent-subtle); }
 
 .side-content {
@@ -407,7 +407,7 @@ onMounted(async () => {
 
 /* Templates */
 .template-card {
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--mc-border-strong);
   border-radius: var(--mc-radius-sm);
   overflow: hidden;
 }
@@ -419,7 +419,7 @@ onMounted(async () => {
   cursor: pointer;
   transition: background var(--mc-transition-speed);
 }
-.template-header:hover { background: rgba(255,255,255,0.04); }
+.template-header:hover { background: var(--mc-bg-inset); }
 .template-name { font-size: 0.78rem; font-weight: 600; color: var(--mc-text); }
 .template-toggle { font-size: 0.6rem; color: var(--mc-text-muted); }
 .template-desc {
@@ -429,7 +429,7 @@ onMounted(async () => {
   margin: 0;
 }
 .template-preview {
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--mc-border);
 }
 .template-preview pre {
   font-size: 0.65rem;
@@ -448,7 +448,7 @@ onMounted(async () => {
   padding: 0.4rem;
   background: var(--mc-accent-subtle);
   border: none;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--mc-border);
   color: var(--mc-accent);
   font-size: 0.73rem;
   font-weight: 600;
@@ -468,13 +468,13 @@ onMounted(async () => {
   border: 1px solid transparent;
   transition: background var(--mc-transition-speed);
 }
-.history-entry:hover { background: rgba(255,255,255,0.04); }
+.history-entry:hover { background: var(--mc-bg-inset); }
 .history-entry.selected { background: var(--mc-accent-subtle); border-color: var(--mc-accent); }
 .history-time { font-size: 0.72rem; color: var(--mc-text); }
 .history-len { font-size: 0.65rem; color: var(--mc-text-muted); font-family: var(--mc-font-mono); }
 
 .history-preview {
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid var(--mc-border-strong);
   border-radius: var(--mc-radius-sm);
   overflow: hidden;
   margin-top: 0.25rem;
@@ -494,7 +494,7 @@ onMounted(async () => {
   display: flex;
   gap: 0.4rem;
   padding: 0.4rem;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--mc-border);
   background: rgba(0,0,0,0.1);
   justify-content: flex-end;
 }
@@ -508,8 +508,8 @@ onMounted(async () => {
 .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
 .btn-secondary {
   padding: 5px 14px; border-radius: var(--mc-radius-sm);
-  background: rgba(255,255,255,0.06); color: var(--mc-text); font-size: 0.78rem;
-  border: 1px solid rgba(255,255,255,0.1); cursor: pointer;
+  background: var(--mc-bg-inset); color: var(--mc-text); font-size: 0.78rem;
+  border: 1px solid var(--mc-border-strong); cursor: pointer;
 }
 .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
 </style>

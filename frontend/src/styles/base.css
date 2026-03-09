@@ -24,11 +24,11 @@
   --mc-border-focus: var(--mc-accent);
   --mc-border-input: rgba(255, 255, 255, 0.12);
 
-  /* --- Accent: Electric indigo + warm amber --- */
-  --mc-accent: #7c6aff;
-  --mc-accent-hover: #9d8eff;
-  --mc-accent-glow: rgba(124, 106, 255, 0.3);
-  --mc-accent-subtle: rgba(124, 106, 255, 0.08);
+  /* --- Accent: Warm amber --- */
+  --mc-accent: #f59e0b;
+  --mc-accent-hover: #fbbf24;
+  --mc-accent-glow: rgba(245, 158, 11, 0.3);
+  --mc-accent-subtle: rgba(245, 158, 11, 0.08);
   --mc-live: #f0b429;
   --mc-live-glow: rgba(240, 180, 41, 0.35);
 
@@ -150,9 +150,19 @@
   --mc-z-modal: 50;
   --mc-z-toast: 60;
 
+  /* --- Modal / Overlay / Popover --- */
+  --mc-modal-bg: var(--mc-bg-elevated);
+  --mc-modal-border: var(--mc-border-strong);
+  --mc-modal-header-bg: rgba(16, 19, 30, 0.95);
+  --mc-overlay: rgba(0, 0, 0, 0.6);
+  --mc-surface-popover: rgba(24, 27, 42, 0.95);
+  --mc-popover-border: var(--mc-border-strong);
+
   /* --- Interactive states --- */
   --mc-focus-ring: 0 0 0 2px var(--mc-bg), 0 0 0 4px var(--mc-border-focus);
   --mc-disabled-opacity: 0.4;
+  --mc-hover-bg: var(--mc-bg-hover);
+  --mc-active-bg: var(--mc-bg-active);
 
   /* --- Depth --- */
   --mc-glass-blur: blur(20px);
@@ -164,106 +174,7 @@
   color-scheme: dark;
 }
 
-/* --- Light mode --- */
-:root:not(:has(.dark-mode)) {
-  --mc-bg: #f4f5f9;
-  --mc-bg-surface: rgba(255, 255, 255, 0.75);
-  --mc-bg-elevated: rgba(255, 255, 255, 0.9);
-  --mc-bg-hover: rgba(0, 0, 0, 0.04);
-  --mc-bg-solid: #ffffff;
-  --mc-bg-active: rgba(0, 0, 0, 0.07);
-  --mc-bg-inset: rgba(0, 0, 0, 0.03);
-  --mc-bg-overlay: rgba(0, 0, 0, 0.4);
-  --mc-bg-skeleton: rgba(0, 0, 0, 0.06);
-  --mc-text: #111827;
-  --mc-text-muted: #6b7280;
-  --mc-text-inverse: #ffffff;
-  --mc-text-disabled: rgba(0, 0, 0, 0.25);
-  --mc-border: rgba(0, 0, 0, 0.06);
-  --mc-border-strong: rgba(0, 0, 0, 0.1);
-  --mc-border-focus: var(--mc-accent);
-  --mc-border-input: rgba(0, 0, 0, 0.15);
-
-  --mc-accent: #6355e0;
-  --mc-accent-hover: #5043c4;
-  --mc-accent-glow: rgba(99, 85, 224, 0.2);
-  --mc-accent-subtle: rgba(99, 85, 224, 0.06);
-  --mc-live: #d97706;
-  --mc-live-glow: rgba(217, 119, 6, 0.2);
-
-  --mc-success: #059669;
-  --mc-warning: #d97706;
-  --mc-danger: #dc2626;
-  --mc-info: #2563eb;
-  --mc-success-bg: rgba(5, 150, 105, 0.08);
-  --mc-success-border: rgba(5, 150, 105, 0.2);
-  --mc-warning-bg: rgba(217, 119, 6, 0.08);
-  --mc-warning-border: rgba(217, 119, 6, 0.2);
-  --mc-danger-bg: rgba(220, 38, 38, 0.08);
-  --mc-danger-border: rgba(220, 38, 38, 0.2);
-  --mc-info-bg: rgba(37, 99, 235, 0.08);
-  --mc-info-border: rgba(37, 99, 235, 0.2);
-
-  /* Named colors (light-adjusted) */
-  --mc-color-purple: #7c3aed;
-  --mc-color-purple-bg: rgba(124, 58, 237, 0.08);
-  --mc-color-purple-border: rgba(124, 58, 237, 0.2);
-  --mc-color-purple-accent: rgba(124, 58, 237, 0.4);
-
-  --mc-color-pink: #db2777;
-  --mc-color-pink-bg: rgba(219, 39, 119, 0.08);
-  --mc-color-pink-border: rgba(219, 39, 119, 0.2);
-  --mc-color-pink-accent: rgba(219, 39, 119, 0.4);
-
-  --mc-color-green: #059669;
-  --mc-color-green-bg: rgba(5, 150, 105, 0.08);
-  --mc-color-green-border: rgba(5, 150, 105, 0.2);
-  --mc-color-green-accent: rgba(5, 150, 105, 0.4);
-
-  --mc-color-blue: #2563eb;
-  --mc-color-blue-bg: rgba(37, 99, 235, 0.08);
-  --mc-color-blue-border: rgba(37, 99, 235, 0.2);
-  --mc-color-blue-accent: rgba(37, 99, 235, 0.4);
-
-  --mc-color-amber: #d97706;
-  --mc-color-amber-bg: rgba(217, 119, 6, 0.08);
-  --mc-color-amber-border: rgba(217, 119, 6, 0.2);
-  --mc-color-amber-accent: rgba(217, 119, 6, 0.4);
-
-  --mc-color-indigo: #4f46e5;
-  --mc-color-indigo-bg: rgba(79, 70, 229, 0.08);
-  --mc-color-indigo-border: rgba(79, 70, 229, 0.2);
-  --mc-color-indigo-accent: rgba(79, 70, 229, 0.4);
-
-  --mc-color-red: #dc2626;
-  --mc-color-red-bg: rgba(220, 38, 38, 0.08);
-  --mc-color-red-border: rgba(220, 38, 38, 0.2);
-  --mc-color-red-accent: rgba(220, 38, 38, 0.4);
-
-  --mc-color-orange: #ea580c;
-  --mc-color-orange-bg: rgba(234, 88, 12, 0.08);
-  --mc-color-orange-border: rgba(234, 88, 12, 0.2);
-  --mc-color-orange-accent: rgba(234, 88, 12, 0.4);
-
-  --mc-color-cyan: #0891b2;
-  --mc-color-cyan-bg: rgba(8, 145, 178, 0.08);
-  --mc-color-cyan-border: rgba(8, 145, 178, 0.2);
-  --mc-color-cyan-accent: rgba(8, 145, 178, 0.4);
-
-  --mc-color-yellow: #ca8a04;
-  --mc-color-yellow-bg: rgba(202, 138, 4, 0.08);
-  --mc-color-yellow-border: rgba(202, 138, 4, 0.2);
-  --mc-color-yellow-accent: rgba(202, 138, 4, 0.4);
-
-  --mc-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
-  --mc-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
-  --mc-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
-  --mc-shadow-glow: 0 0 24px var(--mc-accent-glow);
-
-  --mc-focus-ring: 0 0 0 2px var(--mc-bg), 0 0 0 4px var(--mc-border-focus);
-
-  color-scheme: light;
-}
+/* Light mode removed — dark-only design */
 
 /* ============================================================
    Reset
@@ -287,7 +198,7 @@ body {
 }
 
 /* Dot grid background — subtle aerospace graph paper */
-.dark-mode body::before {
+body::before {
   content: '';
   position: fixed;
   inset: 0;
@@ -297,25 +208,15 @@ body {
   pointer-events: none;
 }
 
-:root:not(:has(.dark-mode)) body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.025) 1px, transparent 1px);
-  background-size: 24px 24px;
-  pointer-events: none;
-}
-
 /* Ambient gradient glow — top-left accent wash */
-.dark-mode body::after {
+body::after {
   content: '';
   position: fixed;
   top: -20%;
   left: -10%;
   width: 60%;
   height: 50%;
-  background: radial-gradient(ellipse, rgba(124, 106, 255, 0.06) 0%, transparent 70%);
+  background: radial-gradient(ellipse, rgba(245, 158, 11, 0.04) 0%, transparent 70%);
   z-index: -1;
   pointer-events: none;
 }
@@ -579,4 +480,216 @@ select:focus-visible {
 .mc-prose img {
   max-width: 100%;
   border-radius: var(--mc-radius-sm);
+}
+
+/* ============================================================
+   PrimeVue Component Overrides — Dark Mode Token Propagation
+   These ensure all PrimeVue overlays (Dialog, Select dropdown,
+   Popover, Tooltip, etc.) respect our design token system.
+   PrimeVue teleports these to <body>, so they need global styles.
+   ============================================================ */
+
+/* --- Dialog / Modal --- */
+.p-dialog-mask {
+  background: var(--mc-overlay) !important;
+  backdrop-filter: blur(4px);
+}
+
+.p-dialog {
+  background: var(--mc-modal-bg) !important;
+  border: 1px solid var(--mc-modal-border) !important;
+  border-radius: var(--mc-radius) !important;
+  box-shadow: var(--mc-shadow-lg) !important;
+  color: var(--mc-text) !important;
+  overflow: hidden;
+}
+
+.p-dialog .p-dialog-header {
+  background: var(--mc-modal-header-bg) !important;
+  border-bottom: 1px solid var(--mc-border) !important;
+  color: var(--mc-text) !important;
+  padding: 1rem 1.25rem !important;
+}
+
+.p-dialog .p-dialog-header .p-dialog-title {
+  font-family: var(--mc-font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.p-dialog .p-dialog-header .p-dialog-header-actions .p-button {
+  color: var(--mc-text-muted) !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+.p-dialog .p-dialog-header .p-dialog-header-actions .p-button:hover {
+  color: var(--mc-text) !important;
+  background: var(--mc-bg-hover) !important;
+}
+
+.p-dialog .p-dialog-content {
+  background: var(--mc-modal-bg) !important;
+  color: var(--mc-text) !important;
+  padding: 1.25rem !important;
+}
+
+.p-dialog .p-dialog-footer {
+  background: var(--mc-modal-header-bg) !important;
+  border-top: 1px solid var(--mc-border) !important;
+  padding: 0.75rem 1.25rem !important;
+}
+
+/* --- InputText / Textarea (inside dialogs and elsewhere) --- */
+.p-inputtext,
+.p-textarea {
+  background: var(--mc-bg-inset) !important;
+  border: 1px solid var(--mc-border-input) !important;
+  color: var(--mc-text) !important;
+  border-radius: var(--mc-radius-sm) !important;
+  font-family: var(--mc-font-body);
+  font-size: var(--mc-text-sm);
+  padding: 0.5rem 0.75rem;
+  transition:
+    border-color var(--mc-transition-speed),
+    box-shadow var(--mc-transition-speed);
+}
+
+.p-inputtext:focus,
+.p-textarea:focus,
+.p-inputtext:focus-visible,
+.p-textarea:focus-visible {
+  border-color: var(--mc-accent) !important;
+  box-shadow: 0 0 0 3px var(--mc-accent-glow) !important;
+  outline: none !important;
+}
+
+.p-inputtext::placeholder,
+.p-textarea::placeholder {
+  color: var(--mc-text-muted) !important;
+  opacity: 0.6;
+}
+
+.p-inputtext:disabled,
+.p-textarea:disabled {
+  opacity: var(--mc-disabled-opacity);
+  cursor: not-allowed;
+}
+
+/* --- Select / Dropdown --- */
+.p-select {
+  background: var(--mc-bg-inset) !important;
+  border: 1px solid var(--mc-border-input) !important;
+  color: var(--mc-text) !important;
+  border-radius: var(--mc-radius-sm) !important;
+  font-size: var(--mc-text-sm);
+}
+
+.p-select:hover {
+  border-color: var(--mc-border-strong) !important;
+}
+
+.p-select.p-focus,
+.p-select:focus-within {
+  border-color: var(--mc-accent) !important;
+  box-shadow: 0 0 0 3px var(--mc-accent-glow) !important;
+}
+
+.p-select .p-select-label {
+  color: var(--mc-text) !important;
+}
+
+.p-select .p-select-label.p-placeholder {
+  color: var(--mc-text-muted) !important;
+}
+
+.p-select .p-select-dropdown {
+  color: var(--mc-text-muted) !important;
+}
+
+/* Select overlay / panel (teleported to body) */
+.p-select-overlay,
+.p-select-panel {
+  background: var(--mc-surface-popover) !important;
+  border: 1px solid var(--mc-popover-border) !important;
+  border-radius: var(--mc-radius-sm) !important;
+  box-shadow: var(--mc-shadow-lg) !important;
+  backdrop-filter: blur(12px);
+  color: var(--mc-text) !important;
+}
+
+.p-select-overlay .p-select-list,
+.p-select-panel .p-select-list {
+  padding: 0.25rem !important;
+}
+
+.p-select-option {
+  color: var(--mc-text) !important;
+  border-radius: var(--mc-radius-xs) !important;
+  padding: 0.5rem 0.75rem !important;
+  font-size: var(--mc-text-sm);
+  transition: background var(--mc-transition-fast);
+}
+
+.p-select-option:hover,
+.p-select-option.p-focus {
+  background: var(--mc-bg-hover) !important;
+  color: var(--mc-text) !important;
+}
+
+.p-select-option.p-selected,
+.p-select-option.p-highlight {
+  background: var(--mc-accent-subtle) !important;
+  color: var(--mc-accent) !important;
+}
+
+/* Select filter input */
+.p-select-overlay .p-select-filter-container .p-select-filter,
+.p-select-panel .p-select-filter-container .p-inputtext {
+  background: var(--mc-bg-inset) !important;
+  border: 1px solid var(--mc-border-input) !important;
+  color: var(--mc-text) !important;
+}
+
+/* --- Popover / Tooltip --- */
+.p-popover,
+.p-tooltip .p-tooltip-text {
+  background: var(--mc-surface-popover) !important;
+  border: 1px solid var(--mc-popover-border) !important;
+  border-radius: var(--mc-radius-sm) !important;
+  box-shadow: var(--mc-shadow-lg) !important;
+  color: var(--mc-text) !important;
+}
+
+/* --- Confirm Dialog --- */
+.p-confirmdialog {
+  background: var(--mc-modal-bg) !important;
+  color: var(--mc-text) !important;
+}
+
+/* --- Toast --- */
+.p-toast-message {
+  background: var(--mc-surface-popover) !important;
+  border: 1px solid var(--mc-popover-border) !important;
+  color: var(--mc-text) !important;
+  border-radius: var(--mc-radius-sm) !important;
+  box-shadow: var(--mc-shadow-lg) !important;
+}
+
+/* --- Menu --- */
+.p-menu {
+  background: var(--mc-surface-popover) !important;
+  border: 1px solid var(--mc-popover-border) !important;
+  border-radius: var(--mc-radius-sm) !important;
+  box-shadow: var(--mc-shadow-lg) !important;
+  color: var(--mc-text) !important;
+}
+
+.p-menu .p-menuitem-link {
+  color: var(--mc-text) !important;
+}
+
+.p-menu .p-menuitem-link:hover {
+  background: var(--mc-bg-hover) !important;
 }

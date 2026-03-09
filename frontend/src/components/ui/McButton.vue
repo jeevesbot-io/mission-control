@@ -107,11 +107,13 @@ withDefaults(
 .mc-btn--ghost {
   background: transparent;
   color: var(--mc-text-muted);
+  border-color: transparent;
 }
 
 .mc-btn--ghost:hover:not(:disabled) {
   background: var(--mc-bg-hover);
   color: var(--mc-text);
+  border-color: var(--mc-border-strong);
 }
 
 .mc-btn--danger {

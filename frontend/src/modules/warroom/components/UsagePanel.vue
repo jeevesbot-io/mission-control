@@ -49,7 +49,7 @@ function pctClass(pct: number) {
 <style scoped>
 .usage-panel {
   background: var(--mc-bg-surface);
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid var(--mc-border);
   border-radius: var(--mc-radius);
   padding: 1.25rem;
   max-width: 480px;
@@ -93,7 +93,7 @@ function pctClass(pct: number) {
 
 .progress-track {
   height: 5px;
-  background: rgba(255,255,255,0.08);
+  background: var(--mc-bg-hover);
   border-radius: 3px;
   overflow: hidden;
   margin-bottom: 0.25rem;

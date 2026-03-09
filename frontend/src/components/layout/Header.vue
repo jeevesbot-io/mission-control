@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { useAppStore } from '@/stores/app'
-
 const route = useRoute()
-const appStore = useAppStore()
 
 const now = ref(new Date())
 let timer: ReturnType<typeof setInterval>
@@ -50,15 +47,7 @@ const dateStr = computed(() =>
         <span class="header__clock-date">{{ dateStr }}</span>
       </div>
 
-      <!-- Theme toggle -->
-      <button
-        class="header__icon-btn"
-        @click="appStore.toggleDarkMode"
-        :title="appStore.darkMode ? 'Switch to light mode' : 'Switch to dark mode'"
-        :aria-label="appStore.darkMode ? 'Switch to light mode' : 'Switch to dark mode'"
-      >
-        <i :class="appStore.darkMode ? 'pi pi-sun' : 'pi pi-moon'" />
-      </button>
+      <!-- Dark-only: theme toggle removed -->
     </div>
   </header>
 </template>

@@ -56,13 +56,13 @@ function toggleTag(tag: string) {
   border-radius: 20px;
   font-size: 0.68rem;
   font-family: var(--mc-font-mono);
-  border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--mc-border-strong);
+  background: var(--mc-bg-inset);
   color: var(--mc-text-muted);
   cursor: pointer;
   transition: all var(--mc-transition-speed);
 }
-.tag-btn:hover { background: rgba(255,255,255,0.08); color: var(--mc-text); }
+.tag-btn:hover { background: var(--mc-bg-hover); color: var(--mc-text); }
 .tag-btn.active {
   border-color: var(--mc-accent);
   background: var(--mc-accent-subtle);

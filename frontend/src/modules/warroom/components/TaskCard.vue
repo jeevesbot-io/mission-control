@@ -68,7 +68,7 @@ const blocked = computed(() => store.isTaskBlocked(props.task))
 
 const projectAccentStyle = computed(() => {
   if (!project.value) return {}
-  const color = COLOR_MAP[project.value.color] ?? COLOR_MAP['purple']
+  const color = COLOR_MAP[project.value.color] ?? COLOR_MAP['amber']
   return { '--card-accent': color }
 })
 
@@ -87,18 +87,19 @@ const scheduleLabel = computed(() => {
 <style scoped>
 .task-card {
   background: var(--mc-bg-elevated);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-left: 3px solid var(--card-accent, rgba(124,106,255,0.4));
+  border: 1px solid var(--mc-border);
+  border-left: 3px solid var(--card-accent, var(--mc-color-amber-accent));
   border-radius: var(--mc-radius-sm);
   padding: 0.75rem;
   cursor: pointer;
-  transition: background var(--mc-transition-speed), transform var(--mc-transition-speed);
+  transition: background var(--mc-transition-speed), transform var(--mc-transition-speed), border-color var(--mc-transition-speed);
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
 }
 .task-card:hover {
   background: var(--mc-bg-hover);
+  border-color: var(--mc-border-strong);
   transform: translateY(-1px);
 }
 .task-card.is-in-progress {
@@ -109,7 +110,7 @@ const scheduleLabel = computed(() => {
 }
 .task-card.is-blocked {
   opacity: 0.55;
-  border-left-color: rgba(248,113,113,0.4);
+  border-left-color: var(--mc-color-red-accent);
 }
 
 .task-card-header {
@@ -185,17 +186,17 @@ const scheduleLabel = computed(() => {
   border-radius: 3px;
   letter-spacing: 0.05em;
 }
-.priority-pill-low    { background: rgba(107,112,132,0.2); color: var(--mc-text-muted); }
-.priority-pill-medium { background: rgba(96,165,250,0.15); color: #60a5fa; }
-.priority-pill-high   { background: rgba(251,191,36,0.15); color: #fbbf24; }
-.priority-pill-urgent { background: rgba(248,113,113,0.15); color: #f87171; }
+.priority-pill-low    { background: var(--mc-bg-hover); color: var(--mc-text-muted); }
+.priority-pill-medium { background: var(--mc-color-blue-bg); color: var(--mc-color-blue); }
+.priority-pill-high   { background: var(--mc-color-amber-bg); color: var(--mc-color-amber); }
+.priority-pill-urgent { background: var(--mc-color-red-bg); color: var(--mc-color-red); }
 
 .meta-chip {
   font-size: 0.6rem;
   font-family: var(--mc-font-mono);
   color: var(--mc-text-muted);
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--mc-bg-inset);
+  border: 1px solid var(--mc-border);
   padding: 1px 5px;
   border-radius: 3px;
 }
@@ -210,7 +211,7 @@ const scheduleLabel = computed(() => {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: rgba(248,113,113,0.15);
-  color: #f87171;
+  background: var(--mc-color-red-bg);
+  color: var(--mc-color-red);
 }
 </style>

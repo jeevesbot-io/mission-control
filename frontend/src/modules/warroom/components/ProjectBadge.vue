@@ -25,7 +25,7 @@ const COLOR_MAP: Record<string, { bg: string; border: string; text: string }> = 
 
 const badgeStyle = computed(() => {
   if (!props.project) return {}
-  const c = COLOR_MAP[props.project.color] ?? COLOR_MAP['purple']
+  const c = COLOR_MAP[props.project.color] ?? COLOR_MAP['amber']
   return {
     backgroundColor: c.bg,
     borderColor: c.border,

@@ -9,7 +9,7 @@
         v-for="project in projects"
         :key="project.id"
         class="project-card"
-        :style="{ borderLeftColor: COLOR_MAP[project.color] || '#7c6aff' }"
+        :style="{ borderLeftColor: COLOR_MAP[project.color] || '#f59e0b' }"
       >
         <div class="project-card-header">
           <span class="project-icon">{{ project.icon }}</span>
@@ -148,7 +148,7 @@ const defaultForm = () => ({
   id: '',
   name: '',
   icon: '',
-  color: 'purple',
+  color: 'amber',
   description: '',
   status: 'active' as const,
   order: 0,
@@ -233,13 +233,19 @@ async function doDelete() {
 
 .project-card {
   background: var(--mc-bg-elevated);
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid var(--mc-border);
   border-left: 4px solid;
   border-radius: var(--mc-radius-sm);
   padding: 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  transition: border-color var(--mc-transition-speed), box-shadow var(--mc-transition-speed);
+}
+
+.project-card:hover {
+  border-color: var(--mc-border-strong);
+  box-shadow: var(--mc-shadow-sm);
 }
 
 .project-card-header {
@@ -257,10 +263,10 @@ async function doDelete() {
   text-transform: uppercase;
   padding: 1px 6px;
   border-radius: 3px;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid var(--mc-border);
 }
-.status-active { color: var(--mc-success); border-color: rgba(52,211,153,0.3); }
-.status-paused { color: var(--mc-warning); border-color: rgba(251,191,36,0.3); }
+.status-active { color: var(--mc-success); border-color: var(--mc-success-border); }
+.status-paused { color: var(--mc-warning); border-color: var(--mc-warning-border); }
 .status-archived { color: var(--mc-text-muted); }
 
 .project-desc {
@@ -314,22 +320,26 @@ async function doDelete() {
 .btn-secondary {
   padding: 4px 10px;
   border-radius: var(--mc-radius-sm);
-  background: rgba(255,255,255,0.06);
+  background: var(--mc-bg-elevated);
   color: var(--mc-text);
   font-size: 0.75rem;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid var(--mc-border-strong);
   cursor: pointer;
+  transition: background var(--mc-transition-speed);
 }
+.btn-secondary:hover { background: var(--mc-bg-hover); }
 
 .btn-danger {
   padding: 4px 10px;
   border-radius: var(--mc-radius-sm);
-  background: rgba(248,113,113,0.12);
-  color: #f87171;
+  background: var(--mc-danger-bg);
+  color: var(--mc-danger);
   font-size: 0.75rem;
-  border: 1px solid rgba(248,113,113,0.3);
+  border: 1px solid var(--mc-danger-border);
   cursor: pointer;
+  transition: background var(--mc-transition-speed);
 }
+.btn-danger:hover { background: var(--mc-color-red-bg); }
 
 .btn-sm { padding: 3px 8px; font-size: 0.7rem; }
 

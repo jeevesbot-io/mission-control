@@ -213,7 +213,7 @@ async function onRun(id: string) {
 
 .board-filters {
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--mc-border);
 }
 
 .filters-row {
@@ -246,7 +246,7 @@ async function onRun(id: string) {
   display: flex;
   flex-direction: column;
   background: var(--mc-bg-surface);
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid var(--mc-border);
   border-radius: var(--mc-radius);
   overflow: hidden;
   min-height: 300px;
@@ -262,7 +262,7 @@ async function onRun(id: string) {
   align-items: center;
   gap: 0.5rem;
   padding: 0.6rem 0.75rem;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--mc-border);
   flex-shrink: 0;
 }
 
@@ -278,7 +278,7 @@ async function onRun(id: string) {
 .column-count {
   font-size: 0.7rem;
   font-family: var(--mc-font-mono);
-  background: rgba(255,255,255,0.08);
+  background: var(--mc-bg-hover);
   color: var(--mc-text-muted);
   padding: 1px 6px;
   border-radius: 10px;
@@ -290,8 +290,8 @@ async function onRun(id: string) {
   font-family: var(--mc-font-mono);
   text-transform: uppercase;
   color: var(--mc-text-muted);
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: var(--mc-bg-inset);
+  border: 1px solid var(--mc-border);
   padding: 1px 5px;
   border-radius: 3px;
 }
@@ -319,7 +319,7 @@ async function onRun(id: string) {
   color: var(--mc-text-muted);
   font-size: 0.73rem;
   cursor: pointer;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--mc-border);
   transition: color var(--mc-transition-speed);
   flex-shrink: 0;
 }

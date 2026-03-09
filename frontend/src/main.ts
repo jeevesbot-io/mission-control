@@ -69,7 +69,7 @@ app.use(PrimeVue, {
   theme: {
     preset: MissionControlPreset,
     options: {
-      darkModeSelector: '.dark-mode',
+      darkModeSelector: 'html.dark-mode',
     },
   },
 })

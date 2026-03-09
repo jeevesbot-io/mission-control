@@ -187,7 +187,7 @@ async function submitCreate() {
 
 :deep(.skill-card) {
   background: var(--mc-bg-surface);
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid var(--mc-border);
   border-radius: var(--mc-radius-sm);
   overflow: hidden;
 }
@@ -240,7 +240,7 @@ async function submitCreate() {
   word-break: break-word;
   max-height: 200px;
   overflow-y: auto;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--mc-border);
 }
 
 .create-skill { margin-top: 0.5rem; }
@@ -266,7 +266,7 @@ async function submitCreate() {
   gap: 0.5rem;
   padding: 0.75rem;
   background: var(--mc-bg-surface);
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--mc-border-strong);
   border-radius: var(--mc-radius-sm);
 }
 
@@ -280,8 +280,8 @@ async function submitCreate() {
 .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
 .btn-secondary {
   padding: 5px 14px; border-radius: var(--mc-radius-sm);
-  background: rgba(255,255,255,0.06); color: var(--mc-text); font-size: 0.78rem;
-  border: 1px solid rgba(255,255,255,0.1); cursor: pointer;
+  background: var(--mc-bg-inset); color: var(--mc-text); font-size: 0.78rem;
+  border: 1px solid var(--mc-border-strong); cursor: pointer;
 }
 
 .loading-msg { color: var(--mc-text-muted); font-size: 0.8rem; }

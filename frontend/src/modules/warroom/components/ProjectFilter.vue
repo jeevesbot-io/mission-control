@@ -62,15 +62,15 @@ function activeStyle(project: { color: string; id: string }) {
   font-size: 0.72rem;
   font-family: var(--mc-font-mono);
   font-weight: 600;
-  border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--mc-border-strong);
+  background: var(--mc-bg-inset);
   color: var(--mc-text-muted);
   cursor: pointer;
   transition: all var(--mc-transition-speed);
   white-space: nowrap;
 }
 .filter-btn:hover {
-  background: rgba(255,255,255,0.08);
+  background: var(--mc-bg-hover);
   color: var(--mc-text);
 }
 .filter-btn.active {
@@ -85,7 +85,7 @@ function activeStyle(project: { color: string; id: string }) {
 }
 
 .count {
-  background: rgba(255,255,255,0.1);
+  background: var(--mc-bg-hover);
   padding: 0 4px;
   border-radius: 8px;
   font-size: 0.65rem;

@@ -81,7 +81,7 @@ function iconForResource(type: string): string {
 function accentForModule(mod: string): string {
   const map: Record<string, string> = {
     warroom: 'var(--mc-warning)',
-    agents: '#7c6aff',
+    agents: 'var(--mc-accent)',
     content: '#ec4899',
   }
   return map[mod] || 'var(--mc-accent)'
@@ -135,10 +135,10 @@ function resourceLink(event: ActivityEvent): string | null {
       <section class="activity__section" v-if="store.stats">
         <h3 class="activity__section-title">Overview</h3>
         <div class="activity__stats mc-stagger">
-          <StatCard icon="activity" accent="#7c6aff" :value="store.stats.total_events" label="Total Events" />
+          <StatCard icon="activity" accent="#f59e0b" :value="store.stats.total_events" label="Total Events" />
           <StatCard icon="clock" accent="#38bdf8" :value="store.stats.last_24h" label="Last 24h" />
           <StatCard icon="swords" accent="var(--mc-warning)" :value="store.stats.by_module?.warroom || 0" label="War Room" />
-          <StatCard icon="bot" accent="#a78bfa" :value="store.stats.by_module?.agents || 0" label="Agents" />
+          <StatCard icon="bot" accent="#f59e0b" :value="store.stats.by_module?.agents || 0" label="Agents" />
           <StatCard icon="video" accent="#ec4899" :value="store.stats.by_module?.content || 0" label="Content" />
         </div>
       </section>
@@ -352,7 +352,7 @@ function resourceLink(event: ActivityEvent): string | null {
   bottom: 0;
   left: 50%;
   width: 1px;
-  background: var(--mc-border);
+  background: var(--mc-bg-inset);
   transform: translateX(-50%);
 }
 

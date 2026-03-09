@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineProps<{
-  variant: 'success' | 'warning' | 'danger' | 'info'
+  variant: 'success' | 'warning' | 'danger' | 'info' | 'brand'
   label: string
 }>()
 </script>
@@ -45,5 +45,11 @@ defineProps<{
   color: var(--mc-info);
   background: color-mix(in srgb, var(--mc-info) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--mc-info) 20%, transparent);
+}
+
+.badge--brand {
+  color: var(--mc-accent);
+  background: var(--mc-accent-subtle);
+  border: 1px solid var(--mc-accent-glow);
 }
 </style>

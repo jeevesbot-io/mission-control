@@ -61,7 +61,7 @@ const uptimeStr = computed(() => {
 function childColour(child: string): string {
   const lower = child.toLowerCase()
   if (lower === 'natty' || lower.includes('natty')) return 'var(--mc-info)'        // blue
-  if (lower === 'elodie' || lower.includes('elodie')) return '#a78bfa'             // purple
+  if (lower === 'elodie' || lower.includes('elodie')) return '#f472b6'             // pink
   if (lower === 'florence' || lower.includes('florence')) return 'var(--mc-success)' // green
   return 'var(--mc-text-muted)'
 }
@@ -144,7 +144,7 @@ function formatRelativeTime(iso: string): string {
         <div class="overview__stats mc-stagger">
           <StatCard
             icon="bot"
-            accent="#7c6aff"
+            accent="#f59e0b"
             :value="store.data?.stats.agents_active ?? '—'"
             label="Active Agents"
           />
@@ -174,7 +174,7 @@ function formatRelativeTime(iso: string): string {
           />
           <StatCard
             icon="timer"
-            accent="#a78bfa"
+            accent="#22d3ee"
             :value="uptimeStr"
             label="Uptime"
           />

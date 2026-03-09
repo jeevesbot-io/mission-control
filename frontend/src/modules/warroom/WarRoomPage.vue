@@ -115,7 +115,7 @@ onMounted(async () => {
 .tab-bar {
   display: flex;
   gap: 0.25rem;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
+  border-bottom: 1px solid var(--mc-border);
   padding-bottom: 0;
   flex-shrink: 0;
 }

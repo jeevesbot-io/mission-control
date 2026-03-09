@@ -1,14 +1,17 @@
 <script setup lang="ts">
-import { useAppStore } from '@/stores/app'
+import { onMounted } from 'vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
 
-const appStore = useAppStore()
+// Dark-only — apply to <html> so PrimeVue teleported overlays
+// (Dialog, Select dropdown, Popover, etc.) inherit the dark theme.
+onMounted(() => {
+  document.documentElement.setAttribute('data-theme', 'dark')
+  document.documentElement.classList.add('dark-mode')
+})
 </script>
 
 <template>
-  <div :class="{ 'dark-mode': appStore.darkMode }">
-    <AppLayout>
-      <router-view />
-    </AppLayout>
-  </div>
+  <AppLayout>
+    <router-view />
+  </AppLayout>
 </template>

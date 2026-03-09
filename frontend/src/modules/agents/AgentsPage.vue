@@ -90,7 +90,7 @@ async function handleTrigger(agentId: string) {
             label="Health Rate"
           />
           <StatCard icon="clock" accent="#38bdf8" :value="store.stats.entries_24h" label="Entries (24h)" />
-          <StatCard icon="bot" accent="#7c6aff" :value="store.stats.unique_agents" label="Unique Agents" />
+          <StatCard icon="bot" accent="#f59e0b" :value="store.stats.unique_agents" label="Unique Agents" />
           <StatCard icon="alert-triangle" accent="#fbbf24" :value="store.stats.warning_count" label="Warnings" />
         </div>
       </section>
