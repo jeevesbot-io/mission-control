@@ -98,9 +98,7 @@ def test_ingest_rejects_missing_token():
 
 def test_list_runs():
     with patch("modules.runs.service.RunsService.list_runs", new_callable=AsyncMock) as mock_list:
-        mock_list.return_value = AgentRunList(
-            items=[_SAMPLE_RUN], total=1, page=1, page_size=50
-        )
+        mock_list.return_value = AgentRunList(items=[_SAMPLE_RUN], total=1, page=1, page_size=50)
         response = client.get("/api/runs/")
         assert response.status_code == 200
         data = response.json()
@@ -111,9 +109,7 @@ def test_list_runs():
 def test_list_runs_with_filters():
     with patch("modules.runs.service.RunsService.list_runs", new_callable=AsyncMock) as mock_list:
         mock_list.return_value = AgentRunList(items=[], total=0, page=1, page_size=50)
-        response = client.get(
-            "/api/runs/?agent_id=dev-impl&outcome=success&date_from=2026-03-01"
-        )
+        response = client.get("/api/runs/?agent_id=dev-impl&outcome=success&date_from=2026-03-01")
         assert response.status_code == 200
         mock_list.assert_called_once()
         call_kwargs = mock_list.call_args.kwargs

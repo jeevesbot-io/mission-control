@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import McIcon from '@/components/ui/McIcon.vue'
+import Dialog from 'primevue/dialog'
+import InputText from 'primevue/inputtext'
+import Select from 'primevue/select'
+import Button from 'primevue/button'
 import { useProjectsStore } from '../store'
 
 const props = defineProps<{
@@ -38,6 +41,12 @@ const colorOptions = [
   { label: 'Yellow', value: '#eab308' },
 ]
 
+const statusOptions = [
+  { label: 'Active', value: 'active' },
+  { label: 'Paused', value: 'paused' },
+  { label: 'Archived', value: 'archived' },
+]
+
 function autoSlug() {
   if (!form.value.id || form.value.id === slugify(form.value.name.slice(0, -1))) {
     form.value.id = slugify(form.value.name)
@@ -69,6 +78,10 @@ async function submit() {
   }
 }
 
+function onHide() {
+  emit('close')
+}
+
 watch(() => props.visible, (v) => {
   if (v) {
     error.value = ''
@@ -78,108 +91,68 @@ watch(() => props.visible, (v) => {
 </script>
 
 <template>
-  <Teleport to="body">
-    <div v-if="visible" class="dialog-overlay" @click.self="emit('close')">
-      <div class="dialog-card">
-        <div class="dialog-header">
-          <h2>New Project</h2>
-          <button class="close-btn" @click="emit('close')">
-            <McIcon name="x" :size="18" />
-          </button>
-        </div>
+  <Dialog
+    :visible="visible"
+    header="New Project"
+    :modal="true"
+    :dismissableMask="true"
+    :style="{ width: '500px' }"
+    @update:visible="(val: boolean) => { if (!val) onHide() }"
+  >
+    <div v-if="error" class="error-msg">{{ error }}</div>
 
-        <div v-if="error" class="error-msg">{{ error }}</div>
+    <div class="field">
+      <label>Name</label>
+      <InputText v-model="form.name" placeholder="My Project" class="w-full" @input="autoSlug" />
+    </div>
 
-        <div class="form-row">
-          <label>Name</label>
-          <input v-model="form.name" class="mc-input" placeholder="My Project" @input="autoSlug" />
-        </div>
+    <div class="field">
+      <label>ID (slug)</label>
+      <InputText v-model="form.id" placeholder="my-project" class="w-full" />
+    </div>
 
-        <div class="form-row">
-          <label>ID (slug)</label>
-          <input v-model="form.id" class="mc-input" placeholder="my-project" />
-        </div>
-
-        <div class="form-row-inline">
-          <div class="form-row">
-            <label>Icon</label>
-            <input v-model="form.icon" class="mc-input" placeholder="📂" />
-          </div>
-          <div class="form-row">
-            <label>Color</label>
-            <select v-model="form.color" class="mc-input">
-              <option v-for="c in colorOptions" :key="c.value" :value="c.value">{{ c.label }}</option>
-            </select>
-          </div>
-          <div class="form-row">
-            <label>Status</label>
-            <select v-model="form.status" class="mc-input">
-              <option value="active">Active</option>
-              <option value="paused">Paused</option>
-              <option value="archived">Archived</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <label>Description</label>
-          <textarea v-model="form.description" class="mc-textarea" rows="3" placeholder="Project description…"></textarea>
-        </div>
-
-        <div class="dialog-actions">
-          <button class="btn-secondary" @click="emit('close')">Cancel</button>
-          <button class="btn-primary" @click="submit" :disabled="submitting">
-            {{ submitting ? 'Creating…' : 'Create Project' }}
-          </button>
-        </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Icon</label>
+        <InputText v-model="form.icon" placeholder="📂" class="w-full" />
+      </div>
+      <div class="field">
+        <label>Color</label>
+        <Select
+          v-model="form.color"
+          :options="colorOptions"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Select color"
+          class="w-full"
+        />
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <Select
+          v-model="form.status"
+          :options="statusOptions"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Select status"
+          class="w-full"
+        />
       </div>
     </div>
-  </Teleport>
+
+    <div class="field">
+      <label>Description</label>
+      <textarea v-model="form.description" class="mc-textarea" rows="3" placeholder="Project description…"></textarea>
+    </div>
+
+    <template #footer>
+      <Button label="Cancel" severity="secondary" @click="onHide" />
+      <Button :label="submitting ? 'Creating…' : 'Create Project'" @click="submit" :disabled="submitting" />
+    </template>
+  </Dialog>
 </template>
 
 <style scoped>
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.dialog-card {
-  background: var(--mc-bg-surface);
-  border: 1px solid var(--mc-border);
-  border-radius: var(--mc-radius-sm);
-  padding: 1.5rem;
-  width: 100%;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.dialog-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.25rem;
-}
-.dialog-header h2 {
-  margin: 0;
-  font-size: 1.2rem;
-  color: var(--mc-text);
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  color: var(--mc-text-muted);
-  cursor: pointer;
-  padding: 0.25rem;
-}
-.close-btn:hover { color: var(--mc-text); }
-
 .error-msg {
   background: rgba(239, 68, 68, 0.1);
   color: #ef4444;
@@ -189,32 +162,25 @@ watch(() => props.visible, (v) => {
   margin-bottom: 1rem;
 }
 
-.form-row {
+.field {
   margin-bottom: 0.75rem;
   flex: 1;
 }
-.form-row label {
+.field label {
   display: block;
   font-size: 0.8rem;
   color: var(--mc-text-muted);
   margin-bottom: 0.25rem;
 }
 
-.form-row-inline {
+.field-row {
   display: flex;
   gap: 0.75rem;
 }
 
-.mc-input {
+.w-full {
   width: 100%;
-  padding: 0.5rem 0.75rem;
-  background: var(--mc-bg-surface);
-  border: 1px solid var(--mc-border);
-  border-radius: var(--mc-radius-sm);
-  color: var(--mc-text);
-  font-size: 0.85rem;
 }
-.mc-input:focus { border-color: var(--mc-accent); outline: none; }
 
 .mc-textarea {
   width: 100%;
@@ -227,37 +193,4 @@ watch(() => props.visible, (v) => {
   resize: vertical;
 }
 .mc-textarea:focus { border-color: var(--mc-accent); outline: none; }
-
-.dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 1rem;
-}
-
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.5rem 1rem;
-  background: var(--mc-accent);
-  color: #fff;
-  border: none;
-  border-radius: var(--mc-radius-sm);
-  cursor: pointer;
-  font-size: 0.85rem;
-}
-.btn-primary:hover { opacity: 0.9; }
-.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
-
-.btn-secondary {
-  padding: 0.5rem 1rem;
-  background: var(--mc-bg-elevated);
-  color: var(--mc-text);
-  border: 1px solid var(--mc-border);
-  border-radius: var(--mc-radius-sm);
-  cursor: pointer;
-  font-size: 0.85rem;
-}
-.btn-secondary:hover { border-color: var(--mc-accent); }
 </style>

@@ -12,7 +12,7 @@ from core.config import settings
 from modules.activity.models import ActivityLogRequest
 from modules.activity.service import activity_service
 
-from .models import AgentRun, AgentRunCreate, AgentRunList, DayDetail, HeatmapDay
+from .models import AgentRun, AgentRunCreate, AgentRunList, HeatmapDay
 from .service import runs_service
 
 logger = logging.getLogger(__name__)

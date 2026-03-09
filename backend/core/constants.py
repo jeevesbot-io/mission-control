@@ -114,7 +114,12 @@ AGENT_METADATA: dict[str, dict] = {
         "tier": "persistent",
         "workspace": "~/.openclaw/workspace-matron",
         "can_spawn": False,
-        "responsibilities": ["School emails", "Calendar events", "Homework tracking", "Parent comms"],
+        "responsibilities": [
+            "School emails",
+            "Calendar events",
+            "Homework tracking",
+            "Parent comms",
+        ],
     },
     "archivist": {
         "role": "Memory & Knowledge",

@@ -1,7 +1,7 @@
 """Add docs column to mc_projects
 
-Revision ID: a1b2c3d4e5f6
-Revises: 731ce699267c
+Revision ID: cb0c373e0912
+Revises: fac85843c830
 Create Date: 2026-03-09 20:15:00.000000
 
 """
@@ -14,8 +14,8 @@ from sqlalchemy.dialects.postgresql import JSONB
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "a1b2c3d4e5f6"
-down_revision: Union[str, Sequence[str], None] = "731ce699267c"
+revision: str = "cb0c373e0912"
+down_revision: Union[str, Sequence[str], None] = "fac85843c830"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

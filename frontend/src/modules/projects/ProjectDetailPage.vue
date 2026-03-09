@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 import PageShell from '@/components/layout/PageShell.vue'
 import McIcon from '@/components/ui/McIcon.vue'
 import { useProjectsStore, type ProjectDoc } from './store'
@@ -33,7 +34,7 @@ const tabs = [
 
 const descriptionHtml = computed(() => {
   if (!project.value?.description) return '<em>No description</em>'
-  return marked.parse(project.value.description) as string
+  return DOMPurify.sanitize(marked.parse(project.value.description) as string)
 })
 
 const tasksByState = computed(() => {
