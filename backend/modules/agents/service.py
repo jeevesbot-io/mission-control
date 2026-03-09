@@ -31,32 +31,35 @@ class AgentService:
         try:
             result = await db.execute(
                 text("""
+                    WITH agent_stats AS (
+                        SELECT
+                            agent,
+                            COUNT(*) as total_entries,
+                            MAX(created_at) as last_activity,
+                            COUNT(*) FILTER (WHERE level IN ('warning', 'WARNING', 'error', 'ERROR')) as warning_count
+                        FROM agent_log
+                        GROUP BY agent
+                    ),
+                    latest_msg AS (
+                        SELECT DISTINCT ON (agent)
+                            agent, message, level
+                        FROM agent_log
+                        ORDER BY agent, created_at DESC
+                    )
                     SELECT
-                        agent,
-                        COUNT(*) as total_entries,
-                        MAX(created_at) as last_activity,
-                        COUNT(*) FILTER (WHERE level IN ('warning', 'WARNING', 'error', 'ERROR')) as warning_count
-                    FROM agent_log
-                    GROUP BY agent
-                    ORDER BY last_activity DESC
+                        s.agent, s.total_entries, s.last_activity, s.warning_count,
+                        m.message as last_message, m.level as last_level
+                    FROM agent_stats s
+                    LEFT JOIN latest_msg m ON s.agent = m.agent
+                    ORDER BY s.last_activity DESC
                 """)
             )
             for row in result.fetchall():
-                last_msg_result = await db.execute(
-                    text("""
-                        SELECT message, level FROM agent_log
-                        WHERE agent = :agent
-                        ORDER BY created_at DESC LIMIT 1
-                    """),
-                    {"agent": row.agent},
-                )
-                last = last_msg_result.fetchone()
-
                 logged_agents[row.agent] = AgentInfo(
                     agent_id=row.agent,
                     last_activity=row.last_activity,
-                    last_message=last.message if last else None,
-                    last_level=last.level.lower() if last else None,
+                    last_message=row.last_message,
+                    last_level=row.last_level.lower() if row.last_level else None,
                     total_entries=row.total_entries,
                     warning_count=row.warning_count,
                 )
