@@ -2,17 +2,17 @@ import type { RouteRecordRaw } from 'vue-router'
 
 const routes: RouteRecordRaw[] = [
   {
-    path: '/activity',
-    name: 'activity',
+    path: '/heatmap',
+    name: 'heatmap',
     component: () => import('./HeatmapPage.vue'),
-    meta: { title: 'Activity' },
+    meta: { title: 'Heatmap' },
   },
 ]
 
 export default {
   module: {
     id: 'heatmap',
-    name: 'Activity',
+    name: 'Heatmap',
     icon: 'flame',
     navOrder: 4,
   },
