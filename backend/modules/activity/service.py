@@ -41,11 +41,14 @@ class ActivityService:
             self._data_file.write_text(json.dumps(events, indent=2), encoding="utf-8")
 
     def _append_sync(self, event: dict) -> None:
-        events = self._read_sync()
-        events.insert(0, event)
-        if len(events) > _MAX_EVENTS:
-            events = events[:_MAX_EVENTS]
         with _lock:
+            try:
+                events = json.loads(self._data_file.read_text(encoding="utf-8"))
+            except Exception:
+                events = []
+            events.insert(0, event)
+            if len(events) > _MAX_EVENTS:
+                events = events[:_MAX_EVENTS]
             self._data_file.parent.mkdir(parents=True, exist_ok=True)
             self._data_file.write_text(json.dumps(events, indent=2), encoding="utf-8")
 
