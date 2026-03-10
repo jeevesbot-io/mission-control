@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
@@ -75,7 +76,7 @@ class RunsService:
                     "summary": payload.summary,
                     "duration_ms": payload.duration_ms,
                     "tokens_used": payload.tokens_used,
-                    "metadata": payload.metadata,
+                    "metadata": json.dumps(payload.metadata) if payload.metadata else None,
                     "prompt_preview": (payload.prompt_preview or "")[:500]
                     if payload.prompt_preview
                     else None,
@@ -196,8 +197,11 @@ class RunsService:
 
     async def get_day_runs(self, date: str, agent_id: str | None = None) -> list[AgentRun]:
         """All runs for a specific day, optionally filtered by agent."""
+        from datetime import date as date_type
+
+        parsed_date = date_type.fromisoformat(date)
         conditions = ["created_at::date = :date"]
-        params: dict = {"date": date}
+        params: dict = {"date": parsed_date}
 
         if agent_id:
             conditions.append("agent_id = :agent_id")
