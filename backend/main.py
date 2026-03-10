@@ -18,6 +18,7 @@ from core.logging_config import setup_logging
 from core.models import HealthResponse, ModuleInfoResponse
 from core.rate_limit import limiter
 from core.registry import discover_modules
+from core.request_logging import RequestLoggingMiddleware
 from core.security_headers import SecurityHeadersMiddleware
 from core.websocket import manager
 
@@ -55,6 +56,9 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["Content-Type", "Authorization", "Cf-Access-Jwt-Assertion"],
     )
+
+    # 4. Request logging (innermost — logs method, path, status, timing as JSON)
+    app.add_middleware(RequestLoggingMiddleware)
 
     # Discover and mount modules
     modules = discover_modules()

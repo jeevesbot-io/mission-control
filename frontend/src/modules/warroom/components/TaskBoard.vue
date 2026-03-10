@@ -3,7 +3,6 @@
     <!-- Filters bar -->
     <div class="board-filters">
       <div class="filters-row">
-        <ProjectFilter />
         <TagFilter />
         <label class="hide-blocked-toggle">
           <input type="checkbox" v-model="hideBlocked" />
@@ -120,7 +119,6 @@ import { useWarRoomStore } from '../store'
 import type { Task, Reference } from '../store'
 import TaskCard from './TaskCard.vue'
 import TaskDialog from './TaskDialog.vue'
-import ProjectFilter from './ProjectFilter.vue'
 import TagFilter from './TagFilter.vue'
 import HeartbeatStatus from './HeartbeatStatus.vue'
 
