@@ -1,5 +1,6 @@
 """Agents module service — queries agent_log table, triggers via OpenClaw gateway."""
 
+import datetime as dt
 import logging
 
 import httpx
@@ -36,7 +37,8 @@ class AgentService:
                             agent,
                             COUNT(*) as total_entries,
                             MAX(created_at) as last_activity,
-                            COUNT(*) FILTER (WHERE level IN ('warning', 'WARNING', 'error', 'ERROR')) as warning_count
+                            COUNT(*) FILTER (WHERE level IN ('warning', 'WARNING', 'error', 'ERROR')
+                                AND created_at >= NOW() - INTERVAL '7 days') as warning_count
                         FROM agent_log
                         GROUP BY agent
                     ),
@@ -123,10 +125,11 @@ class AgentService:
             display_name = KNOWN_AGENTS.get(agent.agent_id, agent.agent_id)
 
             # Compute status from last_activity
-            import datetime
-
             if agent.last_activity:
-                age = datetime.datetime.now(datetime.UTC) - agent.last_activity
+                last = agent.last_activity
+                if last.tzinfo is None:
+                    last = last.replace(tzinfo=dt.timezone.utc)
+                age = dt.datetime.now(dt.timezone.utc) - last
                 if age.total_seconds() < 3600:
                     status = "active"
                 elif age.total_seconds() < 86400:

@@ -28,19 +28,13 @@
           <UsagePanel />
         </div>
 
-        <!-- Calendar -->
-        <div v-else-if="activeTab === 'calendar'" class="tab-panel">
-          <h2 class="section-title">Activity Calendar</h2>
-          <ActivityCalendar v-if="visitedTabs.has('calendar')" />
-          <div v-else class="loading-placeholder">Loading…</div>
-        </div>
       </div>
     </div>
   </PageShell>
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useWarRoomStore } from './store'
 import PageShell from '@/components/layout/PageShell.vue'
 import McIcon from '@/components/ui/McIcon.vue'
@@ -48,15 +42,11 @@ import TaskBoard from './components/TaskBoard.vue'
 import UsagePanel from './components/UsagePanel.vue'
 import QueueHealth from './components/QueueHealth.vue'
 
-// Lazy-load heavy components
-const ActivityCalendar = defineAsyncComponent(() => import('./components/ActivityCalendar.vue'))
-
 const store = useWarRoomStore()
 
 const tabs = [
   { id: 'kanban',   label: 'Kanban',    icon: 'kanban'   },
   { id: 'usage',    label: 'Usage',     icon: 'cpu'      },
-  { id: 'calendar', label: 'Calendar',  icon: 'calendar' },
 ] as const
 
 type TabId = (typeof tabs)[number]['id']

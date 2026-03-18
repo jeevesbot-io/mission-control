@@ -89,8 +89,8 @@ class RunsService:
                     "created_at": now,
                 },
             )
-            await session.commit()
             row = result.fetchone()
+            await session.commit()
             return _row_to_agent_run(row)
 
     async def list_runs(

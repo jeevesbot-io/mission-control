@@ -68,10 +68,3 @@ class HeatmapDay(BaseModel):
     date: str
     count: int
     agents: list[AgentCount] = Field(default_factory=list)
-
-
-class DayDetail(BaseModel):
-    """All runs for a specific day."""
-
-    date: str
-    runs: list[AgentRun]

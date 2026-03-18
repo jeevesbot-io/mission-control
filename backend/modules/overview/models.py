@@ -58,7 +58,7 @@ class TaskQueueItem(BaseModel):
     id: int
     title: str
     state: str
-    agent_id: str
+    agent_id: str | None = None
     priority: int
     labels: list[str] | None
 
