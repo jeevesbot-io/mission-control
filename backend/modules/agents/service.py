@@ -302,6 +302,38 @@ class AgentService:
             logger.warning("Failed to fetch cron jobs: %s", exc)
             return []
 
+    # --- Live sessions (from OpenClaw gateway) ---
+
+    async def get_live_sessions(self) -> list[dict]:
+        """Query OpenClaw sessions API for active agent sessions."""
+        url = f"{settings.openclaw_url}/api/sessions"
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(url)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    sessions = data if isinstance(data, list) else data.get("sessions", [])
+                    result = []
+                    for s in sessions:
+                        result.append(
+                            {
+                                "session_key": s.get("key", ""),
+                                "agent_id": s.get("agentId", s.get("agent", "")),
+                                "state": s.get("state", "unknown"),
+                                "created_at": s.get("createdAt", ""),
+                                "last_activity": s.get("lastActivity", s.get("updatedAt", "")),
+                                "elapsed_seconds": s.get("elapsedSeconds", 0),
+                                "task": s.get("task", s.get("label", "")),
+                                "channel": s.get("channel", ""),
+                                "message_count": s.get("messageCount", 0),
+                            }
+                        )
+                    return result
+                return []
+        except httpx.RequestError as exc:
+            logger.warning("Failed to fetch sessions: %s", exc)
+            return []
+
     # --- Office view (merged from Office module) ---
 
     AGENT_COLORS = {

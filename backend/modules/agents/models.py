@@ -103,3 +103,17 @@ class OfficeViewResponse(BaseModel):
 
     workstations: list[AgentWorkstation]
     office_stats: dict = Field(default_factory=dict)
+
+
+class LiveSession(BaseModel):
+    """Live agent session from OpenClaw sessions API."""
+
+    session_key: str = ""
+    agent_id: str = ""
+    state: str = "unknown"
+    created_at: str = ""
+    last_activity: str = ""
+    elapsed_seconds: int = 0
+    task: str = ""
+    channel: str = ""
+    message_count: int = 0

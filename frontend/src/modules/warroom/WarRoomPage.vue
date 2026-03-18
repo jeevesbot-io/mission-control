@@ -13,6 +13,8 @@
           <McIcon :name="tab.icon" :size="14" />
           {{ tab.label }}
         </button>
+        <div class="tab-bar-spacer" />
+        <QueueHealth />
       </div>
 
       <!-- Tab content -->
@@ -44,6 +46,7 @@ import PageShell from '@/components/layout/PageShell.vue'
 import McIcon from '@/components/ui/McIcon.vue'
 import TaskBoard from './components/TaskBoard.vue'
 import UsagePanel from './components/UsagePanel.vue'
+import QueueHealth from './components/QueueHealth.vue'
 
 // Lazy-load heavy components
 const ActivityCalendar = defineAsyncComponent(() => import('./components/ActivityCalendar.vue'))
@@ -109,6 +112,7 @@ onMounted(async () => {
   margin-bottom: -1px;
   white-space: nowrap;
 }
+.tab-bar-spacer { flex: 1; }
 .tab-btn:hover { color: var(--mc-text); }
 .tab-btn.active {
   color: var(--mc-accent);
