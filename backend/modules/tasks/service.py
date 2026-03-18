@@ -16,6 +16,9 @@ from .models import (
     PRIORITY_INT_TO_STR,
     PRIORITY_STR_TO_INT,
     VALID_STATES,
+    ActivityEntry,
+    Comment,
+    CommentCreate,
     Task,
     TaskComplete,
     TaskCreate,
@@ -496,3 +499,104 @@ async def get_stats() -> TaskStats:
             last_heartbeat=None,
             active_model="unknown",
         )
+
+
+# ---------------------------------------------------------------------------
+# Comments
+# ---------------------------------------------------------------------------
+
+
+async def list_comments(task_id: int) -> list[Comment]:
+    """List all comments for a task, newest first."""
+    async with async_session() as session:
+        result = await session.execute(
+            text("""
+                SELECT id, task_id, author_id, body, comment_type, created_at
+                FROM mc_comments
+                WHERE task_id = :task_id
+                ORDER BY created_at DESC
+            """),
+            {"task_id": task_id},
+        )
+        return [
+            Comment(
+                id=r._mapping["id"],
+                taskId=r._mapping["task_id"],
+                authorId=r._mapping["author_id"],
+                body=r._mapping["body"],
+                commentType=r._mapping["comment_type"],
+                createdAt=_iso_or_none(r._mapping["created_at"]) or "",
+            )
+            for r in result.all()
+        ]
+
+
+async def create_comment(task_id: int, payload: CommentCreate) -> Comment:
+    """Create a comment on a task."""
+    async with async_session() as session:
+        result = await session.execute(
+            text("""
+                INSERT INTO mc_comments (task_id, author_id, body, comment_type)
+                VALUES (:task_id, :author_id, :body, :comment_type)
+                RETURNING id, task_id, author_id, body, comment_type, created_at
+            """),
+            {
+                "task_id": task_id,
+                "author_id": payload.authorId,
+                "body": payload.body,
+                "comment_type": payload.commentType,
+            },
+        )
+        row = result.first()
+        await session.commit()
+        m = row._mapping
+        return Comment(
+            id=m["id"],
+            taskId=m["task_id"],
+            authorId=m["author_id"],
+            body=m["body"],
+            commentType=m["comment_type"],
+            createdAt=_iso_or_none(m["created_at"]) or "",
+        )
+
+
+async def delete_comment(comment_id: int) -> bool:
+    """Delete a comment by ID."""
+    async with async_session() as session:
+        result = await session.execute(
+            text("DELETE FROM mc_comments WHERE id = :id"),
+            {"id": comment_id},
+        )
+        await session.commit()
+        return result.rowcount > 0
+
+
+# ---------------------------------------------------------------------------
+# Task Activity Feed
+# ---------------------------------------------------------------------------
+
+
+async def list_task_activity(task_id: int, limit: int = 50) -> list[ActivityEntry]:
+    """List activity entries for a task, newest first."""
+    async with async_session() as session:
+        result = await session.execute(
+            text("""
+                SELECT id, task_id, agent_id, action, detail, created_at
+                FROM mc_activity
+                WHERE task_id = :task_id
+                ORDER BY created_at DESC
+                LIMIT :limit
+            """),
+            {"task_id": task_id, "limit": limit},
+        )
+        return [
+            ActivityEntry(
+                id=r._mapping["id"],
+                taskId=r._mapping["task_id"],
+                agentId=r._mapping["agent_id"],
+                action=r._mapping["action"],
+                detail=r._mapping["detail"],
+                createdAt=_iso_or_none(r._mapping["created_at"]) or "",
+            )
+            for r in result.all()
+        ]

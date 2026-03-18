@@ -111,3 +111,27 @@ class TaskStats(BaseModel):
     todo_count: int
     last_heartbeat: int | None
     active_model: str
+
+
+class Comment(BaseModel):
+    id: int
+    taskId: int
+    authorId: str
+    body: str
+    commentType: str = "comment"
+    createdAt: str
+
+
+class CommentCreate(BaseModel):
+    body: str
+    authorId: str = "user"
+    commentType: str = "comment"
+
+
+class ActivityEntry(BaseModel):
+    id: int
+    taskId: int | None
+    agentId: str
+    action: str
+    detail: str | None
+    createdAt: str
