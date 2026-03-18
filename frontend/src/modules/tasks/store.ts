@@ -53,6 +53,12 @@ export interface Project {
   task_count?: number
 }
 
+export interface AgentInfo {
+  agent_id: string
+  total_entries: number
+  warning_count: number
+}
+
 export type TaskStatus = Task['status']
 export type TaskPriority = Task['priority']
 export type ViewMode = 'list' | 'kanban'
@@ -106,6 +112,7 @@ export const useTasksStore = defineStore('tasks', () => {
   const tasks = ref<Task[]>([])
   const projects = ref<Project[]>([])
   const availableTags = ref<string[]>([])
+  const availableAgents = ref<AgentInfo[]>([])
 
   // UI state
   const selectedTaskId = ref<string | null>(null)
@@ -255,8 +262,16 @@ export const useTasksStore = defineStore('tasks', () => {
     }
   }
 
+  async function fetchAgents() {
+    try {
+      availableAgents.value = await api.get<AgentInfo[]>('/api/agents/')
+    } catch {
+      availableAgents.value = []
+    }
+  }
+
   async function fetchAll() {
-    await Promise.all([fetchTasks(), fetchProjects(), fetchTags()])
+    await Promise.all([fetchTasks(), fetchProjects(), fetchTags(), fetchAgents()])
   }
 
   async function createTask(payload: Partial<Task>): Promise<Task | null> {
@@ -335,6 +350,7 @@ export const useTasksStore = defineStore('tasks', () => {
     tasks,
     projects,
     availableTags,
+    availableAgents,
     // UI
     selectedTaskId,
     selectedTask,
@@ -355,6 +371,7 @@ export const useTasksStore = defineStore('tasks', () => {
     fetchTasks,
     fetchProjects,
     fetchTags,
+    fetchAgents,
     fetchAll,
     createTask,
     updateTask,
