@@ -10,7 +10,24 @@
             <span v-if="!loading" class="count-badge">{{ filteredSkills.length }}</span>
           </h1>
         </div>
+        <div class="header-right">
+          <button
+            class="reindex-btn"
+            :disabled="reindexing"
+            @click="handleReindex"
+          >
+            <McIcon :name="reindexing ? 'loader' : 'refresh-cw'" :size="16" />
+            {{ reindexing ? 'Indexing...' : 'Re-index' }}
+          </button>
+        </div>
       </div>
+
+      <!-- Toast notification -->
+      <Transition name="toast">
+        <div v-if="toastVisible" class="toast" :class="toastType">
+          {{ toastMessage }}
+        </div>
+      </Transition>
 
       <!-- Stats bar -->
       <div class="stats-bar" v-if="skills.length">
@@ -19,16 +36,24 @@
           <span class="stat-label">Total</span>
         </div>
         <div class="stat">
-          <span class="stat-value source-managed-text">{{ sourceCounts.managed }}</span>
-          <span class="stat-label">Managed</span>
+          <span class="stat-value source-system-text">{{ sourceCounts.System }}</span>
+          <span class="stat-label">System</span>
         </div>
         <div class="stat">
-          <span class="stat-value source-workspace-text">{{ sourceCounts.workspace }}</span>
+          <span class="stat-value source-user-text">{{ sourceCounts.User }}</span>
+          <span class="stat-label">User</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value source-workspace-text">{{ sourceCounts.Workspace }}</span>
           <span class="stat-label">Workspace</span>
         </div>
         <div class="stat">
-          <span class="stat-value source-agent-text">{{ sourceCounts.agent }}</span>
-          <span class="stat-label">Agent</span>
+          <span class="stat-value source-extension-text">{{ sourceCounts.Extension }}</span>
+          <span class="stat-label">Extension</span>
+        </div>
+        <div v-if="driftCount > 0" class="stat">
+          <span class="stat-value drift-text">{{ driftCount }}</span>
+          <span class="stat-label">Drifted</span>
         </div>
       </div>
 
@@ -48,6 +73,13 @@
             @click="activeSource = f.value"
           >
             {{ f.label }}
+          </button>
+          <button
+            class="filter-btn drift-filter"
+            :class="{ active: showDriftedOnly }"
+            @click="showDriftedOnly = !showDriftedOnly"
+          >
+            ⚠️ Drifted
           </button>
         </div>
       </div>
@@ -73,12 +105,22 @@
           @click="openSkill(skill)"
         >
           <div class="card-header">
-            <span class="skill-name">{{ skill.name }}</span>
-            <span class="source-badge" :class="`source-${skill.source}`">
-              {{ skill.source }}
+            <div class="card-header-left">
+              <span class="skill-name">{{ skill.name }}</span>
+              <span
+                v-if="skill.has_drift"
+                class="drift-badge"
+                title="Drift detected — files changed since last index"
+              >⚠️</span>
+            </div>
+            <span class="source-badge" :class="`source-${(skill.source_label || skill.source || '').toLowerCase()}`">
+              {{ skill.source_label || skill.source }}
             </span>
           </div>
           <p class="skill-description">{{ skill.description || 'No description' }}</p>
+          <div v-if="skill.file_count != null" class="card-meta">
+            <span class="meta-item">{{ skill.file_count }} files</span>
+          </div>
         </div>
       </div>
 
@@ -110,31 +152,42 @@ import { useSkillsStore, type SkillInfo } from './store'
 import { storeToRefs } from 'pinia'
 
 const store = useSkillsStore()
-const { skills, loading, selectedContent, selectedName } = storeToRefs(store)
+const { skills, loading, reindexing, selectedContent, selectedName } = storeToRefs(store)
 
 const search = ref('')
 const activeSource = ref<string>('all')
+const showDriftedOnly = ref(false)
 const drawerVisible = ref(false)
+const toastVisible = ref(false)
+const toastMessage = ref('')
+const toastType = ref<'success' | 'error'>('success')
 
 const sourceFilters = [
   { label: 'All', value: 'all' },
-  { label: 'Managed', value: 'managed' },
-  { label: 'Workspace', value: 'workspace' },
-  { label: 'Agent', value: 'agent' },
+  { label: 'System', value: 'System' },
+  { label: 'User', value: 'User' },
+  { label: 'Workspace', value: 'Workspace' },
+  { label: 'Extension', value: 'Extension' },
 ]
 
 const sourceCounts = computed(() => {
-  const counts = { managed: 0, workspace: 0, agent: 0 }
+  const counts: Record<string, number> = { System: 0, User: 0, Workspace: 0, Extension: 0 }
   for (const s of skills.value) {
-    if (s.source in counts) counts[s.source as keyof typeof counts]++
+    const label = s.source_label ?? s.source ?? ''
+    if (label in counts) counts[label] = (counts[label] ?? 0) + 1
   }
   return counts
 })
 
+const driftCount = computed(() => skills.value.filter(s => s.has_drift).length)
+
 const filteredSkills = computed(() => {
   let result = skills.value
   if (activeSource.value !== 'all') {
-    result = result.filter(s => s.source === activeSource.value)
+    result = result.filter(s => (s.source_label ?? s.source) === activeSource.value)
+  }
+  if (showDriftedOnly.value) {
+    result = result.filter(s => s.has_drift)
   }
   if (search.value) {
     const q = search.value.toLowerCase()
@@ -149,6 +202,25 @@ const renderedMarkdown = computed(() => {
   if (!selectedContent.value) return ''
   return DOMPurify.sanitize(marked(selectedContent.value) as string)
 })
+
+function showToast(msg: string, type: 'success' | 'error' = 'success') {
+  toastMessage.value = msg
+  toastType.value = type
+  toastVisible.value = true
+  setTimeout(() => { toastVisible.value = false }, 4000)
+}
+
+async function handleReindex() {
+  try {
+    const result = await store.reindex()
+    showToast(
+      `Indexed ${result.indexed} skills in ${result.duration_ms}ms — ${result.new} new, ${result.drifted} drifted, ${result.removed} removed`,
+      'success'
+    )
+  } catch (e) {
+    showToast('Re-index failed: ' + (e instanceof Error ? e.message : 'Unknown error'), 'error')
+  }
+}
 
 async function openSkill(skill: SkillInfo) {
   drawerVisible.value = true
@@ -173,6 +245,12 @@ onMounted(() => {
   margin-bottom: 1rem;
 }
 
+.header-left, .header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .page-title {
   display: flex;
   align-items: center;
@@ -190,6 +268,64 @@ onMounted(() => {
   color: var(--mc-text-muted);
   padding: 0.15rem 0.5rem;
   border-radius: var(--mc-radius-sm);
+}
+
+.reindex-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--mc-border);
+  border-radius: var(--mc-radius-sm);
+  background: var(--mc-bg-surface);
+  color: var(--mc-text);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.15s;
+}
+
+.reindex-btn:hover:not(:disabled) {
+  border-color: var(--mc-accent);
+  color: var(--mc-accent);
+}
+
+.reindex-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 9999;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--mc-radius-sm);
+  font-size: 0.85rem;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.toast.success {
+  background: #065f46;
+  color: #d1fae5;
+  border: 1px solid #10b981;
+}
+
+.toast.error {
+  background: #7f1d1d;
+  color: #fecaca;
+  border: 1px solid #ef4444;
+}
+
+.toast-enter-active, .toast-leave-active {
+  transition: all 0.3s ease;
+}
+
+.toast-enter-from, .toast-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 
 /* Stats bar */
@@ -223,9 +359,11 @@ onMounted(() => {
   letter-spacing: 0.05em;
 }
 
-.source-managed-text { color: #fb923c; }
-.source-workspace-text { color: #34d399; }
-.source-agent-text { color: #60a5fa; }
+.source-system-text    { color: #60a5fa; }
+.source-user-text      { color: #34d399; }
+.source-workspace-text { color: #a78bfa; }
+.source-extension-text { color: #fb923c; }
+.drift-text            { color: #fbbf24; }
 
 /* Filters */
 .filters-row {
@@ -268,6 +406,12 @@ onMounted(() => {
   border-color: var(--mc-accent);
 }
 
+.drift-filter.active {
+  background: #92400e;
+  border-color: #fbbf24;
+  color: #fbbf24;
+}
+
 /* Grid */
 .skills-grid {
   display: grid;
@@ -297,10 +441,21 @@ onMounted(() => {
   margin-bottom: 0.5rem;
 }
 
+.card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 .skill-name {
   font-weight: 600;
   color: var(--mc-text);
   font-size: 0.95rem;
+}
+
+.drift-badge {
+  font-size: 0.8rem;
+  cursor: help;
 }
 
 .source-badge {
@@ -312,9 +467,10 @@ onMounted(() => {
   letter-spacing: 0.03em;
 }
 
-.source-managed   { background: rgba(251,146,60,0.15); color: #fb923c; }
-.source-workspace { background: rgba(52,211,153,0.15); color: #34d399; }
-.source-agent     { background: rgba(96,165,250,0.15); color: #60a5fa; }
+.source-system    { background: rgba(96,165,250,0.15);  color: #60a5fa; }
+.source-user      { background: rgba(52,211,153,0.15);  color: #34d399; }
+.source-workspace { background: rgba(167,139,250,0.15); color: #a78bfa; }
+.source-extension { background: rgba(251,146,60,0.15);  color: #fb923c; }
 
 .skill-description {
   color: var(--mc-text-muted);
@@ -325,6 +481,17 @@ onMounted(() => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.card-meta {
+  margin-top: 0.5rem;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.meta-item {
+  font-size: 0.75rem;
+  color: var(--mc-text-muted);
 }
 
 /* Loading / empty states */

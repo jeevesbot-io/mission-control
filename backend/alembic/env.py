@@ -21,7 +21,13 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 # Tables managed by Alembic — everything else (Matron tables) is ignored
-MANAGED_TABLES = {"agent_runs", "alembic_version", "mc_projects"}
+MANAGED_TABLES = {
+    "agent_runs",
+    "alembic_version",
+    "mc_projects",
+    "skills_index",
+    "skills_drift_log",
+}
 
 
 def include_object(object, name, type_, reflected, compare_to):
