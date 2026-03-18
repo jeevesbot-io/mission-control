@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
 
 from core.websocket import manager
 from modules.activity.models import ActivityLogRequest
@@ -152,6 +153,36 @@ async def complete_task(task_id: int, payload: TaskComplete = TaskComplete()) ->
         )
     )
     await manager.broadcast("tasks:task:updated", task.model_dump(mode="json"))
+    return task
+
+
+# ---------------------------------------------------------------------------
+# Atomic task checkout (claim / release)
+# ---------------------------------------------------------------------------
+
+
+class _ClaimBody(BaseModel):
+    agent_id: str
+
+
+@router.post("/{task_id}/claim", response_model=Task)
+async def claim_task(task_id: int, payload: _ClaimBody) -> Task:
+    try:
+        task = await service.claim_task(task_id, payload.agent_id)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    await manager.broadcast("tasks:task:claimed", task.model_dump(mode="json"))
+    return task
+
+
+@router.post("/{task_id}/release", response_model=Task)
+async def release_task(task_id: int) -> Task:
+    task = await service.release_task(task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found or not claimed")
+    await manager.broadcast("tasks:task:released", task.model_dump(mode="json"))
     return task
 
 

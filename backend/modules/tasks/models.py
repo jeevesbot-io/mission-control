@@ -57,6 +57,8 @@ class Task(BaseModel):
     error: str | None = None
     proof: dict | None = None
     pickedUp: bool = False
+    claimedBy: str | None = None
+    claimedAt: str | None = None
     createdAt: str
     updatedAt: str
     estimatedHours: float | None = None

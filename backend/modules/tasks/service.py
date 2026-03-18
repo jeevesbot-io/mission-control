@@ -110,6 +110,8 @@ def _row_to_task(row) -> Task:
         error=m.get("error"),
         proof=m.get("proof"),
         pickedUp=bool(m.get("picked_up")),
+        claimedBy=m.get("claimed_by"),
+        claimedAt=_iso_or_none(m.get("claimed_at")),
         createdAt=_iso_or_none(m["created_at"]),
         updatedAt=_iso_or_none(m["updated_at"]),
         estimatedHours=m.get("estimated_hours"),
@@ -499,6 +501,74 @@ async def get_stats() -> TaskStats:
             last_heartbeat=None,
             active_model="unknown",
         )
+
+
+# ---------------------------------------------------------------------------
+# Atomic task checkout (claim / release)
+# ---------------------------------------------------------------------------
+
+
+async def claim_task(task_id: int, agent_id: str) -> Task | None:
+    """Atomically claim a task for an agent. Returns None if not found, raises ValueError if already claimed."""
+    async with async_session() as session:
+        # SELECT FOR UPDATE SKIP LOCKED — only returns the row if it's unclaimed and not locked
+        result = await session.execute(
+            text("""
+                SELECT id FROM mc_tasks
+                WHERE id = :id AND claimed_by IS NULL
+                FOR UPDATE SKIP LOCKED
+            """),
+            {"id": task_id},
+        )
+        row = result.first()
+        if row is None:
+            # Either task doesn't exist or is already claimed/locked
+            check = await session.execute(
+                text("SELECT id, claimed_by FROM mc_tasks WHERE id = :id"),
+                {"id": task_id},
+            )
+            existing = check.first()
+            if existing is None:
+                return None  # Task doesn't exist
+            raise ValueError(f"Task already claimed by {existing._mapping['claimed_by']}")
+
+        # Claim it
+        update_result = await session.execute(
+            text("""
+                UPDATE mc_tasks
+                SET claimed_by = :agent_id,
+                    claimed_at = now(),
+                    state = 'in_progress',
+                    started_at = COALESCE(started_at, now()),
+                    updated_at = now()
+                WHERE id = :id
+                RETURNING *
+            """),
+            {"id": task_id, "agent_id": agent_id},
+        )
+        updated = update_result.first()
+        await session.commit()
+        return _row_to_task(updated) if updated else None
+
+
+async def release_task(task_id: int) -> Task | None:
+    """Release a claimed task (on failure/timeout)."""
+    async with async_session() as session:
+        result = await session.execute(
+            text("""
+                UPDATE mc_tasks
+                SET claimed_by = NULL,
+                    claimed_at = NULL,
+                    state = 'todo',
+                    updated_at = now()
+                WHERE id = :id AND claimed_by IS NOT NULL
+                RETURNING *
+            """),
+            {"id": task_id},
+        )
+        row = result.first()
+        await session.commit()
+        return _row_to_task(row) if row else None
 
 
 # ---------------------------------------------------------------------------
