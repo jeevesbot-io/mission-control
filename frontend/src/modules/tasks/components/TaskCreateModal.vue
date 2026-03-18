@@ -55,7 +55,7 @@
               :key="a.agent_id"
               :value="a.agent_id"
             >
-              {{ a.agent_id }}
+              {{ a.display_name }}
             </option>
           </select>
         </div>

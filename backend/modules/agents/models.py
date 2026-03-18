@@ -85,6 +85,14 @@ class AgentDetailResponse(BaseModel):
     responsibilities: list[str]
 
 
+class AssignableAgent(BaseModel):
+    """Lightweight agent info for task assignment dropdowns."""
+
+    agent_id: str
+    display_name: str
+    role: str
+
+
 class AgentWorkstation(BaseModel):
     """Agent workstation representation for office view."""
 

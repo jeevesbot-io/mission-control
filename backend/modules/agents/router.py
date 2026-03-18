@@ -20,6 +20,7 @@ from .models import (
     AgentLogEntry,
     AgentLogPage,
     AgentStatsResponse,
+    AssignableAgent,
     CronResponse,
     LiveSession,
     OfficeViewResponse,
@@ -39,6 +40,21 @@ router = APIRouter()
 async def list_agents(db: AsyncSession = Depends(get_db)):
     """List known agents with activity summary."""
     return await agent_service.list_agents(db)
+
+
+@router.get("/assignable", response_model=list[AssignableAgent])
+async def list_assignable_agents():
+    """Top-level agents that can be assigned tasks (from AGENT_METADATA)."""
+    from core.constants import AGENT_METADATA, KNOWN_AGENTS
+
+    return [
+        AssignableAgent(
+            agent_id=agent_id,
+            display_name=KNOWN_AGENTS.get(agent_id, agent_id),
+            role=meta.get("role", "Unknown"),
+        )
+        for agent_id, meta in AGENT_METADATA.items()
+    ]
 
 
 @router.get("/detailed", response_model=list[AgentDetailResponse])

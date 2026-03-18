@@ -55,8 +55,8 @@ export interface Project {
 
 export interface AgentInfo {
   agent_id: string
-  total_entries: number
-  warning_count: number
+  display_name: string
+  role: string
 }
 
 export type TaskStatus = Task['status']
@@ -264,7 +264,7 @@ export const useTasksStore = defineStore('tasks', () => {
 
   async function fetchAgents() {
     try {
-      availableAgents.value = await api.get<AgentInfo[]>('/api/agents/')
+      availableAgents.value = await api.get<AgentInfo[]>('/api/agents/assignable')
     } catch {
       availableAgents.value = []
     }
