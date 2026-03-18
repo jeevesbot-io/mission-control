@@ -92,6 +92,7 @@ def _row_to_task(row) -> Task:
         description=m.get("description") or "",
         status=status,
         priority=priority_str,
+        type=m.get("type") or "feature",
         project=m.get("project"),
         tags=_ensure_list(m.get("tags")),
         skill=m.get("agent_id") or None,
@@ -215,11 +216,11 @@ async def create_task(payload: TaskCreate) -> Task:
             text("""
                 INSERT INTO mc_tasks (
                     title, description, agent_id, created_by, state, priority,
-                    tags, slug, project, schedule, scheduled_at,
+                    type, tags, slug, project, schedule, scheduled_at,
                     blocked_by, estimated_hours
                 ) VALUES (
                     :title, :description, :agent_id, :created_by, :state, :priority,
-                    :tags, :slug, :project, :schedule, :scheduled_at,
+                    :type, :tags, :slug, :project, :schedule, :scheduled_at,
                     :blocked_by, :estimated_hours
                 )
                 RETURNING *
@@ -231,6 +232,7 @@ async def create_task(payload: TaskCreate) -> Task:
                 "created_by": "user",
                 "state": state,
                 "priority": priority_int,
+                "type": payload.type or "feature",
                 "tags": payload.tags or [],
                 "slug": slug,
                 "project": payload.project,
@@ -315,7 +317,7 @@ async def update_task(task_id: int, payload: TaskUpdate) -> Task | None:
             elif key in ("tags",):
                 set_parts.append("tags = :tags")
                 params["tags"] = value or []
-            elif key in ("title", "description", "project", "schedule", "result", "error"):
+            elif key in ("title", "description", "project", "schedule", "result", "error", "type"):
                 set_parts.append(f"{key} = :{key}")
                 params[key] = value
             elif key == "estimatedHours":

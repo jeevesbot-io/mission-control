@@ -14,12 +14,15 @@ export interface Reference {
   createdAt: string
 }
 
+export type TaskType = 'feature' | 'bug' | 'debt' | 'investigation' | 'chore'
+
 export interface Task {
   id: string
   title: string
   description: string
   status: 'backlog' | 'todo' | 'in-progress' | 'done'
   priority: 'low' | 'medium' | 'high' | 'urgent'
+  type: TaskType
   project: string | null
   tags: string[]
   skill: string | null

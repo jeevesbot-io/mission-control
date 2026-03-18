@@ -10,6 +10,7 @@ TaskStatus = Literal[
     "backlog", "todo", "in-progress", "blocked", "peer_review", "rejected", "review", "done", "cancelled"
 ]
 TaskPriority = Literal["low", "medium", "high", "urgent"]
+TaskType = Literal["feature", "bug", "debt", "investigation", "chore"]
 
 # Maps API priority string <-> Postgres integer
 PRIORITY_STR_TO_INT: dict[str, int] = {"urgent": 1, "high": 2, "medium": 3, "low": 4}
@@ -41,6 +42,7 @@ class Task(BaseModel):
     description: str = ""
     status: TaskStatus = "backlog"
     priority: TaskPriority = "medium"
+    type: TaskType = "feature"
     project: str | None = None
     tags: list[str] = []
     skill: str | None = None
@@ -66,6 +68,7 @@ class TaskCreate(BaseModel):
     description: str = ""
     priority: TaskPriority = "medium"
     status: TaskStatus = "backlog"
+    type: TaskType = "feature"
     project: str | None = None
     tags: list[str] = []
     skill: str | None = None
@@ -80,6 +83,7 @@ class TaskUpdate(BaseModel):
     description: str | None = None
     priority: TaskPriority | None = None
     status: TaskStatus | None = None
+    type: TaskType | None = None
     project: str | None = None
     tags: list[str] | None = None
     skill: str | None = None
