@@ -61,7 +61,7 @@ class RunsService:
                         channel, session_key, completed_at, outcome, created_at
                     ) VALUES (
                         :id, :agent_id, :run_type, :trigger, :status, :summary,
-                        :duration_ms, :tokens_used, :metadata, :prompt_preview,
+                        :duration_ms, :tokens_used, CAST(:metadata AS jsonb), :prompt_preview,
                         :channel, :session_key, :completed_at, :outcome, :created_at
                     )
                     RETURNING {cols}
@@ -76,7 +76,9 @@ class RunsService:
                     "summary": payload.summary,
                     "duration_ms": payload.duration_ms,
                     "tokens_used": payload.tokens_used,
-                    "metadata": json.dumps(payload.metadata) if payload.metadata else None,
+                    "metadata": json.dumps(payload.metadata)
+                    if payload.metadata is not None
+                    else None,
                     "prompt_preview": (payload.prompt_preview or "")[:500]
                     if payload.prompt_preview
                     else None,

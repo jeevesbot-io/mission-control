@@ -39,7 +39,7 @@ class AgentRunCreate(BaseModel):
     summary: Optional[str] = None
     duration_ms: Optional[int] = None
     tokens_used: Optional[int] = None
-    metadata: Optional[dict] = Field(default_factory=dict)
+    metadata: Optional[dict] = None
     prompt_preview: Optional[str] = None
     channel: Optional[str] = None
     session_key: Optional[str] = None

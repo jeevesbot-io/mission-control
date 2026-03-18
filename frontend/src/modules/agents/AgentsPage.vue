@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, onUnmounted, ref, computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useAgentsStore } from './store'
 import { useWebSocket } from '@/composables/useWebSocket'
-import type { AgentInfo } from './store'
+import type { AgentInfo, LiveSession } from './store'
 import PageShell from '@/components/layout/PageShell.vue'
 import McIcon from '@/components/ui/McIcon.vue'
 import { getAgentIconName } from '@/composables/useIcons'
@@ -121,16 +121,40 @@ async function confirmTrigger() {
   }
 }
 
+let sessionsInterval: ReturnType<typeof setInterval> | null = null
+
 onMounted(() => {
   store.fetchAgents()
   store.fetchStats()
   store.fetchCron()
+  store.fetchSessions()
+  sessionsInterval = setInterval(() => store.fetchSessions(), 15_000)
   subscribe('agents:activity', (data) => {
     store.addActivity(data as { event: string; agent_id: string; message: string })
     store.fetchAgents()
     store.fetchStats()
   })
 })
+
+onUnmounted(() => {
+  if (sessionsInterval) clearInterval(sessionsInterval)
+})
+
+function formatElapsed(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`
+  const min = Math.floor(seconds / 60)
+  if (min < 60) return `${min}m`
+  const h = Math.floor(min / 60)
+  const m = min % 60
+  return m > 0 ? `${h}h ${m}m` : `${h}h`
+}
+
+function sessionStateClass(state: string): string {
+  if (state === 'running' || state === 'active') return 'sess__state--running'
+  if (state === 'completed' || state === 'done') return 'sess__state--completed'
+  if (state === 'failed' || state === 'error') return 'sess__state--failed'
+  return 'sess__state--unknown'
+}
 
 // ── Agent lookup map ──────────────────────────────────────────────────────────
 const agentMap = computed(() => {
@@ -217,6 +241,7 @@ function groupSummary(g: AgentGroup) {
         <TabList>
           <Tab :value="0">Fleet</Tab>
           <Tab :value="1">Team</Tab>
+          <Tab :value="2">Sessions <span v-if="store.sessions.length" class="ag__tab-badge">{{ store.sessions.length }}</span></Tab>
         </TabList>
 
         <TabPanels>
@@ -480,6 +505,63 @@ function groupSummary(g: AgentGroup) {
           <!-- ── Team tab ───────────────────────────────────── -->
           <TabPanel :value="1">
             <TeamView />
+          </TabPanel>
+
+          <!-- ── Sessions tab ───────────────────────────────── -->
+          <TabPanel :value="2">
+            <div class="sess">
+              <div class="sess__header">
+                <h3 class="sess__title">Live Sessions</h3>
+                <span class="sess__live-dot" v-if="store.sessions.length > 0" />
+                <span class="sess__refresh mc-mono">auto-refresh 15s</span>
+              </div>
+
+              <div v-if="store.sessions.length === 0" class="sess__empty">
+                <McIcon name="monitor" :size="24" />
+                <p>No active sessions</p>
+              </div>
+
+              <div v-else class="sess__grid">
+                <div
+                  v-for="session in store.sessions"
+                  :key="session.session_key"
+                  class="sess__card"
+                >
+                  <div class="sess__card-top">
+                    <McIcon :name="getAgentIconName(session.agent_id)" :size="16" class="sess__card-icon" />
+                    <span class="sess__card-agent">{{ session.agent_id || 'unknown' }}</span>
+                    <span class="sess__state" :class="sessionStateClass(session.state)">
+                      {{ session.state }}
+                    </span>
+                  </div>
+
+                  <p class="sess__card-task" v-if="session.task">
+                    {{ session.task }}
+                  </p>
+                  <p class="sess__card-task sess__card-task--empty" v-else>
+                    No task description
+                  </p>
+
+                  <div class="sess__card-meta">
+                    <span class="sess__meta-item mc-mono" v-if="session.elapsed_seconds > 0">
+                      <McIcon name="clock" :size="11" />
+                      {{ formatElapsed(session.elapsed_seconds) }}
+                    </span>
+                    <span class="sess__meta-item mc-mono" v-if="session.message_count > 0">
+                      <McIcon name="message-circle" :size="11" />
+                      {{ session.message_count }} msgs
+                    </span>
+                    <span class="sess__meta-item mc-mono" v-if="session.channel">
+                      <McIcon name="hash" :size="11" />
+                      {{ session.channel }}
+                    </span>
+                    <span class="sess__meta-item mc-mono" v-if="session.last_activity">
+                      {{ formatRelative(session.last_activity) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </TabPanel>
 
         </TabPanels>
@@ -964,4 +1046,84 @@ function groupSummary(g: AgentGroup) {
 }
 .trig__btn--confirm:hover { box-shadow: 0 0 10px var(--mc-accent-glow); }
 .trig__btn--confirm:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Tab badge ───────────────────────────────────────────── */
+.ag__tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  font-family: var(--mc-font-mono);
+  background: var(--mc-accent);
+  color: #000;
+  border-radius: var(--mc-radius-full);
+  margin-left: 0.35rem;
+}
+
+/* ── Sessions tab ────────────────────────────────────────── */
+.sess { display: flex; flex-direction: column; gap: 1rem; padding-top: 1rem; }
+.sess__header {
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.sess__title { font-size: 1rem; font-weight: 600; margin: 0; }
+.sess__live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--mc-success);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--mc-success) 60%, transparent);
+  animation: mc-pulse-subtle 2s ease-in-out infinite;
+}
+.sess__refresh {
+  font-size: 0.65rem; color: var(--mc-text-muted); margin-left: auto;
+}
+.sess__empty {
+  display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
+  padding: 3rem 0; color: var(--mc-text-muted);
+}
+.sess__empty p { font-size: 0.85rem; margin: 0; }
+.sess__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 0.75rem;
+}
+.sess__card {
+  background: var(--mc-bg-surface);
+  border: 1px solid var(--mc-border);
+  border-radius: var(--mc-radius);
+  padding: 0.875rem 1rem;
+  display: flex; flex-direction: column; gap: 0.5rem;
+  transition: border-color var(--mc-transition-fast);
+}
+.sess__card:hover { border-color: var(--mc-border-strong); }
+.sess__card-top {
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.sess__card-icon { color: var(--mc-text-muted); }
+.sess__card-agent { font-size: 0.825rem; font-weight: 600; flex: 1; }
+.sess__state {
+  font-size: 0.62rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; padding: 0.12rem 0.45rem;
+  border-radius: var(--mc-radius-full);
+}
+.sess__state--running { color: var(--mc-success); background: color-mix(in srgb, var(--mc-success) 12%, transparent); }
+.sess__state--completed { color: var(--mc-info); background: color-mix(in srgb, var(--mc-info) 12%, transparent); }
+.sess__state--failed { color: var(--mc-danger); background: color-mix(in srgb, var(--mc-danger) 12%, transparent); }
+.sess__state--unknown { color: var(--mc-text-muted); background: var(--mc-bg-elevated); }
+.sess__card-task {
+  font-size: 0.78rem; color: var(--mc-text); margin: 0;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; line-height: 1.4;
+}
+.sess__card-task--empty { color: var(--mc-text-muted); font-style: italic; }
+.sess__card-meta {
+  display: flex; flex-wrap: wrap; gap: 0.625rem;
+  padding-top: 0.25rem; border-top: 1px solid var(--mc-border);
+}
+.sess__meta-item {
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  font-size: 0.68rem; color: var(--mc-text-muted);
+}
 </style>

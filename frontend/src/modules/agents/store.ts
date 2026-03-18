@@ -36,6 +36,18 @@ interface CronJob {
   next_run: string | null
 }
 
+interface LiveSession {
+  session_key: string
+  agent_id: string
+  state: string
+  created_at: string
+  last_activity: string
+  elapsed_seconds: number
+  task: string
+  channel: string
+  message_count: number
+}
+
 interface ActivityEvent {
   event: string
   agent_id: string
@@ -43,7 +55,7 @@ interface ActivityEvent {
   timestamp?: string
 }
 
-export type { AgentInfo, AgentLogEntry, AgentStats, CronJob, ActivityEvent }
+export type { AgentInfo, AgentLogEntry, AgentStats, CronJob, LiveSession, ActivityEvent }
 
 export const useAgentsStore = defineStore('agents', () => {
   const api = useApi()
@@ -54,6 +66,7 @@ export const useAgentsStore = defineStore('agents', () => {
   const logEntries = ref<AgentLogEntry[]>([])
   const logTotal = ref(0)
   const activityFeed = ref<ActivityEvent[]>([])
+  const sessions = ref<LiveSession[]>([])
   const officeWorkstations = ref<Record<string, any>[]>([])
   const officeStats = ref<Record<string, any>>({})
   const loading = ref(false)
@@ -114,6 +127,14 @@ export const useAgentsStore = defineStore('agents', () => {
     }
   }
 
+  async function fetchSessions() {
+    try {
+      sessions.value = await api.get<LiveSession[]>('/api/agents/sessions')
+    } catch {
+      sessions.value = []
+    }
+  }
+
   async function fetchOffice() {
     loading.value = true
     error.value = null
@@ -138,6 +159,7 @@ export const useAgentsStore = defineStore('agents', () => {
     agents,
     stats,
     cronJobs,
+    sessions,
     logEntries,
     logTotal,
     activityFeed,
@@ -149,6 +171,7 @@ export const useAgentsStore = defineStore('agents', () => {
     fetchStats,
     fetchCron,
     fetchLog,
+    fetchSessions,
     fetchOffice,
     triggerAgent,
     addActivity,
