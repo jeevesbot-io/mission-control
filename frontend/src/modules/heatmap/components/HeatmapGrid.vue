@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import McIcon from '@/components/ui/McIcon.vue'
 import { useHeatmapStore, type HeatmapDay } from '../store'
 
@@ -145,10 +145,6 @@ function onCellClick(date: string, inYear: boolean) {
 // ---------------------------------------------------------------------------
 // Lifecycle
 // ---------------------------------------------------------------------------
-
-onMounted(() => {
-  store.fetchHeatmap()
-})
 
 watch(() => store.year, () => {
   store.fetchHeatmap()

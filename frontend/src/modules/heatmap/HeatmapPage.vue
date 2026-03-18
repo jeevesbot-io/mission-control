@@ -6,9 +6,15 @@ import McEmptyState from '@/components/ui/McEmptyState.vue'
 import HeatmapGrid from './components/HeatmapGrid.vue'
 import DayDetail from './components/DayDetail.vue'
 import { useHeatmapStore } from './store'
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 
 const store = useHeatmapStore()
+
+onMounted(() => {
+  if (!store.heatmapData.length && !store.loading) {
+    store.fetchHeatmap()
+  }
+})
 
 const totalRuns = computed(() =>
   store.heatmapData.reduce((sum, d) => sum + d.count, 0),
