@@ -152,19 +152,56 @@
 
       <!-- Comments -->
       <div class="detail-field">
-        <label class="detail-label">Comments</label>
-        <div class="placeholder-section">
-          <McIcon name="message-square" :size="16" />
-          <span>Comments coming soon</span>
+        <label class="detail-label">Comments ({{ comments.length }})</label>
+        <div class="comments-section">
+          <div v-for="c in comments" :key="c.id" class="comment-item">
+            <div class="comment-header">
+              <span class="comment-author mc-mono">{{ c.authorId }}</span>
+              <span v-if="c.commentType !== 'comment'" class="comment-type-badge" :class="`comment-type--${c.commentType}`">{{ c.commentType }}</span>
+              <span class="comment-time">{{ formatDate(c.createdAt) }}</span>
+              <button class="comment-delete" title="Delete" @click="deleteComment(c.id)">
+                <McIcon name="x" :size="12" />
+              </button>
+            </div>
+            <div class="comment-body">{{ c.body }}</div>
+          </div>
+          <div v-if="comments.length === 0" class="comments-empty">No comments yet</div>
+        </div>
+        <div class="comment-composer">
+          <textarea
+            v-model="newComment"
+            class="comment-input"
+            placeholder="Add a comment…"
+            rows="2"
+            @keydown.meta.enter="submitComment"
+            @keydown.ctrl.enter="submitComment"
+          />
+          <div class="comment-composer-footer">
+            <select v-model="commentType" class="comment-type-select">
+              <option value="comment">Comment</option>
+              <option value="review">Review</option>
+              <option value="approval">Approval</option>
+              <option value="rejection">Rejection</option>
+            </select>
+            <McButton variant="primary" size="sm" :disabled="!newComment.trim()" @click="submitComment">
+              Post
+            </McButton>
+          </div>
         </div>
       </div>
 
       <!-- Activity -->
       <div class="detail-field">
-        <label class="detail-label">Activity</label>
-        <div class="placeholder-section">
-          <McIcon name="activity" :size="16" />
-          <span>Activity log coming soon</span>
+        <label class="detail-label">Activity ({{ activity.length }})</label>
+        <div class="activity-section">
+          <div v-for="a in activity" :key="a.id" class="activity-item">
+            <McIcon name="activity" :size="12" />
+            <span class="activity-agent mc-mono">{{ a.agentId }}</span>
+            <span class="activity-action">{{ a.action }}</span>
+            <span v-if="a.detail" class="activity-detail">{{ a.detail }}</span>
+            <span class="activity-time">{{ formatDate(a.createdAt) }}</span>
+          </div>
+          <div v-if="activity.length === 0" class="activity-empty">No activity recorded</div>
         </div>
       </div>
 
@@ -195,15 +232,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, watch } from 'vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import McIcon from '@/components/ui/McIcon.vue'
 import McChip from '@/components/ui/McChip.vue'
 import McButton from '@/components/ui/McButton.vue'
 import { useTasksStore } from '../store'
+import { useApi } from '@/composables/useApi'
 import type { Task, TaskStatus, TaskPriority } from '../store'
 import { STATUS_ORDER, STATUS_LABELS, PRIORITY_ORDER, PRIORITY_LABELS } from '../store'
+
+interface Comment {
+  id: number
+  taskId: number
+  authorId: string
+  body: string
+  commentType: string
+  createdAt: string
+}
+
+interface ActivityEntry {
+  id: number
+  taskId: number | null
+  agentId: string
+  action: string
+  detail: string | null
+  createdAt: string
+}
 
 const props = defineProps<{ task: Task }>()
 const emit = defineEmits<{
@@ -213,6 +269,60 @@ const emit = defineEmits<{
 }>()
 
 const tasksStore = useTasksStore()
+const api = useApi()
+
+// Comments & Activity
+const comments = ref<Comment[]>([])
+const activity = ref<ActivityEntry[]>([])
+const newComment = ref('')
+const commentType = ref('comment')
+
+async function loadComments() {
+  try {
+    comments.value = await api.get<Comment[]>(`/api/tasks/${props.task.id}/comments`)
+  } catch {
+    comments.value = []
+  }
+}
+
+async function loadActivity() {
+  try {
+    activity.value = await api.get<ActivityEntry[]>(`/api/tasks/${props.task.id}/activity`)
+  } catch {
+    activity.value = []
+  }
+}
+
+async function submitComment() {
+  const body = newComment.value.trim()
+  if (!body) return
+  try {
+    const comment = await api.post<Comment>(`/api/tasks/${props.task.id}/comments`, {
+      body,
+      commentType: commentType.value,
+    })
+    comments.value.unshift(comment)
+    newComment.value = ''
+    commentType.value = 'comment'
+  } catch {
+    // silently fail
+  }
+}
+
+async function deleteComment(id: number) {
+  try {
+    await api.delete(`/api/tasks/comments/${id}`)
+    comments.value = comments.value.filter((c) => c.id !== id)
+  } catch {
+    // silently fail
+  }
+}
+
+// Load comments and activity when task changes
+watch(() => props.task.id, () => {
+  loadComments()
+  loadActivity()
+}, { immediate: true })
 
 // Title editing
 const editingTitle = ref(false)
@@ -561,18 +671,166 @@ function formatDate(dateStr: string): string {
   border: 1px solid var(--mc-success-border);
 }
 
-/* Placeholder sections */
-.placeholder-section {
+/* Comments */
+.comments-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.comment-item {
+  padding: 0.5rem 0.6rem;
+  background: var(--mc-bg-inset);
+  border: 1px solid var(--mc-border);
+  border-radius: var(--mc-radius-sm);
+}
+
+.comment-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  background: var(--mc-bg-inset);
-  border: 1px dashed var(--mc-border);
-  border-radius: var(--mc-radius-sm);
+  gap: 0.4rem;
+  margin-bottom: 0.25rem;
+}
+
+.comment-author {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--mc-accent);
+}
+
+.comment-type-badge {
+  font-size: 0.55rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: var(--mc-bg-hover);
   color: var(--mc-text-muted);
+}
+
+.comment-type--approval { color: var(--mc-success); background: var(--mc-success-bg, rgba(16,185,129,0.1)); }
+.comment-type--rejection { color: var(--mc-danger); background: var(--mc-danger-bg, rgba(239,68,68,0.1)); }
+.comment-type--review { color: var(--mc-warning); background: rgba(251,191,36,0.1); }
+
+.comment-time {
+  font-size: 0.6rem;
+  color: var(--mc-text-muted);
+  margin-left: auto;
+}
+
+.comment-delete {
+  background: none;
+  border: none;
+  color: var(--mc-text-muted);
+  cursor: pointer;
+  padding: 1px;
+  opacity: 0;
+  transition: opacity var(--mc-transition-speed);
+}
+
+.comment-item:hover .comment-delete { opacity: 1; }
+.comment-delete:hover { color: var(--mc-danger); }
+
+.comment-body {
   font-size: var(--mc-text-sm);
+  line-height: 1.5;
+  color: var(--mc-text);
+}
+
+.comments-empty {
+  font-size: var(--mc-text-xs);
+  color: var(--mc-text-muted);
   font-style: italic;
+  padding: 0.5rem 0;
+}
+
+.comment-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: 0.3rem;
+}
+
+.comment-input {
+  background: var(--mc-bg-inset);
+  border: 1px solid var(--mc-border-input);
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-text);
+  font-size: var(--mc-text-sm);
+  padding: 0.4rem 0.5rem;
+  resize: vertical;
+  outline: none;
+  font-family: var(--mc-font-body);
+}
+
+.comment-input:focus { border-color: var(--mc-accent); }
+
+.comment-composer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.comment-type-select {
+  font-size: 0.65rem;
+  padding: 2px 4px;
+  background: var(--mc-bg-inset);
+  border: 1px solid var(--mc-border-input);
+  border-radius: var(--mc-radius-xs);
+  color: var(--mc-text-muted);
+  cursor: pointer;
+}
+
+/* Activity */
+.activity-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--mc-text-xs);
+  color: var(--mc-text-muted);
+  padding: 0.2rem 0;
+}
+
+.activity-agent {
+  font-weight: 600;
+  color: var(--mc-text);
+  font-size: 0.65rem;
+}
+
+.activity-action {
+  color: var(--mc-accent);
+}
+
+.activity-detail {
+  color: var(--mc-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+.activity-time {
+  margin-left: auto;
+  font-size: 0.6rem;
+  flex-shrink: 0;
+}
+
+.activity-empty {
+  font-size: var(--mc-text-xs);
+  color: var(--mc-text-muted);
+  font-style: italic;
+  padding: 0.5rem 0;
 }
 
 /* Timestamps */
