@@ -8,7 +8,7 @@ import Badge from '@/components/ui/Badge.vue'
 import McIcon from '@/components/ui/McIcon.vue'
 import { getAgentIconName, getLevelIconName } from '@/composables/useIcons'
 
-interface WarRoomStats {
+interface TaskStatsResponse {
   in_progress_count: number
   todo_count: number
   last_heartbeat: number | null
@@ -19,7 +19,7 @@ const store = useOverviewStore()
 const api = useApi()
 const { subscribe } = useWebSocket()
 
-const warroom = ref<WarRoomStats | null>(null)
+const taskStats = ref<TaskStatsResponse | null>(null)
 
 let refreshInterval: ReturnType<typeof setInterval> | undefined
 let unsubscribe: (() => void) | undefined
@@ -27,7 +27,7 @@ let unsubscribe: (() => void) | undefined
 async function fetchAll() {
   await store.fetchOverview()
   try {
-    warroom.value = await api.get<WarRoomStats>('/api/warroom/stats')
+    taskStats.value = await api.get<TaskStatsResponse>('/api/tasks/stats')
   } catch { /* silently degrade */ }
 }
 
@@ -66,7 +66,7 @@ const uptimeStr = computed(() => {
 })
 
 const heartbeatAge = computed(() => {
-  const last = warroom.value?.last_heartbeat
+  const last = taskStats.value?.last_heartbeat
   if (!last) return 'never'
   const ms = Date.now() - last
   const min = Math.floor(ms / 60_000)
@@ -77,7 +77,7 @@ const heartbeatAge = computed(() => {
 })
 
 const heartbeatColor = computed(() => {
-  const last = warroom.value?.last_heartbeat
+  const last = taskStats.value?.last_heartbeat
   if (!last) return 'var(--mc-text-muted)'
   const ms = Date.now() - last
   if (ms < 10 * 60_000) return 'var(--mc-success)'
@@ -168,23 +168,23 @@ function levelColor(level: string): string {
         </div>
       </section>
 
-      <!-- ── Two-column: War Room + System Health ───────────── -->
+      <!-- ── Two-column: Tasks + System Health ────────────── -->
       <div class="ov__two-col">
 
-        <!-- War Room card -->
+        <!-- Tasks card -->
         <div class="ov__card">
           <div class="ov__card-header">
             <McIcon name="crosshair" :size="15" class="ov__card-icon" />
-            <h3 class="ov__card-title">War Room</h3>
-            <a href="/warroom" class="ov__card-link">View →</a>
+            <h3 class="ov__card-title">Tasks</h3>
+            <a href="/tasks" class="ov__card-link">View →</a>
           </div>
-          <div v-if="warroom" class="ov__warroom-grid">
+          <div v-if="taskStats" class="ov__warroom-grid">
             <div class="ov__wr-stat">
-              <span class="ov__wr-value">{{ warroom.in_progress_count }}</span>
+              <span class="ov__wr-value">{{ taskStats.in_progress_count }}</span>
               <span class="ov__wr-label">In progress</span>
             </div>
             <div class="ov__wr-stat">
-              <span class="ov__wr-value">{{ warroom.todo_count }}</span>
+              <span class="ov__wr-value">{{ taskStats.todo_count }}</span>
               <span class="ov__wr-label">Todo</span>
             </div>
             <div class="ov__wr-stat">
@@ -193,7 +193,7 @@ function levelColor(level: string): string {
             </div>
             <div class="ov__wr-model">
               <span class="ov__wr-label">Model</span>
-              <span class="ov__wr-model-val mc-mono">{{ warroom.active_model || 'unknown' }}</span>
+              <span class="ov__wr-model-val mc-mono">{{ taskStats.active_model || 'unknown' }}</span>
             </div>
           </div>
           <div v-else class="ov__empty">
@@ -435,7 +435,7 @@ function levelColor(level: string): string {
   .ov__two-col { grid-template-columns: 1fr; }
 }
 
-/* ── War Room ────────────────────────────────────────────── */
+/* ── Tasks ───────────────────────────────────────────────── */
 .ov__warroom-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

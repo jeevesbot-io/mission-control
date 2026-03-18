@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Mission Control** is an agent orchestration dashboard -- a plugin-based platform for managing autonomous agents, tasks, and workflows. It replaces a previous Flask dashboard (Matron) with a proper full-stack platform.
 
-All build phases (1-9) are complete. Refactoring Phases 1-2 complete. Active modules: **Overview, War Room, Agents (with Office view tab), Calendar, Activity** (5 modules). Extracted: School -> `~/projects/FamilyDashboard/` (Phase 1), Content -> `~/projects/ContentPipeline/`, Memory -> `~/projects/MemoryViewer/`, Chat deleted, Office merged into Agents. Phase 2 completed 2026-03-05.
+All build phases (1-9) are complete. Refactoring Phases 1-2 complete. Active modules: **Overview, Tasks, Agents (with Office view tab), Projects, Skills, Heatmap, Activity, Workspace** (8 frontend modules + Runs backend-only). Extracted: School -> `~/projects/FamilyDashboard/` (Phase 1), Content -> `~/projects/ContentPipeline/`, Memory -> `~/projects/MemoryViewer/`, Chat deleted, Office merged into Agents. Phase 2 completed 2026-03-05. War Room replaced by Tasks + Workspace modules (Phase 3, Postgres migration).
 
 ## Tech Stack
 
@@ -37,11 +37,11 @@ npm run dev
 # Run backend tests (from backend/)
 uv run pytest                        # all 81 tests
 uv run pytest tests/test_memory.py   # single module
-uv run pytest -k "test_warroom"      # by keyword
+uv run pytest -k "test_tasks"        # by keyword
 
 # Run frontend tests (from frontend/)
 npm test                             # all 52 vitest tests
-npm test -- src/modules/warroom/store.test.ts  # single file
+npm test -- src/modules/tasks/store.test.ts   # single file
 
 # Run e2e tests (from frontend/, requires both servers running)
 npx playwright test
@@ -104,7 +104,7 @@ Each module router is wrapped in error-handling middleware. A failing module ret
 
 ### WebSocket Protocol
 
-Topic-based pub/sub at `/ws/live`. Clients send JSON: `{"action": "subscribe", "topic": "warroom"}`. Server broadcasts `{"topic": "warroom", "data": {...}}` to subscribers. The `useWebSocket` composable handles reconnection with exponential backoff.
+Topic-based pub/sub at `/ws/live`. Clients send JSON: `{"action": "subscribe", "topic": "tasks"}`. Server broadcasts `{"topic": "tasks", "data": {...}}` to subscribers. The `useWebSocket` composable handles reconnection with exponential backoff.
 
 ## Project Structure
 
@@ -127,9 +127,12 @@ MissionControls/
 |   +-- modules/
 |   |   +-- activity/        # Activity Timeline feed
 |   |   +-- agents/          # Agent management + triggers + Office view tab
-|   |   +-- calendar/        # Google Calendar via gog CLI
 |   |   +-- overview/        # Dashboard Overview (widget aggregation)
-|   |   +-- warroom/         # War Room (task management, projects, skills, soul files)
+|   |   +-- projects/        # Project management (Postgres)
+|   |   +-- runs/            # Agent run tracking (backend-only)
+|   |   +-- skills/          # Skill management
+|   |   +-- tasks/           # Task management (Postgres)
+|   |   +-- workspace/       # Heartbeat, usage, model switching, workspace files
 |   +-- alembic/             # Database migration scripts
 |   +-- tests/               # 81 pytest tests (one file per module + test_health.py)
 |   +-- pyproject.toml       # Python deps and tool config
@@ -159,25 +162,27 @@ MissionControls/
 | Module | Backend Prefix | Purpose |
 |--------|---------------|---------|
 | Overview | `/api/overview` | Dashboard home, aggregates widgets from all modules |
+| Tasks | `/api/tasks` | Task management (Postgres-backed CRUD, queue, stats) |
 | Agents | `/api/agents` | Agent list, logs, stats, trigger execution. Office view available at `/api/agents/office` |
-| War Room | `/api/warroom` | Task management, projects, skills, soul files, model config |
-| Calendar | `/api/calendar` | Google Calendar via gog CLI |
+| Projects | `/api/projects` | Project management (Postgres-backed) |
+| Skills | `/api/skills` | Skill management |
+| Heatmap | (frontend-only) | Activity heatmap visualization |
 | Activity | `/api/activity` | Activity feed with filtering |
+| Workspace | `/api/workspace` | Heartbeat, usage, model switching, workspace/soul files |
+| Runs | `/api/runs` | Agent run tracking (backend-only, no frontend page) |
 
 ## Data Sources
 
 | Data | Source | Access Method |
 |------|--------|---------------|
-| Family calendar | Google Calendar (`sollyfamily3@gmail.com`) | `gog` CLI subprocess |
 | Agent activity | Postgres (`agent_log`) | Async raw SQL |
 | Cron jobs | OpenClaw gateway API (`:18789`) | HTTP |
-| Tasks / Projects | `~/.openclaw/workspace/dashboard/data/tasks.json`, `projects.json` | File read/write (thread-locked) |
+| Tasks / Projects | Postgres (`mc_tasks`, `mc_projects`) | Async raw SQL |
 | Skills | `~/.openclaw/skills/`, `~/.openclaw/workspace/skills/` | Filesystem scan |
 | Soul files | `~/.openclaw/workspace/SOUL.md`, `IDENTITY.md`, `USER.md`, `AGENTS.md` | File read/write with 20-entry history |
 | OpenClaw config | `~/.openclaw/openclaw.json` | File read/write (model, skill enabled state) |
 | Usage sessions | `~/.openclaw/agents/main/sessions/*.jsonl` | Parsed async, 60s TTL cache |
-
-| Activity events | `~/.openclaw/workspace/dashboard/data/activity.json` | File read/write (capped 1000 entries) |
+| Activity events | Postgres (`mc_activity`) | Async raw SQL |
 
 No Redis or message queue.
 
@@ -186,8 +191,11 @@ No Redis or message queue.
 Postgres `jeeves` database (shared with legacy Matron system). Key tables used:
 
 - `agent_log` -- agent execution history
+- `mc_tasks` -- task management (replaces former JSON file storage)
+- `mc_projects` -- project management (replaces former JSON file storage)
+- `mc_activity` -- activity timeline events
 
-Migrations managed via Alembic (`backend/alembic/`). War Room tasks and projects are stored in JSON files, not Postgres.
+Migrations managed via Alembic (`backend/alembic/`).
 
 ## Environment Variables
 
@@ -264,34 +272,30 @@ GET  /api/agents/office          # Office view (merged from former Office module
 GET  /api/calendar/?start_date=&days_ahead=14
 GET  /api/calendar/jobs
 
-# War Room
-GET    /api/warroom/tasks
-POST   /api/warroom/tasks
-PUT    /api/warroom/tasks/{id}
-DELETE /api/warroom/tasks/{id}
-GET    /api/warroom/tasks/queue
-POST   /api/warroom/tasks/{id}/pickup
-POST   /api/warroom/tasks/{id}/complete
-GET    /api/warroom/projects
-POST   /api/warroom/projects
-PUT    /api/warroom/projects/{id}
-DELETE /api/warroom/projects/{id}
-GET    /api/warroom/tags
-GET    /api/warroom/usage
-GET    /api/warroom/models
-POST   /api/warroom/model
-GET    /api/warroom/heartbeat
-POST   /api/warroom/heartbeat
-GET    /api/warroom/skills
-POST   /api/warroom/skills
-POST   /api/warroom/skills/{id}/toggle
-DELETE /api/warroom/skills/{id}
-GET    /api/warroom/workspace-file
-PUT    /api/warroom/workspace-file
-GET    /api/warroom/workspace-file/history
-GET    /api/warroom/soul/templates
-GET    /api/warroom/calendar
-GET    /api/warroom/stats
+# Tasks
+GET    /api/tasks/
+POST   /api/tasks/
+GET    /api/tasks/queue
+GET    /api/tasks/tags
+GET    /api/tasks/stats
+GET    /api/tasks/{id}
+PUT    /api/tasks/{id}
+DELETE /api/tasks/{id}
+POST   /api/tasks/{id}/run
+POST   /api/tasks/{id}/pickup
+POST   /api/tasks/{id}/complete
+
+# Workspace
+GET    /api/workspace/heartbeat
+POST   /api/workspace/heartbeat
+GET    /api/workspace/usage
+GET    /api/workspace/models
+POST   /api/workspace/model
+GET    /api/workspace/workspace-file
+PUT    /api/workspace/workspace-file
+GET    /api/workspace/workspace-file/history
+POST   /api/workspace/workspace-file/revert
+GET    /api/workspace/soul/templates
 
 # Activity Timeline
 GET  /api/activity/feed?limit=50&cursor=&module=&actor=&action=
