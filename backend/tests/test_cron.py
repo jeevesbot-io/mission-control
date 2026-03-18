@@ -1,7 +1,7 @@
 """Tests for the Cron Monitor module."""
 
 import time
-from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
+from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 
@@ -342,7 +342,6 @@ def test_channel_load_aggregation():
     ])
 
     with patch("modules.cron.service._read_json_sync", return_value=raw):
-        from modules.cron.service import _load_jobs_sync
         from modules.cron.service import list_channel_load
         import asyncio
 
