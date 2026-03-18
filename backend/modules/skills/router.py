@@ -1,6 +1,7 @@
 """Skills module API routes."""
 
 import asyncio
+import datetime
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -10,7 +11,7 @@ from core.database import get_db
 from core.rate_limit import limiter
 
 from .indexer import run_reindex
-from .models import ReindexRequest, ReindexResult, SkillDetail, SkillSummary
+from .models import DriftEntry, ReindexRequest, ReindexResult, SkillDetail, SkillStats, SkillSummary
 from .service import skills_browser_service
 
 logger = logging.getLogger(__name__)
@@ -40,6 +41,31 @@ async def list_skills(
         ql = q.lower()
         skills = [s for s in skills if ql in s["name"].lower() or ql in s["description"].lower()]
     return skills
+
+
+# --- Static path routes BEFORE the /{skill_name} catch-all ---
+
+
+@router.get("/drift", response_model=list[DriftEntry])
+async def get_drift_report(
+    since: datetime.datetime | None = Query(
+        None, description="ISO datetime; defaults to 7 days ago"
+    ),
+    limit: int = Query(50, ge=1, le=500, description="Max entries to return"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Drift report — recent changes across all skills."""
+    entries = await skills_browser_service.get_drift_report(db, since=since, limit=limit)
+    return entries
+
+
+@router.get("/stats", response_model=SkillStats)
+async def get_stats(
+    db: AsyncSession = Depends(get_db),
+):
+    """Overview stats for the Skills Hub."""
+    stats = await skills_browser_service.get_stats(db)
+    return stats
 
 
 @router.get("/{skill_name}", response_model=SkillDetail)

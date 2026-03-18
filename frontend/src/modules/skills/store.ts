@@ -23,6 +23,24 @@ export interface ReindexResult {
   duration_ms: number
 }
 
+export interface DriftEntry {
+  skill_name: string
+  source_label: string
+  old_hash: string
+  new_hash: string
+  old_file_count: number | null
+  new_file_count: number | null
+  files_changed: Array<{ path: string; action: string }> | null
+  detected_at: string
+}
+
+export interface SkillStats {
+  total_skills: number
+  by_source: Record<string, number>
+  drifted_last_7d: number
+  last_full_index: string | null
+}
+
 export const useSkillsStore = defineStore('skills-browser', () => {
   const api = useApi()
   const skills = ref<SkillInfo[]>([])
@@ -30,6 +48,8 @@ export const useSkillsStore = defineStore('skills-browser', () => {
   const reindexing = ref(false)
   const selectedContent = ref('')
   const selectedName = ref('')
+  const stats = ref<SkillStats | null>(null)
+  const driftEntries = ref<DriftEntry[]>([])
 
   async function fetchSkills(source?: string, q?: string, drifted?: boolean) {
     loading.value = true
@@ -64,5 +84,16 @@ export const useSkillsStore = defineStore('skills-browser', () => {
     }
   }
 
-  return { skills, loading, reindexing, selectedContent, selectedName, fetchSkills, fetchSkillContent, reindex }
+  async function fetchStats() {
+    stats.value = await api.get<SkillStats>('/api/skills/stats')
+  }
+
+  async function fetchDrift(since?: string) {
+    const params = new URLSearchParams()
+    if (since) params.set('since', since)
+    const qs = params.toString()
+    driftEntries.value = await api.get<DriftEntry[]>(`/api/skills/drift${qs ? '?' + qs : ''}`)
+  }
+
+  return { skills, loading, reindexing, selectedContent, selectedName, stats, driftEntries, fetchSkills, fetchSkillContent, reindex, fetchStats, fetchDrift }
 })

@@ -1,5 +1,7 @@
 """Skills browser service — scans skill directories for metadata."""
 
+import datetime
+import json
 import re
 from pathlib import Path
 
@@ -179,6 +181,105 @@ class SkillsBrowserService:
                 except OSError:
                     return None
         return None
+
+    async def get_drift_report(
+        self,
+        db: AsyncSession,
+        since: datetime.datetime | None = None,
+        limit: int = 50,
+    ) -> list[dict]:
+        """Return recent drift entries joined with skill metadata."""
+        if since is None:
+            since = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7)
+
+        result = await db.execute(
+            text("""
+                SELECT
+                    si.skill_name,
+                    si.source_label,
+                    dl.old_hash,
+                    dl.new_hash,
+                    dl.old_file_count,
+                    dl.new_file_count,
+                    dl.files_changed,
+                    dl.detected_at
+                FROM skills_drift_log dl
+                JOIN skills_index si ON si.id = dl.skill_id
+                WHERE dl.detected_at >= :since
+                ORDER BY dl.detected_at DESC
+                LIMIT :limit
+            """),
+            {"since": since, "limit": limit},
+        )
+
+        rows = result.fetchall()
+        entries = []
+        for row in rows:
+            files_changed = row.files_changed
+            if isinstance(files_changed, str):
+                files_changed = json.loads(files_changed)
+            entries.append(
+                {
+                    "skill_name": row.skill_name,
+                    "source_label": row.source_label,
+                    "old_hash": row.old_hash,
+                    "new_hash": row.new_hash,
+                    "old_file_count": row.old_file_count,
+                    "new_file_count": row.new_file_count,
+                    "files_changed": files_changed,
+                    "detected_at": row.detected_at,
+                }
+            )
+        return entries
+
+    async def get_stats(self, db: AsyncSession) -> dict:
+        """Return overview statistics for the Skills Hub."""
+        # Total skills (exclude soft-deleted)
+        total_result = await db.execute(
+            text("SELECT COUNT(*) AS cnt FROM skills_index WHERE removed_at IS NULL")
+        )
+        total_skills = total_result.scalar() or 0
+
+        # By source
+        source_result = await db.execute(
+            text("""
+                SELECT source_label, COUNT(*) AS cnt
+                FROM skills_index
+                WHERE removed_at IS NULL
+                GROUP BY source_label
+                ORDER BY source_label
+            """)
+        )
+        by_source = {row.source_label: row.cnt for row in source_result.fetchall()}
+
+        # Drifted in last 7 days
+        seven_days_ago = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7)
+        drift_result = await db.execute(
+            text("""
+                SELECT COUNT(DISTINCT skill_id) AS cnt
+                FROM skills_drift_log
+                WHERE detected_at >= :since
+            """),
+            {"since": seven_days_ago},
+        )
+        drifted_last_7d = drift_result.scalar() or 0
+
+        # Last full index timestamp
+        index_result = await db.execute(
+            text("""
+                SELECT MAX(last_indexed_at) AS last_idx
+                FROM skills_index
+                WHERE removed_at IS NULL
+            """)
+        )
+        last_full_index = index_result.scalar()
+
+        return {
+            "total_skills": total_skills,
+            "by_source": by_source,
+            "drifted_last_7d": drifted_last_7d,
+            "last_full_index": last_full_index,
+        }
 
 
 skills_browser_service = SkillsBrowserService()

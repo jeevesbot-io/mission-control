@@ -132,3 +132,134 @@ def test_reindex_endpoint():
     assert data["indexed"] == 36
     assert data["drifted"] == 2
     assert data["duration_ms"] == 150
+
+
+# --- Sprint 2: Drift report endpoint tests ---
+
+
+def test_drift_report_returns_entries():
+    """GET /api/skills/drift returns drift entries."""
+    mock_drift = [
+        {
+            "skill_name": "reading-list",
+            "source_label": "User",
+            "old_hash": "aaa111",
+            "new_hash": "bbb222",
+            "old_file_count": 4,
+            "new_file_count": 5,
+            "files_changed": [{"path": "references/new-guide.md", "action": "added"}],
+            "detected_at": "2026-03-15T14:30:00Z",
+        }
+    ]
+    with patch(
+        "modules.skills.service.skills_browser_service.get_drift_report",
+        new_callable=AsyncMock,
+        return_value=mock_drift,
+    ):
+        response = client.get("/api/skills/drift")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["skill_name"] == "reading-list"
+    assert data[0]["source_label"] == "User"
+    assert data[0]["old_hash"] == "aaa111"
+    assert data[0]["new_hash"] == "bbb222"
+    assert data[0]["old_file_count"] == 4
+    assert data[0]["new_file_count"] == 5
+    assert data[0]["files_changed"][0]["action"] == "added"
+
+
+def test_drift_report_with_since_param():
+    """GET /api/skills/drift?since=... passes the since filter."""
+    with patch(
+        "modules.skills.service.skills_browser_service.get_drift_report",
+        new_callable=AsyncMock,
+        return_value=[],
+    ) as mock_fn:
+        response = client.get("/api/skills/drift?since=2026-03-01T00:00:00Z")
+    assert response.status_code == 200
+    assert response.json() == []
+    # Verify since was passed through
+    call_kwargs = mock_fn.call_args
+    since_arg = call_kwargs.kwargs.get("since") or call_kwargs[1].get("since")
+    assert since_arg is not None
+
+
+def test_drift_report_empty_state():
+    """GET /api/skills/drift returns empty list when no drift detected."""
+    with patch(
+        "modules.skills.service.skills_browser_service.get_drift_report",
+        new_callable=AsyncMock,
+        return_value=[],
+    ):
+        response = client.get("/api/skills/drift")
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+# --- Sprint 2: Stats endpoint tests ---
+
+
+def test_stats_returns_correct_structure():
+    """GET /api/skills/stats returns overview statistics."""
+    mock_stats = {
+        "total_skills": 36,
+        "by_source": {"System": 23, "User": 5, "Workspace": 7, "Extension": 1},
+        "drifted_last_7d": 2,
+        "last_full_index": "2026-03-18T03:00:00Z",
+    }
+    with patch(
+        "modules.skills.service.skills_browser_service.get_stats",
+        new_callable=AsyncMock,
+        return_value=mock_stats,
+    ):
+        response = client.get("/api/skills/stats")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_skills"] == 36
+    assert data["by_source"]["System"] == 23
+    assert data["by_source"]["User"] == 5
+    assert data["by_source"]["Extension"] == 1
+    assert data["drifted_last_7d"] == 2
+    assert data["last_full_index"] is not None
+
+
+def test_stats_with_zero_drift():
+    """GET /api/skills/stats correctly shows zero drift."""
+    mock_stats = {
+        "total_skills": 10,
+        "by_source": {"System": 10},
+        "drifted_last_7d": 0,
+        "last_full_index": "2026-03-18T03:00:00Z",
+    }
+    with patch(
+        "modules.skills.service.skills_browser_service.get_stats",
+        new_callable=AsyncMock,
+        return_value=mock_stats,
+    ):
+        response = client.get("/api/skills/stats")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_skills"] == 10
+    assert data["drifted_last_7d"] == 0
+
+
+def test_stats_empty_index():
+    """GET /api/skills/stats handles empty index gracefully."""
+    mock_stats = {
+        "total_skills": 0,
+        "by_source": {},
+        "drifted_last_7d": 0,
+        "last_full_index": None,
+    }
+    with patch(
+        "modules.skills.service.skills_browser_service.get_stats",
+        new_callable=AsyncMock,
+        return_value=mock_stats,
+    ):
+        response = client.get("/api/skills/stats")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_skills"] == 0
+    assert data["by_source"] == {}
+    assert data["last_full_index"] is None
