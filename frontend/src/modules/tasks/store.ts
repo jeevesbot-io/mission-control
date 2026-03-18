@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { useApi } from '@/composables/useApi'
 
 // ---------------------------------------------------------------------------
-// Types (mirrored from warroom store — same backend)
+// Types
 // ---------------------------------------------------------------------------
 
 export interface Reference {
@@ -228,7 +228,7 @@ export const useTasksStore = defineStore('tasks', () => {
     loading.value = true
     error.value = null
     try {
-      tasks.value = await api.get<Task[]>('/api/warroom/tasks')
+      tasks.value = await api.get<Task[]>('/api/tasks/')
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Failed to load tasks'
     } finally {
@@ -238,7 +238,7 @@ export const useTasksStore = defineStore('tasks', () => {
 
   async function fetchProjects() {
     try {
-      projects.value = await api.get<Project[]>('/api/warroom/projects')
+      projects.value = await api.get<Project[]>('/api/projects/')
     } catch {
       projects.value = []
     }
@@ -246,7 +246,7 @@ export const useTasksStore = defineStore('tasks', () => {
 
   async function fetchTags() {
     try {
-      availableTags.value = await api.get<string[]>('/api/warroom/tags')
+      availableTags.value = await api.get<string[]>('/api/tasks/tags')
     } catch {
       availableTags.value = []
     }
@@ -258,7 +258,7 @@ export const useTasksStore = defineStore('tasks', () => {
 
   async function createTask(payload: Partial<Task>): Promise<Task | null> {
     try {
-      const task = await api.post<Task>('/api/warroom/tasks', payload)
+      const task = await api.post<Task>('/api/tasks/', payload)
       tasks.value.push(task)
       return task
     } catch (e: unknown) {
@@ -269,7 +269,7 @@ export const useTasksStore = defineStore('tasks', () => {
 
   async function updateTask(id: string, payload: Partial<Task>): Promise<Task | null> {
     try {
-      const task = await api.put<Task>(`/api/warroom/tasks/${id}`, payload)
+      const task = await api.put<Task>(`/api/tasks/${id}`, payload)
       const idx = tasks.value.findIndex((t) => t.id === id)
       if (idx !== -1) tasks.value[idx] = task
       return task
@@ -281,7 +281,7 @@ export const useTasksStore = defineStore('tasks', () => {
 
   async function deleteTask(id: string): Promise<boolean> {
     try {
-      await api.delete(`/api/warroom/tasks/${id}`)
+      await api.delete(`/api/tasks/${id}`)
       tasks.value = tasks.value.filter((t) => t.id !== id)
       if (selectedTaskId.value === id) selectedTaskId.value = null
       return true

@@ -21,7 +21,7 @@ const totalActive = computed(() =>
 
 onMounted(async () => {
   try {
-    stats.value = await api.get<TasksStats>('/api/warroom/stats')
+    stats.value = await api.get<TasksStats>('/api/tasks/stats')
   } catch {
     error.value = true
   }

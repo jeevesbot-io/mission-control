@@ -14,7 +14,7 @@ const actorFilter = ref('')
 
 const modules = [
   { label: 'All', value: '' },
-  { label: 'War Room', value: 'warroom' },
+  { label: 'Tasks', value: 'warroom' },
   { label: 'Agents', value: 'agents' },
   { label: 'Content', value: 'content' },
 ]
@@ -114,7 +114,7 @@ function resourceLink(event: ActivityEvent): string | null {
     return `/agents/${event.resource_id}`
   }
   if (event.module === 'warroom' && event.resource_type === 'task') {
-    return '/warroom'
+    return '/tasks'
   }
   if (event.module === 'content') {
     return '/content'
@@ -137,7 +137,7 @@ function resourceLink(event: ActivityEvent): string | null {
         <div class="activity__stats mc-stagger">
           <StatCard icon="activity" accent="#f59e0b" :value="store.stats.total_events" label="Total Events" />
           <StatCard icon="clock" accent="#38bdf8" :value="store.stats.last_24h" label="Last 24h" />
-          <StatCard icon="swords" accent="var(--mc-warning)" :value="store.stats.by_module?.warroom || 0" label="War Room" />
+          <StatCard icon="swords" accent="var(--mc-warning)" :value="store.stats.by_module?.warroom || 0" label="Tasks" />
           <StatCard icon="bot" accent="#f59e0b" :value="store.stats.by_module?.agents || 0" label="Agents" />
           <StatCard icon="video" accent="#ec4899" :value="store.stats.by_module?.content || 0" label="Content" />
         </div>
