@@ -162,27 +162,29 @@ MissionControls/
 | Module | Backend Prefix | Purpose |
 |--------|---------------|---------|
 | Overview | `/api/overview` | Dashboard home, aggregates widgets from all modules |
-| Tasks | `/api/tasks` | Task management (Postgres-backed CRUD, queue, stats) |
-| Agents | `/api/agents` | Agent list, logs, stats, trigger execution. Office view available at `/api/agents/office` |
+| Tasks | `/api/tasks` | Task management (Postgres-backed CRUD, queue, comments, atomic checkout) |
+| Agents | `/api/agents` | Agent list, logs, stats, trigger execution, assignable agents, office view |
 | Projects | `/api/projects` | Project management (Postgres-backed) |
-| Skills | `/api/skills` | Skill management |
-| Heatmap | (frontend-only) | Activity heatmap visualization |
+| Skills | `/api/skills` | Skill browser with SHA-256 drift detection |
+| Cron | `/api/cron` | Cron job monitor — schedule, health/stall detection, channel load |
 | Activity | `/api/activity` | Activity feed with filtering |
 | Workspace | `/api/workspace` | Heartbeat, usage, model switching, workspace/soul files |
-| Runs | `/api/runs` | Agent run tracking (backend-only, no frontend page) |
+| Runs | `/api/runs` | Agent run tracking + heatmap |
 
 ## Data Sources
 
 | Data | Source | Access Method |
 |------|--------|---------------|
 | Agent activity | Postgres (`agent_log`) | Async raw SQL |
-| Cron jobs | OpenClaw gateway API (`:18789`) | HTTP |
 | Tasks / Projects | Postgres (`mc_tasks`, `mc_projects`) | Async raw SQL |
-| Skills | `~/.openclaw/skills/`, `~/.openclaw/workspace/skills/` | Filesystem scan |
+| Comments | Postgres (`mc_comments`, FK to `mc_tasks`) | Async raw SQL |
+| Activity events | Postgres (`mc_activity`, FK to `mc_tasks`) | Async raw SQL |
+| Agent runs | Postgres (`agent_runs`) | Async raw SQL |
+| Skills | `skills_index` (Postgres) + filesystem scan | Async raw SQL + file I/O |
+| Cron jobs | `~/.openclaw/cron/jobs.json` | File read (async) |
 | Soul files | `~/.openclaw/workspace/SOUL.md`, `IDENTITY.md`, `USER.md`, `AGENTS.md` | File read/write with 20-entry history |
 | OpenClaw config | `~/.openclaw/openclaw.json` | File read/write (model, skill enabled state) |
 | Usage sessions | `~/.openclaw/agents/main/sessions/*.jsonl` | Parsed async, 60s TTL cache |
-| Activity events | Postgres (`mc_activity`) | Async raw SQL |
 
 No Redis or message queue.
 
@@ -191,9 +193,12 @@ No Redis or message queue.
 Postgres `jeeves` database (shared with legacy Matron system). Key tables used:
 
 - `agent_log` -- agent execution history
-- `mc_tasks` -- task management (replaces former JSON file storage)
-- `mc_projects` -- project management (replaces former JSON file storage)
+- `agent_runs` -- agent run records (heatmap, token tracking)
+- `mc_tasks` -- task management (type, proof, claimed_by/claimed_at columns)
+- `mc_projects` -- project management
+- `mc_comments` -- task comments (comment/review/approval/rejection types)
 - `mc_activity` -- activity timeline events
+- `skills_index` / `skills_drift_log` -- skill browser index
 
 Migrations managed via Alembic (`backend/alembic/`).
 
@@ -262,15 +267,14 @@ GET  /api/overview
 
 # Agents
 GET  /api/agents/
+GET  /api/agents/assignable      # Top-level agents for task assignment (12 agents)
+GET  /api/agents/detailed
 GET  /api/agents/stats
 GET  /api/agents/{id}/log
 GET  /api/agents/cron
 POST /api/agents/{id}/trigger
-GET  /api/agents/office          # Office view (merged from former Office module)
-
-# Calendar
-GET  /api/calendar/?start_date=&days_ahead=14
-GET  /api/calendar/jobs
+GET  /api/agents/office
+GET  /api/agents/sessions
 
 # Tasks
 GET    /api/tasks/
@@ -283,7 +287,25 @@ PUT    /api/tasks/{id}
 DELETE /api/tasks/{id}
 POST   /api/tasks/{id}/run
 POST   /api/tasks/{id}/pickup
-POST   /api/tasks/{id}/complete
+POST   /api/tasks/{id}/complete   # Requires proof (pr_url, ci_status, etc.)
+POST   /api/tasks/{id}/claim      # Atomic checkout (SELECT FOR UPDATE SKIP LOCKED)
+POST   /api/tasks/{id}/release    # Release claimed task
+GET    /api/tasks/{id}/comments
+POST   /api/tasks/{id}/comments
+DELETE /api/tasks/comments/{id}
+GET    /api/tasks/{id}/activity
+
+# Cron Monitor
+GET  /api/cron/schedule           # All jobs with health status
+GET  /api/cron/health             # Summary (ok/late/failing counts)
+GET  /api/cron/channels           # Channel load (msgs/day)
+
+# Projects
+GET    /api/projects/
+GET    /api/projects/{id}
+POST   /api/projects/
+PATCH  /api/projects/{id}
+DELETE /api/projects/{id}
 
 # Workspace
 GET    /api/workspace/heartbeat
@@ -300,6 +322,13 @@ GET    /api/workspace/soul/templates
 # Activity Timeline
 GET  /api/activity/feed?limit=50&cursor=&module=&actor=&action=
 GET  /api/activity/stats
+
+# Runs / Heatmap
+GET  /api/runs/
+GET  /api/runs/heatmap?year=2026
+GET  /api/runs/day?date=YYYY-MM-DD
+GET  /api/runs/agent/{id}/timeline
+POST /api/runs/ingest             # mc-run-logger hook target
 
 WS   /ws/live
 ```
