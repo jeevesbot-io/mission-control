@@ -44,13 +44,28 @@
         </div>
       </div>
 
-      <!-- Project -->
-      <div class="field">
-        <label class="field-label">Project</label>
-        <select v-model="form.project" class="field-select">
-          <option :value="null">No project</option>
-          <option v-for="p in tasksStore.projects" :key="p.id" :value="p.id">{{ p.name }}</option>
-        </select>
+      <!-- Agent & Project -->
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">Agent</label>
+          <select v-model="form.skill" class="field-select">
+            <option :value="null">Unassigned</option>
+            <option
+              v-for="a in tasksStore.availableAgents"
+              :key="a.agent_id"
+              :value="a.agent_id"
+            >
+              {{ a.agent_id }}
+            </option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Project</label>
+          <select v-model="form.project" class="field-select">
+            <option :value="null">No project</option>
+            <option v-for="p in tasksStore.projects" :key="p.id" :value="p.id">{{ p.name }}</option>
+          </select>
+        </div>
       </div>
 
       <!-- Tags -->
@@ -103,12 +118,14 @@ const form = ref<{
   title: string
   status: TaskStatus
   priority: TaskPriority
+  skill: string | null
   project: string | null
   tags: string[]
 }>({
   title: '',
   status: 'todo',
   priority: 'medium',
+  skill: null,
   project: null,
   tags: [],
 })
@@ -135,6 +152,7 @@ async function submit() {
     title: form.value.title.trim(),
     status: form.value.status,
     priority: form.value.priority,
+    skill: form.value.skill,
     project: form.value.project,
     tags: form.value.tags,
   })
