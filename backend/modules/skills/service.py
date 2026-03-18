@@ -3,11 +3,17 @@
 import re
 from pathlib import Path
 
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
+
+# Updated source directories with new labels
 SKILL_DIRS = [
-    ("managed", Path("~/.openclaw/skills/").expanduser()),
-    ("workspace", Path("~/.openclaw/workspace/skills/").expanduser()),
-    ("agent", Path("~/.agents/skills/").expanduser()),
+    ("System", Path("/opt/homebrew/lib/node_modules/openclaw/skills/")),
+    ("User", Path("~/.openclaw/skills/").expanduser()),
+    ("Workspace", Path("~/.openclaw/workspace/skills/").expanduser()),
+    ("Extension", Path("~/.openclaw/extensions/acpx/skills/").expanduser()),
+    ("Extension", Path("~/.agents/skills/").expanduser()),
 ]
 
 
@@ -81,10 +87,81 @@ class SkillsBrowserService:
                         "name": skill_name,
                         "description": description,
                         "source": source,
+                        "source_label": source,
                     }
                 )
 
         return skills
+
+    async def list_from_db(
+        self,
+        db: AsyncSession,
+        source: str | None = None,
+        q: str | None = None,
+        drifted: bool = False,
+    ) -> list[dict]:
+        """List skills from the database. Returns empty list if DB has no data."""
+        filters = ["removed_at IS NULL"]
+        params: dict = {}
+
+        if source:
+            filters.append("source_label = :source")
+            params["source"] = source
+        if q:
+            filters.append("(skill_name ILIKE :q OR description ILIKE :q)")
+            params["q"] = f"%{q}%"
+        if drifted:
+            filters.append("last_changed_at IS NOT NULL")
+
+        where = " AND ".join(filters)
+
+        result = await db.execute(
+            text(f"""
+                SELECT id, skill_name, description, source_label,
+                       file_count, sha256_hash, last_indexed_at, last_changed_at
+                FROM skills_index
+                WHERE {where}
+                ORDER BY source_label, skill_name
+            """),
+            params,
+        )
+
+        rows = result.fetchall()
+        return [
+            {
+                "id": row.id,
+                "name": row.skill_name,
+                "description": row.description or "",
+                "source": row.source_label,
+                "source_label": row.source_label,
+                "file_count": row.file_count,
+                "sha256_hash": row.sha256_hash,
+                "last_indexed_at": row.last_indexed_at,
+                "last_changed_at": row.last_changed_at,
+                "has_drift": row.last_changed_at is not None,
+            }
+            for row in rows
+        ]
+
+    async def get_skill_detail_from_db(self, db: AsyncSession, skill_name: str) -> dict | None:
+        """Get skill detail enriched with DB data."""
+        result = await db.execute(
+            text("""
+                SELECT sha256_hash, last_changed_at, source_label
+                FROM skills_index
+                WHERE skill_name = :name AND removed_at IS NULL
+                LIMIT 1
+            """),
+            {"name": skill_name},
+        )
+        row = result.fetchone()
+        if row:
+            return {
+                "sha256_hash": row.sha256_hash,
+                "last_changed_at": row.last_changed_at,
+                "source_label": row.source_label,
+            }
+        return None
 
     def get_skill_content(self, name: str) -> str | None:
         """Return SKILL.md content for a specific skill."""
