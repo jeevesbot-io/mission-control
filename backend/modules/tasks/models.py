@@ -55,6 +55,7 @@ class Task(BaseModel):
     completedAt: str | None = None
     result: str | None = None
     error: str | None = None
+    proof: dict | None = None
     pickedUp: bool = False
     createdAt: str
     updatedAt: str
@@ -102,6 +103,7 @@ class TaskUpdate(BaseModel):
 class TaskComplete(BaseModel):
     result: str | None = None
     error: str | None = None
+    proof: dict | None = None
 
 
 class TaskStats(BaseModel):

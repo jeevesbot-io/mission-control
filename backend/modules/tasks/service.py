@@ -105,6 +105,7 @@ def _row_to_task(row) -> Task:
         completedAt=_iso_or_none(m.get("completed_at")),
         result=m.get("result"),
         error=m.get("error"),
+        proof=m.get("proof"),
         pickedUp=bool(m.get("picked_up")),
         createdAt=_iso_or_none(m["created_at"]),
         updatedAt=_iso_or_none(m["updated_at"]),
@@ -416,14 +417,24 @@ async def pickup_task(task_id: int) -> Task | None:
 
 
 async def complete_task(task_id: int, payload: TaskComplete) -> Task | None:
-    """Mark task as done with optional result/error."""
+    """Mark task as done with optional result/error. Proof required."""
+    # Validate proof: at least one field must be provided
+    proof = payload.proof
+    if not proof or not any(proof.values()):
+        raise ValueError(
+            "Proof of work required to complete a task. "
+            "Provide at least one of: pr_url, ci_status, test_output, files_changed"
+        )
+
     async with async_session() as session:
+        proof_json = json.dumps(proof) if proof else None
         result = await session.execute(
             text("""
                 UPDATE mc_tasks
                 SET state = 'done',
                     result = :result,
                     error = :error,
+                    proof = CAST(:proof AS jsonb),
                     completed_at = now(),
                     updated_at = now()
                 WHERE id = :id
@@ -433,6 +444,7 @@ async def complete_task(task_id: int, payload: TaskComplete) -> Task | None:
                 "id": task_id,
                 "result": payload.result,
                 "error": payload.error,
+                "proof": proof_json,
             },
         )
         row = result.first()
