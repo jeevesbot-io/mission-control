@@ -6,7 +6,7 @@ import json
 import logging
 import re
 import secrets
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import text
 
