@@ -5,13 +5,14 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
 
 from core.websocket import manager
 from modules.activity.models import ActivityLogRequest
 from modules.activity.service import activity_service
 
 from . import service
-from .models import Task, TaskComplete, TaskCreate, TaskStats, TaskUpdate
+from .models import ActivityEntry, Comment, CommentCreate, Task, TaskComplete, TaskCreate, TaskStats, TaskUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -153,3 +154,69 @@ async def complete_task(task_id: int, payload: TaskComplete = TaskComplete()) ->
     )
     await manager.broadcast("tasks:task:updated", task.model_dump(mode="json"))
     return task
+
+
+# ---------------------------------------------------------------------------
+# Atomic task checkout (claim / release)
+# ---------------------------------------------------------------------------
+
+
+class _ClaimBody(BaseModel):
+    agent_id: str
+
+
+@router.post("/{task_id}/claim", response_model=Task)
+async def claim_task(task_id: int, payload: _ClaimBody) -> Task:
+    try:
+        task = await service.claim_task(task_id, payload.agent_id)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    await manager.broadcast("tasks:task:claimed", task.model_dump(mode="json"))
+    return task
+
+
+@router.post("/{task_id}/release", response_model=Task)
+async def release_task(task_id: int) -> Task:
+    task = await service.release_task(task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found or not claimed")
+    await manager.broadcast("tasks:task:released", task.model_dump(mode="json"))
+    return task
+
+
+# ---------------------------------------------------------------------------
+# Comments
+# ---------------------------------------------------------------------------
+
+
+@router.get("/{task_id}/comments", response_model=list[Comment])
+async def list_comments(task_id: int):
+    return await service.list_comments(task_id)
+
+
+@router.post("/{task_id}/comments", response_model=Comment, status_code=201)
+async def create_comment(task_id: int, payload: CommentCreate):
+    comment = await service.create_comment(task_id, payload)
+    await manager.broadcast("tasks:comment:created", comment.model_dump(mode="json"))
+    return comment
+
+
+@router.delete("/comments/{comment_id}")
+async def delete_comment(comment_id: int):
+    ok = await service.delete_comment(comment_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    await manager.broadcast("tasks:comment:deleted", {"id": comment_id})
+    return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# Activity feed for task
+# ---------------------------------------------------------------------------
+
+
+@router.get("/{task_id}/activity", response_model=list[ActivityEntry])
+async def list_task_activity(task_id: int, limit: int = Query(50, ge=1, le=200)):
+    return await service.list_task_activity(task_id, limit=limit)

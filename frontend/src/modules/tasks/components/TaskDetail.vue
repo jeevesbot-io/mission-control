@@ -54,12 +54,20 @@
       <!-- Agent / Skill -->
       <div class="detail-field">
         <label class="detail-label">Agent</label>
-        <input
-          class="detail-input"
+        <select
+          class="detail-select"
           :value="task.skill || ''"
-          placeholder="Unassigned"
-          @change="onFieldChange('skill', ($event.target as HTMLInputElement).value || null)"
-        />
+          @change="onFieldChange('skill', ($event.target as HTMLSelectElement).value || null)"
+        >
+          <option value="">Unassigned</option>
+          <option
+            v-for="a in tasksStore.availableAgents"
+            :key="a.agent_id"
+            :value="a.agent_id"
+          >
+            {{ a.agent_id }}
+          </option>
+        </select>
       </div>
 
       <!-- Project -->
