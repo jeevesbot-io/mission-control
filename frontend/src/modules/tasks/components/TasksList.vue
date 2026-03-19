@@ -31,58 +31,58 @@
         </Transition>
       </div>
 
-      <!-- Title -->
-      <span class="task-row__title">{{ task.title }}</span>
-
-      <!-- Agent badge -->
-      <McChip v-if="task.skill" color="purple" mono size="sm">
-        {{ task.skill }}
-      </McChip>
-
-      <!-- Tags -->
-      <McChip
-        v-for="tag in task.tags.slice(0, 2)"
-        :key="tag"
-        mono
-        size="sm"
-      >
-        {{ tag }}
-      </McChip>
-      <McChip v-if="task.tags.length > 2" mono size="sm">
-        +{{ task.tags.length - 2 }}
-      </McChip>
-
-      <!-- Status badge -->
-      <div class="task-row__status" @click.stop="toggleStatusMenu(index, $event)">
-        <McChip
-          :color="statusChipColor(task.status)"
-          variant="status"
-          mono
-          uppercase
-          size="sm"
-          dot
-        >
-          {{ STATUS_LABELS[task.status] }}
-        </McChip>
-        <!-- Status dropdown -->
-        <Transition name="fade">
-          <div v-if="statusMenuIndex === index" class="inline-menu" :style="menuPosition">
-            <button
-              v-for="s in STATUS_ORDER"
-              :key="s"
-              class="inline-menu__item"
-              :class="{ active: task.status === s }"
-              @click.stop="changeStatus(task, s)"
-            >
-              <span class="status-dot" :style="{ background: STATUS_COLORS[s] }" />
-              {{ STATUS_LABELS[s] }}
-            </button>
-          </div>
-        </Transition>
+      <!-- Row 1: Title -->
+      <div class="task-row__title-row">
+        <span class="task-row__title">{{ task.title }}</span>
       </div>
 
-      <!-- Updated time -->
-      <span class="task-row__time mc-mono">{{ relativeTime(task.updatedAt) }}</span>
+      <!-- Row 2: Metadata -->
+      <div class="task-row__meta">
+        <McChip v-if="task.skill" color="purple" mono size="sm">
+          {{ task.skill }}
+        </McChip>
+        <McChip
+          v-for="tag in task.tags.slice(0, 2)"
+          :key="tag"
+          mono
+          size="sm"
+        >
+          {{ tag }}
+        </McChip>
+        <McChip v-if="task.tags.length > 2" mono size="sm">
+          +{{ task.tags.length - 2 }}
+        </McChip>
+        <div class="task-row__spacer" />
+        <!-- Status badge -->
+        <div class="task-row__status" @click.stop="toggleStatusMenu(index, $event)">
+          <McChip
+            :color="statusChipColor(task.status)"
+            variant="status"
+            mono
+            uppercase
+            size="sm"
+            dot
+          >
+            {{ STATUS_LABELS[task.status] }}
+          </McChip>
+          <!-- Status dropdown -->
+          <Transition name="fade">
+            <div v-if="statusMenuIndex === index" class="inline-menu" :style="menuPosition">
+              <button
+                v-for="s in STATUS_ORDER"
+                :key="s"
+                class="inline-menu__item"
+                :class="{ active: task.status === s }"
+                @click.stop="changeStatus(task, s)"
+              >
+                <span class="status-dot" :style="{ background: STATUS_COLORS[s] }" />
+                {{ STATUS_LABELS[s] }}
+              </button>
+            </div>
+          </Transition>
+        </div>
+        <span class="task-row__time mc-mono">{{ relativeTime(task.updatedAt) }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -217,10 +217,11 @@ onUnmounted(() => {
 }
 
 .task-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.45rem 1rem;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  gap: 0 0.5rem;
+  padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--mc-border);
   cursor: pointer;
   transition: background var(--mc-transition-fast);
@@ -255,6 +256,8 @@ onUnmounted(() => {
   cursor: pointer;
   padding: 4px;
   flex-shrink: 0;
+  grid-row: 1 / -1;
+  align-self: center;
 }
 
 .priority-dot {
@@ -265,16 +268,33 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-/* Title */
+/* Row 1: Title */
+.task-row__title-row {
+  min-width: 0;
+}
+
 .task-row__title {
-  flex: 1;
   font-size: var(--mc-text-sm);
   font-weight: 500;
   color: var(--mc-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  display: block;
+}
+
+/* Row 2: Metadata */
+.task-row__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--mc-text-xs);
+  margin-top: 0.25rem;
   min-width: 0;
+}
+
+.task-row__spacer {
+  flex: 1;
 }
 
 /* Status badge wrapper */
@@ -286,11 +306,12 @@ onUnmounted(() => {
 
 /* Updated time */
 .task-row__time {
-  font-size: 0.65rem;
+  font-size: var(--mc-text-xs);
   color: var(--mc-text-muted);
   flex-shrink: 0;
   min-width: 24px;
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Inline menus */

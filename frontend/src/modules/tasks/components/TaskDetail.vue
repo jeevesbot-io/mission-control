@@ -14,9 +14,7 @@
           {{ STATUS_LABELS[task.status] }}
         </McChip>
       </div>
-      <button class="detail-close" @click="emit('close')" title="Close (Esc)">
-        <McIcon name="x" :size="18" />
-      </button>
+
     </div>
 
     <!-- Body (scrollable) -->
@@ -421,7 +419,7 @@ function formatDate(dateStr: string): string {
 .task-detail {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  max-height: 80vh;
   background: var(--mc-bg-solid);
 }
 

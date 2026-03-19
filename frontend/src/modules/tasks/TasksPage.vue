@@ -1,9 +1,6 @@
 <template>
   <PageShell>
     <div class="tasks-page">
-      <!-- Left sidebar -->
-      <TasksSidebar class="tasks-page__sidebar" />
-
       <!-- Main content area -->
       <div class="tasks-page__main">
         <!-- Header bar -->
@@ -113,17 +110,20 @@
         </template>
       </div>
 
-      <!-- Detail slide-in panel -->
-      <Transition name="slide-in-right">
+      <!-- Detail modal -->
+      <McModal
+        :visible="!!tasksStore.selectedTask"
+        width="672px"
+        @update:visible="v => { if (!v) closeDetail() }"
+      >
         <TaskDetail
           v-if="tasksStore.selectedTask"
           :task="tasksStore.selectedTask"
-          class="tasks-page__detail"
           @close="closeDetail"
           @update="onTaskUpdate"
           @delete="onTaskDelete"
         />
-      </Transition>
+      </McModal>
 
       <!-- Create modal -->
       <TaskCreateModal
@@ -144,9 +144,9 @@ import McButton from '@/components/ui/McButton.vue'
 import McChip from '@/components/ui/McChip.vue'
 import McLoadingState from '@/components/ui/McLoadingState.vue'
 import McEmptyState from '@/components/ui/McEmptyState.vue'
+import McModal from '@/components/ui/McModal.vue'
 import { useTasksStore } from './store'
 import type { Task, TaskPriority } from './store'
-import TasksSidebar from './components/TasksSidebar.vue'
 import TasksList from './components/TasksList.vue'
 import TasksKanban from './components/TasksKanban.vue'
 import TaskDetail from './components/TaskDetail.vue'
@@ -252,24 +252,12 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-.tasks-page__sidebar {
-  width: 220px;
-  flex-shrink: 0;
-  border-right: 1px solid var(--mc-border);
-}
-
 .tasks-page__main {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-}
-
-.tasks-page__detail {
-  width: 420px;
-  flex-shrink: 0;
-  border-left: 1px solid var(--mc-border);
 }
 
 /* Header */
@@ -389,17 +377,5 @@ onUnmounted(() => {
   color: var(--mc-danger);
 }
 
-/* Slide-in transition */
-.slide-in-right-enter-active,
-.slide-in-right-leave-active {
-  transition: transform var(--mc-transition-slow) var(--mc-ease-out);
-}
 
-.slide-in-right-enter-from {
-  transform: translateX(100%);
-}
-
-.slide-in-right-leave-to {
-  transform: translateX(100%);
-}
 </style>
