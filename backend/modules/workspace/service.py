@@ -106,12 +106,7 @@ def _get_active_model_sync() -> str:
         config = json.loads(_openclaw_json.read_text(encoding="utf-8"))
     except Exception:
         config = {}
-    raw = (
-        config.get("agents", {})
-        .get("defaults", {})
-        .get("model", {})
-        .get("primary", "unknown")
-    )
+    raw = config.get("agents", {}).get("defaults", {}).get("model", {}).get("primary", "unknown")
     return raw.replace("anthropic/", "")
 
 
@@ -128,9 +123,7 @@ def _compute_usage_sync() -> UsageResponse:
             model=model,
             tiers=[
                 UsageTier(label="Current session", percent=0, resetsIn="5h 0m"),
-                UsageTier(
-                    label="Current week (all models)", percent=0, resetsIn="7d 0h"
-                ),
+                UsageTier(label="Current week (all models)", percent=0, resetsIn="7d 0h"),
             ],
         )
     try:
@@ -147,9 +140,7 @@ def _compute_usage_sync() -> UsageResponse:
                         continue
                     try:
                         entry = json.loads(line)
-                        usage = entry.get("message", {}).get("usage") or entry.get(
-                            "usage"
-                        )
+                        usage = entry.get("message", {}).get("usage") or entry.get("usage")
                         if not usage or not usage.get("cost", {}).get("total"):
                             continue
                         tokens = (
@@ -221,23 +212,11 @@ async def get_models() -> list[str]:
                 config = json.loads(_openclaw_json.read_text(encoding="utf-8"))
             except Exception:
                 config = {}
-        primary = (
-            config.get("agents", {})
-            .get("defaults", {})
-            .get("model", {})
-            .get("primary")
-            or ""
-        )
+        primary = config.get("agents", {}).get("defaults", {}).get("model", {}).get("primary") or ""
         fallbacks = (
-            config.get("agents", {})
-            .get("defaults", {})
-            .get("model", {})
-            .get("fallbacks")
-            or []
+            config.get("agents", {}).get("defaults", {}).get("model", {}).get("fallbacks") or []
         )
-        models_config = (
-            config.get("agents", {}).get("defaults", {}).get("models") or {}
-        )
+        models_config = config.get("agents", {}).get("defaults", {}).get("models") or {}
         seen: dict[str, None] = {}
         for m in [primary, *fallbacks, *models_config.keys()]:
             if m:
@@ -255,14 +234,10 @@ async def set_model(model: str) -> ModelResponse:
                 config = json.loads(_openclaw_json.read_text(encoding="utf-8"))
             except Exception:
                 config = {}
-            config.setdefault("agents", {}).setdefault("defaults", {}).setdefault(
-                "model", {}
-            )
+            config.setdefault("agents", {}).setdefault("defaults", {}).setdefault("model", {})
             config["agents"]["defaults"]["model"]["primary"] = model
             _openclaw_json.parent.mkdir(parents=True, exist_ok=True)
-            _openclaw_json.write_text(
-                json.dumps(config, indent=2), encoding="utf-8"
-            )
+            _openclaw_json.write_text(json.dumps(config, indent=2), encoding="utf-8")
 
     await asyncio.to_thread(_write)
     return ModelResponse(success=True, model=model)
@@ -288,9 +263,7 @@ async def get_workspace_file(name: str) -> WorkspaceFileResponse:
         fp = settings.workspace_path / name
         try:
             content = fp.read_text(encoding="utf-8")
-            last_mod = datetime.fromtimestamp(
-                fp.stat().st_mtime, tz=timezone.utc
-            ).isoformat()
+            last_mod = datetime.fromtimestamp(fp.stat().st_mtime, tz=timezone.utc).isoformat()
             return WorkspaceFileResponse(content=content, lastModified=last_mod)
         except OSError:
             return WorkspaceFileResponse(content="", lastModified=None)
@@ -317,17 +290,13 @@ async def update_workspace_file(name: str, content: str) -> None:
 
 async def get_file_history(name: str) -> list[HistoryEntry]:
     def _read():
-        return _read_json_sync(
-            settings.dashboard_data_path / f"{name}-history.json", []
-        )
+        return _read_json_sync(settings.dashboard_data_path / f"{name}-history.json", [])
 
     raw = await asyncio.to_thread(_read)
     return [HistoryEntry(**e) for e in raw]
 
 
-async def revert_workspace_file(
-    name: str, index: int
-) -> WorkspaceFileResponse | None:
+async def revert_workspace_file(name: str, index: int) -> WorkspaceFileResponse | None:
     def _revert():
         hist_path = settings.dashboard_data_path / f"{name}-history.json"
         history = _read_json_sync(hist_path, [])

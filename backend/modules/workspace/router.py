@@ -92,9 +92,7 @@ class _WorkspaceFileBody(BaseModel):
 
 
 @router.put("/workspace-file")
-async def update_workspace_file(
-    name: str = Query(...), payload: _WorkspaceFileBody = ...
-):
+async def update_workspace_file(name: str = Query(...), payload: _WorkspaceFileBody = ...):
     if not service.validate_workspace_filename(name):
         raise HTTPException(status_code=400, detail="Invalid filename")
     await service.update_workspace_file(name, payload.content)

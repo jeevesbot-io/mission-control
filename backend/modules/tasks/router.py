@@ -12,7 +12,16 @@ from modules.activity.models import ActivityLogRequest
 from modules.activity.service import activity_service
 
 from . import service
-from .models import ActivityEntry, Comment, CommentCreate, Task, TaskComplete, TaskCreate, TaskStats, TaskUpdate
+from .models import (
+    ActivityEntry,
+    Comment,
+    CommentCreate,
+    Task,
+    TaskComplete,
+    TaskCreate,
+    TaskStats,
+    TaskUpdate,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +40,7 @@ async def list_tasks(
     tags: str | None = Query(None),
     status: str | None = Query(None),
 ) -> list[Task]:
-    return await service.list_tasks(
-        project=project, priority=priority, tags=tags, status=status
-    )
+    return await service.list_tasks(project=project, priority=priority, tags=tags, status=status)
 
 
 @router.post("/", response_model=Task)

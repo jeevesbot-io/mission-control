@@ -7,7 +7,15 @@ from typing import Literal
 from pydantic import BaseModel
 
 TaskStatus = Literal[
-    "backlog", "todo", "in-progress", "blocked", "peer_review", "rejected", "review", "done", "cancelled"
+    "backlog",
+    "todo",
+    "in-progress",
+    "blocked",
+    "peer_review",
+    "rejected",
+    "review",
+    "done",
+    "cancelled",
 ]
 TaskPriority = Literal["low", "medium", "high", "urgent"]
 TaskType = Literal["feature", "bug", "debt", "investigation", "chore"]
@@ -18,8 +26,15 @@ PRIORITY_INT_TO_STR: dict[int, str] = {v: k for k, v in PRIORITY_STR_TO_INT.item
 
 # Maps API status (hyphenated) <-> Postgres state (underscored)
 VALID_STATES = {
-    "backlog", "todo", "in_progress", "blocked",
-    "peer_review", "rejected", "review", "done", "cancelled",
+    "backlog",
+    "todo",
+    "in_progress",
+    "blocked",
+    "peer_review",
+    "rejected",
+    "review",
+    "done",
+    "cancelled",
 }
 
 

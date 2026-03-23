@@ -24,9 +24,7 @@ def test_modules_includes_workspace():
 def test_get_heartbeat():
     from modules.workspace.models import HeartbeatResponse
 
-    with patch(
-        "modules.workspace.service.get_heartbeat", new_callable=AsyncMock
-    ) as mock:
+    with patch("modules.workspace.service.get_heartbeat", new_callable=AsyncMock) as mock:
         mock.return_value = HeartbeatResponse(lastHeartbeat=1708000000000)
         response = client.get("/api/workspace/heartbeat")
         assert response.status_code == 200
@@ -36,9 +34,7 @@ def test_get_heartbeat():
 def test_get_heartbeat_null():
     from modules.workspace.models import HeartbeatResponse
 
-    with patch(
-        "modules.workspace.service.get_heartbeat", new_callable=AsyncMock
-    ) as mock:
+    with patch("modules.workspace.service.get_heartbeat", new_callable=AsyncMock) as mock:
         mock.return_value = HeartbeatResponse(lastHeartbeat=None)
         response = client.get("/api/workspace/heartbeat")
         assert response.status_code == 200
@@ -48,9 +44,7 @@ def test_get_heartbeat_null():
 def test_record_heartbeat():
     from modules.workspace.models import HeartbeatResponse
 
-    with patch(
-        "modules.workspace.service.record_heartbeat", new_callable=AsyncMock
-    ) as mock:
+    with patch("modules.workspace.service.record_heartbeat", new_callable=AsyncMock) as mock:
         mock.return_value = HeartbeatResponse(lastHeartbeat=1708000001000)
         response = client.post("/api/workspace/heartbeat")
         assert response.status_code == 200
@@ -69,14 +63,10 @@ def test_get_usage():
         model="claude-sonnet-4-6",
         tiers=[
             UsageTier(label="Current session", percent=23, resetsIn="3h 45m"),
-            UsageTier(
-                label="Current week (all models)", percent=11, resetsIn="6d 12h"
-            ),
+            UsageTier(label="Current week (all models)", percent=11, resetsIn="6d 12h"),
         ],
     )
-    with patch(
-        "modules.workspace.service.get_usage", new_callable=AsyncMock
-    ) as mock:
+    with patch("modules.workspace.service.get_usage", new_callable=AsyncMock) as mock:
         mock.return_value = usage
         response = client.get("/api/workspace/usage")
         assert response.status_code == 200
@@ -92,9 +82,7 @@ def test_get_usage():
 
 
 def test_get_models():
-    with patch(
-        "modules.workspace.service.get_models", new_callable=AsyncMock
-    ) as mock:
+    with patch("modules.workspace.service.get_models", new_callable=AsyncMock) as mock:
         mock.return_value = ["claude-sonnet-4-6", "claude-opus-4-6"]
         response = client.get("/api/workspace/models")
         assert response.status_code == 200
@@ -104,13 +92,9 @@ def test_get_models():
 def test_set_model():
     from modules.workspace.models import ModelResponse
 
-    with patch(
-        "modules.workspace.service.set_model", new_callable=AsyncMock
-    ) as mock:
+    with patch("modules.workspace.service.set_model", new_callable=AsyncMock) as mock:
         mock.return_value = ModelResponse(success=True, model="claude-opus-4-6")
-        response = client.post(
-            "/api/workspace/model", json={"model": "claude-opus-4-6"}
-        )
+        response = client.post("/api/workspace/model", json={"model": "claude-opus-4-6"})
         assert response.status_code == 200
         assert response.json()["model"] == "claude-opus-4-6"
         assert response.json()["success"] is True
@@ -124,9 +108,7 @@ def test_set_model():
 def test_get_workspace_file():
     from modules.workspace.models import WorkspaceFileResponse
 
-    with patch(
-        "modules.workspace.service.get_workspace_file", new_callable=AsyncMock
-    ) as mock:
+    with patch("modules.workspace.service.get_workspace_file", new_callable=AsyncMock) as mock:
         mock.return_value = WorkspaceFileResponse(
             content="# SOUL.md\nBe helpful.",
             lastModified="2026-02-18T00:00:00+00:00",
@@ -144,9 +126,7 @@ def test_get_workspace_file_invalid_name():
 def test_get_workspace_file_identity():
     from modules.workspace.models import WorkspaceFileResponse
 
-    with patch(
-        "modules.workspace.service.get_workspace_file", new_callable=AsyncMock
-    ) as mock:
+    with patch("modules.workspace.service.get_workspace_file", new_callable=AsyncMock) as mock:
         mock.return_value = WorkspaceFileResponse(
             content="# IDENTITY.md\nI am an agent.",
             lastModified="2026-03-01T00:00:00+00:00",
@@ -157,9 +137,7 @@ def test_get_workspace_file_identity():
 
 
 def test_update_workspace_file_saves_history():
-    with patch(
-        "modules.workspace.service.update_workspace_file", new_callable=AsyncMock
-    ) as mock:
+    with patch("modules.workspace.service.update_workspace_file", new_callable=AsyncMock) as mock:
         mock.return_value = None
         response = client.put(
             "/api/workspace/workspace-file?name=SOUL.md",
@@ -184,9 +162,7 @@ def test_workspace_file_history():
     history = [
         HistoryEntry(timestamp="2026-02-17T00:00:00+00:00", content="# Old soul"),
     ]
-    with patch(
-        "modules.workspace.service.get_file_history", new_callable=AsyncMock
-    ) as mock:
+    with patch("modules.workspace.service.get_file_history", new_callable=AsyncMock) as mock:
         mock.return_value = history
         response = client.get("/api/workspace/workspace-file/history?name=SOUL.md")
         assert response.status_code == 200
@@ -203,9 +179,7 @@ def test_workspace_file_history_invalid_name():
 def test_revert_workspace_file():
     from modules.workspace.models import WorkspaceFileResponse
 
-    with patch(
-        "modules.workspace.service.revert_workspace_file", new_callable=AsyncMock
-    ) as mock:
+    with patch("modules.workspace.service.revert_workspace_file", new_callable=AsyncMock) as mock:
         mock.return_value = WorkspaceFileResponse(
             content="# Reverted soul",
             lastModified="2026-03-01T00:00:00+00:00",
@@ -219,9 +193,7 @@ def test_revert_workspace_file():
 
 
 def test_revert_workspace_file_invalid_index():
-    with patch(
-        "modules.workspace.service.revert_workspace_file", new_callable=AsyncMock
-    ) as mock:
+    with patch("modules.workspace.service.revert_workspace_file", new_callable=AsyncMock) as mock:
         mock.return_value = None
         response = client.post(
             "/api/workspace/workspace-file/revert?name=SOUL.md",
@@ -319,9 +291,7 @@ def test_compute_usage_no_sessions_dir():
     mock_openclaw_json = MagicMock()
     mock_openclaw_json.read_text.side_effect = FileNotFoundError
 
-    with patch(
-        "modules.workspace.service.settings"
-    ) as mock_settings:
+    with patch("modules.workspace.service.settings") as mock_settings:
         type(mock_settings).sessions_path = PropertyMock(return_value=mock_path)
         mock_oc_path = MagicMock()
         mock_oc_path.__truediv__ = MagicMock(return_value=mock_openclaw_json)

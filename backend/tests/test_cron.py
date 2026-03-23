@@ -198,12 +198,8 @@ def test_list_jobs():
 
 
 def test_health_summary():
-    summary = CronHealthSummary(
-        total=35, enabled=26, ok=20, late=3, failing=1, never_run=2
-    )
-    with patch(
-        "modules.cron.service.get_health_summary", new_callable=AsyncMock
-    ) as mock:
+    summary = CronHealthSummary(total=35, enabled=26, ok=20, late=3, failing=1, never_run=2)
+    with patch("modules.cron.service.get_health_summary", new_callable=AsyncMock) as mock:
         mock.return_value = summary
         response = client.get("/api/cron/health")
         assert response.status_code == 200
@@ -226,9 +222,7 @@ def test_channel_load():
         ChannelLoad(channel="slack:#briefing", jobs_count=5, msgs_per_day=5.0),
         ChannelLoad(channel="slack:#alerts", jobs_count=3, msgs_per_day=72.0),
     ]
-    with patch(
-        "modules.cron.service.list_channel_load", new_callable=AsyncMock
-    ) as mock:
+    with patch("modules.cron.service.list_channel_load", new_callable=AsyncMock) as mock:
         mock.return_value = channels
         response = client.get("/api/cron/channels")
         assert response.status_code == 200
@@ -250,11 +244,13 @@ def _mock_jobs_json(jobs: list[dict]) -> dict:
 def test_load_jobs_correct_count():
     """Loading 3 jobs from a mocked file returns 3 CronJob instances."""
     now_ms = int(time.time() * 1000)
-    raw = _mock_jobs_json([
-        _make_raw_job(last_run_ms=now_ms),
-        _make_raw_job(enabled=False),
-        _make_raw_job(last_run_ms=None),
-    ])
+    raw = _mock_jobs_json(
+        [
+            _make_raw_job(last_run_ms=now_ms),
+            _make_raw_job(enabled=False),
+            _make_raw_job(last_run_ms=None),
+        ]
+    )
 
     with patch("modules.cron.service._read_json_sync", return_value=raw):
         from modules.cron.service import _load_jobs_sync
@@ -266,11 +262,13 @@ def test_load_jobs_correct_count():
 def test_load_jobs_health_values():
     """Verify health labels for ok, disabled, and never-run jobs."""
     now_ms = int(time.time() * 1000)
-    raw = _mock_jobs_json([
-        _make_raw_job(last_run_ms=now_ms),          # ok
-        _make_raw_job(enabled=False),                # disabled
-        _make_raw_job(last_run_ms=None),             # never
-    ])
+    raw = _mock_jobs_json(
+        [
+            _make_raw_job(last_run_ms=now_ms),  # ok
+            _make_raw_job(enabled=False),  # disabled
+            _make_raw_job(last_run_ms=None),  # never
+        ]
+    )
 
     with patch("modules.cron.service._read_json_sync", return_value=raw):
         from modules.cron.service import _load_jobs_sync
@@ -287,13 +285,15 @@ def test_health_summary_from_jobs():
     # For a daily job (interval=1440 min), >4x interval = >5760 min = >96h
     old_ms = now_ms - 100 * 60 * 60 * 1000  # 100 hours ago → failing for daily job
 
-    raw = _mock_jobs_json([
-        _make_raw_job(last_run_ms=now_ms),           # ok
-        _make_raw_job(last_run_ms=now_ms),           # ok
-        _make_raw_job(enabled=False),                # disabled (not counted in enabled)
-        _make_raw_job(last_run_ms=None),             # never
-        _make_raw_job(last_run_ms=old_ms),           # failing
-    ])
+    raw = _mock_jobs_json(
+        [
+            _make_raw_job(last_run_ms=now_ms),  # ok
+            _make_raw_job(last_run_ms=now_ms),  # ok
+            _make_raw_job(enabled=False),  # disabled (not counted in enabled)
+            _make_raw_job(last_run_ms=None),  # never
+            _make_raw_job(last_run_ms=old_ms),  # failing
+        ]
+    )
 
     with patch("modules.cron.service._read_json_sync", return_value=raw):
         from modules.cron.service import _load_jobs_sync
@@ -310,36 +310,38 @@ def test_health_summary_from_jobs():
 def test_channel_load_aggregation():
     """Channel load groups by delivery target and sums msgs_per_day."""
     now_ms = int(time.time() * 1000)
-    raw = _mock_jobs_json([
-        _make_raw_job(
-            last_run_ms=now_ms,
-            delivery_mode="slack",
-            channel="slack",
-            to="#briefing",
-            expr="0 7 * * *",  # daily → 1 msg/day
-        ),
-        _make_raw_job(
-            last_run_ms=now_ms,
-            delivery_mode="slack",
-            channel="slack",
-            to="#briefing",
-            expr="0 7 * * *",  # daily → 1 msg/day
-        ),
-        _make_raw_job(
-            last_run_ms=now_ms,
-            delivery_mode="slack",
-            channel="slack",
-            to="#alerts",
-            expr="0 * * * *",  # hourly → 24 msgs/day
-        ),
-        _make_raw_job(
-            last_run_ms=now_ms,
-            delivery_mode="none",
-            channel="",
-            to="",
-            expr="0 7 * * *",  # no delivery
-        ),
-    ])
+    raw = _mock_jobs_json(
+        [
+            _make_raw_job(
+                last_run_ms=now_ms,
+                delivery_mode="slack",
+                channel="slack",
+                to="#briefing",
+                expr="0 7 * * *",  # daily → 1 msg/day
+            ),
+            _make_raw_job(
+                last_run_ms=now_ms,
+                delivery_mode="slack",
+                channel="slack",
+                to="#briefing",
+                expr="0 7 * * *",  # daily → 1 msg/day
+            ),
+            _make_raw_job(
+                last_run_ms=now_ms,
+                delivery_mode="slack",
+                channel="slack",
+                to="#alerts",
+                expr="0 * * * *",  # hourly → 24 msgs/day
+            ),
+            _make_raw_job(
+                last_run_ms=now_ms,
+                delivery_mode="none",
+                channel="",
+                to="",
+                expr="0 7 * * *",  # no delivery
+            ),
+        ]
+    )
 
     with patch("modules.cron.service._read_json_sync", return_value=raw):
         from modules.cron.service import list_channel_load
@@ -363,9 +365,7 @@ def test_channel_load_aggregation():
 
 def test_load_jobs_missing_file():
     """When jobs.json is missing, return an empty list."""
-    with patch(
-        "modules.cron.service._read_json_sync", return_value={"jobs": []}
-    ):
+    with patch("modules.cron.service._read_json_sync", return_value={"jobs": []}):
         from modules.cron.service import _load_jobs_sync
 
         jobs = _load_jobs_sync()
@@ -374,15 +374,17 @@ def test_load_jobs_missing_file():
 
 def test_disabled_jobs_excluded_from_channel_load():
     """Disabled jobs should not contribute to channel load."""
-    raw = _mock_jobs_json([
-        _make_raw_job(
-            enabled=False,
-            delivery_mode="slack",
-            channel="slack",
-            to="#briefing",
-            expr="0 7 * * *",
-        ),
-    ])
+    raw = _mock_jobs_json(
+        [
+            _make_raw_job(
+                enabled=False,
+                delivery_mode="slack",
+                channel="slack",
+                to="#briefing",
+                expr="0 7 * * *",
+            ),
+        ]
+    )
 
     with patch("modules.cron.service._read_json_sync", return_value=raw):
         import asyncio

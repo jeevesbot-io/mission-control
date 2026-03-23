@@ -361,9 +361,7 @@ def test_complete_task_with_result():
         patch("core.websocket.manager.broadcast", new_callable=AsyncMock),
     ):
         mock.return_value = completed
-        response = client.post(
-            "/api/tasks/42/complete", json={"result": "Successfully completed"}
-        )
+        response = client.post("/api/tasks/42/complete", json={"result": "Successfully completed"})
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "done"
@@ -542,9 +540,7 @@ def test_create_task_with_dependencies():
         patch("core.websocket.manager.broadcast", new_callable=AsyncMock),
     ):
         mock_create.return_value = created
-        response = client.post(
-            "/api/tasks/", json={"title": "Dependent Task", "blockedBy": ["42"]}
-        )
+        response = client.post("/api/tasks/", json={"title": "Dependent Task", "blockedBy": ["42"]})
         assert response.status_code == 200
         data = response.json()
         assert data["blockedBy"] == ["42"]

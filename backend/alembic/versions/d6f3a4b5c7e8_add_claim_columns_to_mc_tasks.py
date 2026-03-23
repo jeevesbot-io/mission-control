@@ -20,7 +20,12 @@ def upgrade() -> None:
         "mc_tasks",
         sa.Column("claimed_at", sa.DateTime(timezone=True), nullable=True),
     )
-    op.create_index("idx_mc_tasks_claimed", "mc_tasks", ["claimed_by"], postgresql_where=sa.text("claimed_by IS NOT NULL"))
+    op.create_index(
+        "idx_mc_tasks_claimed",
+        "mc_tasks",
+        ["claimed_by"],
+        postgresql_where=sa.text("claimed_by IS NOT NULL"),
+    )
 
 
 def downgrade() -> None:

@@ -162,9 +162,7 @@ async def list_channel_load() -> list[ChannelLoad]:
     """Return estimated message load per delivery channel."""
     jobs = await asyncio.to_thread(_load_jobs_sync)
 
-    channel_agg: dict[str, dict] = defaultdict(
-        lambda: {"jobs_count": 0, "msgs_per_day": 0.0}
-    )
+    channel_agg: dict[str, dict] = defaultdict(lambda: {"jobs_count": 0, "msgs_per_day": 0.0})
 
     for job in jobs:
         if not job.enabled:
